@@ -98,14 +98,14 @@ CREATE TABLE `pengajuan_servis` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `pengguna`
+-- Table structure for table `users`
 --
 
-CREATE TABLE `pengguna` (
+CREATE TABLE `users` (
   `id` bigint NOT NULL,
-  `nama_lengkap` varchar(100) NOT NULL,
+  `name` varchar(100) NOT NULL,
   `email` varchar(100) NOT NULL,
-  `kata_sandi` varchar(255) NOT NULL,
+  `password` varchar(255) NOT NULL,
   `peran` enum('ADMIN','PENGELOLA') NOT NULL,
   `dibuat_pada` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -197,9 +197,9 @@ ALTER TABLE `pengajuan_servis`
   ADD KEY `fk_pengajuan_disetujui` (`id_disetujui_oleh`);
 
 --
--- Indexes for table `pengguna`
+-- Indexes for table `users`
 --
-ALTER TABLE `pengguna`
+ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `email` (`email`);
 
@@ -256,9 +256,9 @@ ALTER TABLE `pengajuan_servis`
   MODIFY `id` bigint NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `pengguna`
+-- AUTO_INCREMENT for table `users`
 --
-ALTER TABLE `pengguna`
+ALTER TABLE `users`
   MODIFY `id` bigint NOT NULL AUTO_INCREMENT;
 
 --
@@ -287,28 +287,28 @@ ALTER TABLE `riwayat_servis`
 -- Constraints for table `kendaraan`
 --
 ALTER TABLE `kendaraan`
-  ADD CONSTRAINT `fk_kendaraan_pengelola` FOREIGN KEY (`id_pengelola`) REFERENCES `pengguna` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_kendaraan_pengelola` FOREIGN KEY (`id_pengelola`) REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 --
 -- Constraints for table `laporan_kerusakan`
 --
 ALTER TABLE `laporan_kerusakan`
   ADD CONSTRAINT `fk_laporan_kendaraan` FOREIGN KEY (`id_kendaraan`) REFERENCES `kendaraan` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_laporan_pelapor` FOREIGN KEY (`id_pelapor`) REFERENCES `pengguna` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_laporan_pelapor` FOREIGN KEY (`id_pelapor`) REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 --
 -- Constraints for table `notifikasi`
 --
 ALTER TABLE `notifikasi`
-  ADD CONSTRAINT `fk_notifikasi_pengguna` FOREIGN KEY (`id_pengguna`) REFERENCES `pengguna` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_notifikasi_pengguna` FOREIGN KEY (`id_pengguna`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `pengajuan_servis`
 --
 ALTER TABLE `pengajuan_servis`
-  ADD CONSTRAINT `fk_pengajuan_disetujui` FOREIGN KEY (`id_disetujui_oleh`) REFERENCES `pengguna` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_pengajuan_disetujui` FOREIGN KEY (`id_disetujui_oleh`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_pengajuan_kendaraan` FOREIGN KEY (`id_kendaraan`) REFERENCES `kendaraan` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_pengajuan_pengaju` FOREIGN KEY (`id_pengaju`) REFERENCES `pengguna` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_pengajuan_pengaju` FOREIGN KEY (`id_pengaju`) REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 --
 -- Constraints for table `rincian_sparepart`
@@ -321,14 +321,14 @@ ALTER TABLE `rincian_sparepart`
 --
 ALTER TABLE `riwayat_perbaikan`
   ADD CONSTRAINT `fk_perbaikan_laporan` FOREIGN KEY (`id_laporan_kerusakan`) REFERENCES `laporan_kerusakan` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_perbaikan_pembuat` FOREIGN KEY (`id_pembuat`) REFERENCES `pengguna` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_perbaikan_pembuat` FOREIGN KEY (`id_pembuat`) REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 --
 -- Constraints for table `riwayat_servis`
 --
 ALTER TABLE `riwayat_servis`
   ADD CONSTRAINT `fk_riwayat_kendaraan` FOREIGN KEY (`id_kendaraan`) REFERENCES `kendaraan` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_riwayat_pembuat` FOREIGN KEY (`id_pembuat`) REFERENCES `pengguna` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_riwayat_pembuat` FOREIGN KEY (`id_pembuat`) REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_riwayat_pengajuan` FOREIGN KEY (`id_pengajuan`) REFERENCES `pengajuan_servis` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 COMMIT;
 
