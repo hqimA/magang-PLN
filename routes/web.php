@@ -4,14 +4,6 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-<<<<<<< HEAD
-    return view('welcome');
-});
-
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
-=======
     return redirect()->route('login');
 });
 
@@ -26,7 +18,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return view('maintenance.index');
     })->name('maintenance.index');
 });
->>>>>>> 91aad40 (Initial commit)
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
