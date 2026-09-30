@@ -18,6 +18,9 @@
                     <x-nav-link :href="route('kendaraan.index')" :active="request()->routeIs('kendaraan.*')">
                         {{ __('Kendaraan') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('mileage.index')" :active="request()->routeIs('mileage.*')">
+                        {{ __('Mileage') }}
+                    </x-nav-link>
                     <x-nav-link :href="route('maintenance.index')" :active="request()->routeIs('maintenance.*')">
                         {{ __('Maintenance') }}
                     </x-nav-link>
@@ -78,6 +81,9 @@
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('kendaraan.index')" :active="request()->routeIs('kendaraan.*')">
                 {{ __('Kendaraan') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('mileage.index')" :active="request()->routeIs('mileage.*')">
+                {{ __('Mileage') }}
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('maintenance.index')" :active="request()->routeIs('maintenance.*')">
                 {{ __('Maintenance') }}

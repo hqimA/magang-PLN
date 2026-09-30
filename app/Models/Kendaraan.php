@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'plat_nomor',
@@ -33,6 +34,19 @@ class Kendaraan extends Model
     public function pengelola(): BelongsTo
     {
         return $this->belongsTo(User::class, 'id_pengelola');
+    }
+
+    public function mileages(): HasMany
+    {
+        return $this->hasMany(Mileage::class, 'id_kendaraan');
+    }
+
+    /**
+     * Catatan odometer terbaru, dipakai sebagai kilometer terakhir.
+     */
+    public function mileageTerakhir(): ?Mileage
+    {
+        return $this->mileages()->orderByDesc('kilometer_akhir')->orderByDesc('tanggal_perjalanan')->first();
     }
 
     protected function casts(): array
