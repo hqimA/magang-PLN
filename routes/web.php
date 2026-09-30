@@ -10,14 +10,10 @@ Route::get('/', function () {
 Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/dashboard', function () {
-        abort_unless(auth()->user()->peran === 'admin', 403);
-
         return view('dashboard');
     })->name('dashboard');
 
     Route::get('/home', function () {
-        abort_unless(auth()->user()->peran === 'pengelola', 403);
-
         return view('home');
     })->name('home');
 
