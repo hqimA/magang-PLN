@@ -12,20 +12,20 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
-Route::get('/dashboard', [AdminDashboardController::class, 'index'])
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
-    
 Route::middleware(['auth', 'verified'])->group(function () {
+
     Route::get('/dashboard', function () {
+        abort_unless(auth()->user()->peran === 'admin', 403);
+
         return view('dashboard');
     })->name('dashboard');
 
-    Route::resource('kendaraan', \App\Http\Controllers\KendaraanController::class);
+    Route::get('/home', function () {
+        abort_unless(auth()->user()->peran === 'pengelola', 403);
 
-    Route::get('/maintenance', function () {
-        return view('maintenance.index');
-    })->name('maintenance.index');
+        return view('home');
+    })->name('home');
+
 });
 
 Route::middleware('auth')->group(function () {
