@@ -15,15 +15,12 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
-<<<<<<< HEAD
-=======
                     <x-nav-link :href="route('kendaraan.index')" :active="request()->routeIs('kendaraan.*')">
                         {{ __('Kendaraan') }}
                     </x-nav-link>
                     <x-nav-link :href="route('maintenance.index')" :active="request()->routeIs('maintenance.*')">
                         {{ __('Maintenance') }}
                     </x-nav-link>
->>>>>>> 91aad40 (Initial commit)
                 </div>
             </div>
 
@@ -79,15 +76,12 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
-<<<<<<< HEAD
-=======
             <x-responsive-nav-link :href="route('kendaraan.index')" :active="request()->routeIs('kendaraan.*')">
                 {{ __('Kendaraan') }}
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('maintenance.index')" :active="request()->routeIs('maintenance.*')">
                 {{ __('Maintenance') }}
             </x-responsive-nav-link>
->>>>>>> 91aad40 (Initial commit)
         </div>
 
         <!-- Responsive Settings Options -->

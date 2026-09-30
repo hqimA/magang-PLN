@@ -23,8 +23,6 @@ class User extends Authenticatable
         return $this->hasMany(Kendaraan::class, 'id_pengelola');
     }
 
-<<<<<<< HEAD
-=======
     public function isAdmin(): bool
     {
         return $this->peran === 'ADMIN';
@@ -35,7 +33,6 @@ class User extends Authenticatable
         return $this->peran === 'TEKNISI' || $this->peran === 'PENGELOLA'; // Handling based on db_magangpln.sql enum
     }
 
->>>>>>> 91aad40 (Initial commit)
     /**
      * Get the attributes that should be cast.
      *

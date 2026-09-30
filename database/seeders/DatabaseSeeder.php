@@ -21,10 +21,6 @@ class DatabaseSeeder extends Seeder
             ['email' => 'admin@fleet-pln.test'],
             User::factory()->raw([
                 'name' => 'Administrator Fleet',
-<<<<<<< HEAD
-=======
-                'email' => 'admin@fleet-pln.test',
->>>>>>> 91aad40 (Initial commit)
                 'peran' => 'ADMIN',
             ]),
         );

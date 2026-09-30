@@ -142,7 +142,7 @@
                             </div>
                             <div id="preview-container" class="mt-3 hidden">
                                 <p class="text-xs text-gray-500 mb-1">Preview foto baru:</p>
-                                <img id="foto-preview" src="" alt="Preview Foto" class="h-40 w-auto rounded-md border border-gray-200 object-cover" />
+                                <img id="foto-preview" alt="Preview Foto" class="h-40 w-auto rounded-md border border-gray-200 object-cover" />
                             </div>
                         </div>
 
@@ -169,7 +169,7 @@
                                 reader.readAsDataURL(input.files[0]);
                             } else {
                                 container.classList.add('hidden');
-                                img.src = '';
+                                img.removeAttribute('src');
                             }
                         }
                     </script>

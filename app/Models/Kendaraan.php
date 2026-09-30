@@ -18,10 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'kilometer_terakhir',
     'tanggal_pembelian',
     'status_perawatan',
-<<<<<<< HEAD
-=======
     'foto_kendaraan',
->>>>>>> 91aad40 (Initial commit)
     'id_pengelola',
 ])]
 class Kendaraan extends Model

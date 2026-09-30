@@ -12,11 +12,28 @@ class KendaraanController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $kendaraans = Kendaraan::with('pengelola')->get();
+        $search = trim((string) $request->query('search', ''));
+        $status = (string) $request->query('status', '');
 
-        return view('kendaraan.index', compact('kendaraans'));
+        $kendaraans = Kendaraan::with('pengelola')
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('plat_nomor', 'like', "%{$search}%")
+                        ->orWhere('merk_tipe', 'like', "%{$search}%")
+                        ->orWhereHas('pengelola', function ($q) use ($search) {
+                            $q->where('name', 'like', "%{$search}%");
+                        });
+                });
+            })
+            ->when(in_array($status, ['BAIK', 'PERLU_SERVIS', 'SEDANG_SERVIS', 'RUSAK'], true), function ($query) use ($status) {
+                $query->where('status_perawatan', $status);
+            })
+            ->orderBy('plat_nomor')
+            ->get();
+
+        return view('kendaraan.index', compact('kendaraans', 'search', 'status'));
     }
 
     public function create()

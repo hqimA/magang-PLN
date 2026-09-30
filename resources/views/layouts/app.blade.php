@@ -29,8 +29,6 @@
 
             <!-- Page Content -->
             <main>
-<<<<<<< HEAD
-=======
                 {{-- Global Flash Messages --}}
                 @if (session('success'))
                     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 pt-4">
@@ -47,8 +45,6 @@
                         </div>
                     </div>
                 @endif
-
->>>>>>> 91aad40 (Initial commit)
                 {{ $slot }}
             </main>
         </div>

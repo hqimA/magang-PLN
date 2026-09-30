@@ -29,8 +29,37 @@
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
+                    {{-- Filter & pencarian --}}
+                    <form method="GET" action="{{ route('kendaraan.index') }}" class="mb-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                        <div class="flex-1">
+                            <x-text-input name="search" type="search" value="{{ $search ?? '' }}" placeholder="Cari plat nomor, merk/tipe, atau pengelola..." class="block w-full" />
+                        </div>
+                        <div class="sm:w-56">
+                            <select name="status" class="block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+                                <option value="">Semua Status</option>
+                                <option value="BAIK" @selected(($status ?? '') === 'BAIK')>Aktif</option>
+                                <option value="PERLU_SERVIS" @selected(($status ?? '') === 'PERLU_SERVIS')>Perlu Servis</option>
+                                <option value="SEDANG_SERVIS" @selected(($status ?? '') === 'SEDANG_SERVIS')>Sedang Servis</option>
+                                <option value="RUSAK" @selected(($status ?? '') === 'RUSAK')>Tidak Aktif</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <x-primary-button>Cari</x-primary-button>
+                            @if(($search ?? '') !== '' || ($status ?? '') !== '')
+                                <a href="{{ route('kendaraan.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-200 border border-transparent rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                                    Reset
+                                </a>
+                            @endif
+                        </div>
+                    </form>
+
                     @if($kendaraans->isEmpty())
-                        <p class="text-gray-500 text-center py-8">Belum ada data kendaraan. <a href="{{ route('kendaraan.create') }}" class="text-indigo-600 hover:underline">Tambah sekarang</a>.</p>
+                        <p class="text-gray-500 text-center py-8">
+                            @if(($search ?? '') !== '' || ($status ?? '') !== '')
+                                Data tidak ditemukan.
+                            @else
+                                Belum ada data kendaraan.
+                            @endif <a href="{{ route('kendaraan.create') }}" class="text-indigo-600 hover:underline">Tambah sekarang</a>.</p>
                     @else
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
