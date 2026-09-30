@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\ExpenseReportController;
+use App\Http\Controllers\KendaraanController;
 use App\Http\Controllers\OdometerLogController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RiwayatServisController;
@@ -12,20 +13,20 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
+Route::get('/dashboard', [AdminDashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
+
 Route::middleware(['auth', 'verified'])->group(function () {
-
-    Route::get('/dashboard', function () {
-        abort_unless(auth()->user()->peran === 'admin', 403);
-
-        return view('dashboard');
-    })->name('dashboard');
-
     Route::get('/home', function () {
-        abort_unless(auth()->user()->peran === 'pengelola', 403);
-
         return view('home');
     })->name('home');
 
+    Route::resource('kendaraan', KendaraanController::class);
+
+    Route::get('/maintenance', function () {
+        return view('maintenance.index');
+    })->name('maintenance.index');
 });
 
 Route::middleware('auth')->group(function () {

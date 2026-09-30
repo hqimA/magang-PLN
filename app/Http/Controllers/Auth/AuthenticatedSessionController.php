@@ -28,9 +28,7 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        $redirectRoute = Auth::user()->peran === 'admin' ? 'dashboard' : 'home';
-
-        return redirect()->route($redirectRoute);
+        return redirect()->intended(route('dashboard', absolute: false));
     }
 
     /**
