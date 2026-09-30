@@ -21,6 +21,7 @@ use Illuminate\Support\Carbon;
     'kilometer_terakhir',
     'tanggal_pembelian',
     'status_perawatan',
+    'foto_kendaraan',
     'id_pengelola',
     'interval_servis_km',
     'interval_servis_bulan',

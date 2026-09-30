@@ -23,6 +23,16 @@ class User extends Authenticatable
         return $this->hasMany(Kendaraan::class, 'id_pengelola');
     }
 
+    public function isAdmin(): bool
+    {
+        return $this->peran === 'ADMIN';
+    }
+
+    public function isTeknisi(): bool
+    {
+        return $this->peran === 'TEKNISI' || $this->peran === 'PENGELOLA'; // Handling based on db_magangpln.sql enum
+    }
+
     /**
      * Get the attributes that should be cast.
      *
