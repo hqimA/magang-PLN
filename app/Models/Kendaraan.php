@@ -62,6 +62,11 @@ class Kendaraan extends Model
         return $this->hasMany(Mileage::class, 'id_kendaraan');
     }
 
+    public function mileageTerbaru(): HasOne
+    {
+        return $this->hasOne(Mileage::class, 'id_kendaraan')->latestOfMany('id');
+    }
+
     /**
      * Catatan odometer terbaru, dipakai sebagai kilometer terakhir.
      */

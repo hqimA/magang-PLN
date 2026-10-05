@@ -39,7 +39,7 @@
                                         required>
                                     <option value="">-- Pilih Kendaraan --</option>
                                     @foreach($kendaraanList as $k)
-                                        <option value="{{ $k->id }}" {{ old('id_kendaraan') == $k->id ? 'selected' : '' }}>
+                                        <option value="{{ $k->id }}" {{ (string) old('id_kendaraan', request('kendaraan')) === (string) $k->id ? 'selected' : '' }}>
                                             {{ $k->merk_tipe }} — {{ $k->plat_nomor }}
                                         </option>
                                     @endforeach
