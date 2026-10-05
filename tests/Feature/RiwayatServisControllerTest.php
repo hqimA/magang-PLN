@@ -28,7 +28,7 @@ class RiwayatServisControllerTest extends TestCase
         $kendaraan = Kendaraan::factory()->for($user, 'pengelola')->create([
             'kilometer_terakhir' => 1500,
             'interval_servis_km' => 5000,
-            'status_perawatan' => 'SEDANG SERVIS',
+            'status_perawatan' => 'SEDANG_SERVIS',
         ]);
 
         $response = $this->actingAs($user)

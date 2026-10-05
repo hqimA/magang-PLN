@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Exports\ExpenseReportExport;
 use App\Models\Kendaraan;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 use Tests\TestCase;
 
 class ExpenseReportControllerTest extends TestCase
@@ -19,10 +21,12 @@ class ExpenseReportControllerTest extends TestCase
         $kendaraanDenganBiaya = Kendaraan::factory()->for($manager, 'pengelola')->create([
             'plat_nomor' => 'B 1234 PLN',
             'merk_tipe' => 'Toyota Avanza',
+            'status_perawatan' => 'BAIK',
         ]);
         $kendaraanTanpaBiaya = Kendaraan::factory()->for($manager, 'pengelola')->create([
             'plat_nomor' => 'B 5678 PLN',
             'merk_tipe' => 'Mitsubishi Xpander',
+            'status_perawatan' => 'BAIK',
         ]);
 
         DB::table('riwayat_servis')->insert([
@@ -103,5 +107,82 @@ class ExpenseReportControllerTest extends TestCase
         $response = $this->get(route('laporan-pengeluaran.index'));
 
         $response->assertRedirect(route('login'));
+    }
+
+    public function test_admin_can_download_excel_expense_report(): void
+    {
+        $admin = User::factory()->create(['peran' => 'ADMIN']);
+        $manager = User::factory()->create(['peran' => 'PENGELOLA']);
+        $kendaraan = Kendaraan::factory()->for($manager, 'pengelola')->create([
+            'plat_nomor' => 'B 9001 PLN',
+            'merk_tipe' => 'Toyota Innova',
+            'status_perawatan' => 'BAIK',
+        ]);
+        DB::table('riwayat_servis')->insert([
+            'id_kendaraan' => $kendaraan->id,
+            'tanggal_servis' => '2026-09-05',
+            'kilometer_servis' => 1000,
+            'nama_bengkel' => 'Bengkel PLN',
+            'total_biaya' => 125000,
+            'id_pembuat' => $manager->id,
+        ]);
+        $laporanId = DB::table('laporan_kerusakan')->insertGetId([
+            'id_kendaraan' => $kendaraan->id,
+            'id_pelapor' => $manager->id,
+            'tanggal_kejadian' => '2026-09-04 09:00:00',
+            'lokasi_kejadian' => 'Kantor PLN',
+            'deskripsi_kerusakan' => 'Perlu perbaikan',
+            'tingkat_kerusakan' => 'RINGAN',
+        ]);
+        DB::table('riwayat_perbaikan')->insert([
+            'id_laporan_kerusakan' => $laporanId,
+            'tanggal_perbaikan' => '2026-09-10',
+            'nama_bengkel' => 'Bengkel PLN',
+            'ringkasan_perbaikan' => 'Penggantian komponen',
+            'total_biaya_perbaikan' => 75000,
+            'id_pembuat' => $manager->id,
+        ]);
+        Excel::fake();
+
+        $response = $this->actingAs($admin)->get(route('laporan-pengeluaran.excel', [
+            'bulan' => 9,
+            'tahun' => 2026,
+        ]));
+
+        $response->assertOk();
+        Excel::assertDownloaded('laporan-pengeluaran-2026-09.xlsx', function (ExpenseReportExport $export) use ($manager): bool {
+            return $export->collection()->all() === [[
+                'B 9001 PLN',
+                'Toyota Innova',
+                $manager->name,
+                125000.0,
+                75000.0,
+                200000.0,
+            ]];
+        });
+    }
+
+    public function test_admin_can_download_pdf_expense_report(): void
+    {
+        $admin = User::factory()->create(['peran' => 'ADMIN']);
+
+        $response = $this->actingAs($admin)->get(route('laporan-pengeluaran.pdf', [
+            'bulan' => 9,
+            'tahun' => 2026,
+        ]));
+
+        $response->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF-', $response->getContent());
+    }
+
+    public function test_non_admin_cannot_download_expense_reports(): void
+    {
+        $manager = User::factory()->create(['peran' => 'PENGELOLA']);
+
+        $excelResponse = $this->actingAs($manager)->get(route('laporan-pengeluaran.excel'));
+        $pdfResponse = $this->actingAs($manager)->get(route('laporan-pengeluaran.pdf'));
+
+        $excelResponse->assertForbidden();
+        $pdfResponse->assertForbidden();
     }
 }

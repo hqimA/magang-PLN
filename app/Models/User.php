@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'email', 'password', 'peran'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -30,7 +30,12 @@ class User extends Authenticatable
 
     public function isTeknisi(): bool
     {
-        return $this->peran === 'TEKNISI' || $this->peran === 'PENGELOLA'; // Handling based on db_magangpln.sql enum
+        return $this->peran === 'TEKNISI' || $this->isPengelola(); // Handling based on db_magangpln.sql enum
+    }
+
+    public function isPengelola(): bool
+    {
+        return $this->peran === 'PENGELOLA';
     }
 
     /**

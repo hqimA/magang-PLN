@@ -43,6 +43,16 @@ class RiwayatServis extends Model
         return $this->belongsTo(Kendaraan::class, 'id_kendaraan');
     }
 
+    public function pembuat(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'id_pembuat');
+    }
+
+    public function pengajuan(): BelongsTo
+    {
+        return $this->belongsTo(PengajuanServis::class, 'id_pengajuan');
+    }
+
     public function rincianSparepart(): HasMany
     {
         return $this->hasMany(RincianSparepart::class, 'id_riwayat_servis');
