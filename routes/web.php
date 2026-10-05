@@ -42,6 +42,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/laporan-pengeluaran', [ExpenseReportController::class, 'index'])
         ->middleware('role:admin')
         ->name('laporan-pengeluaran.index');
+    Route::get('/laporan-pengeluaran/excel', [ExpenseReportController::class, 'exportExcel'])
+        ->middleware('role:admin')
+        ->name('laporan-pengeluaran.excel');
+    Route::get('/laporan-pengeluaran/pdf', [ExpenseReportController::class, 'exportPdf'])
+        ->middleware('role:admin')
+        ->name('laporan-pengeluaran.pdf');
     Route::get('/service-reminders', [ServiceReminderController::class, 'index'])->name('service-reminders.index');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
