@@ -9,6 +9,7 @@ use App\Http\Controllers\OdometerLogController;
 use App\Http\Controllers\PengelolaKendaraanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RiwayatServisController;
+use App\Http\Controllers\ServiceApprovalController;
 use App\Http\Controllers\ServiceReminderController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -54,6 +55,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/riwayat-servis', [RiwayatServisController::class, 'index'])->name('service-history.index');
     Route::get('/riwayat-servis/{riwayatServis}', [RiwayatServisController::class, 'show'])->name('service-history.show');
     Route::post('/riwayat-servis', [RiwayatServisController::class, 'store'])->name('riwayat-servis.store');
+    Route::post('/pengajuan-servis/{id}/approve', [ServiceApprovalController::class, 'approve'])
+        ->middleware('role:admin')
+        ->name('pengajuan-servis.approve');
+    Route::post('/pengajuan-servis/{id}/reject', [ServiceApprovalController::class, 'reject'])
+        ->middleware('role:admin')
+        ->name('pengajuan-servis.reject');
     Route::get('/laporan-pengeluaran', [ExpenseReportController::class, 'index'])
         ->middleware('role:ADMIN')
         ->name('laporan-pengeluaran.index');
