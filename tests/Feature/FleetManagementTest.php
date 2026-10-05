@@ -17,37 +17,52 @@ class FleetManagementTest extends TestCase
 
         $response = $this->actingAs($pengelola)->get('/admin/dashboard');
 
-        $response->assertForbidden();
+        $response->assertNotFound();
     }
 
     public function test_admin_bisa_akses_halaman_admin(): void
     {
         $admin = $this->createUserWithRole('ADMIN');
 
-        $response = $this->actingAs($admin)->get('/admin/dashboard');
+        $response = $this->actingAs($admin)->get('/dashboard');
 
-        $response->assertOk();
+        $response->assertOk()->assertViewIs('admin.dashboard');
     }
 
-    public function test_pengelola_bisa_membuat_pengajuan_servis(): void
+    public function test_pengelola_melihat_dashboard_operasional(): void
+    {
+        $pengelola = $this->createUserWithRole('PENGELOLA');
+
+        $response = $this->actingAs($pengelola)->get('/dashboard');
+
+        $response->assertOk()->assertViewIs('dashboard');
+    }
+
+    public function test_pengelola_bisa_mencatat_riwayat_servis_kendaraan_miliknya(): void
     {
         $pengelola = $this->createUserWithRole('PENGELOLA');
         $kendaraan = Kendaraan::factory()
             ->for($pengelola, 'pengelola')
-            ->create();
+            ->create([
+                'kilometer_terakhir' => 1500,
+                'status_perawatan' => 'SEDANG_SERVIS',
+            ]);
 
-        $this->actingAs($pengelola)->post('/pengajuan-servis', [
+        $this->actingAs($pengelola)->post('/riwayat-servis', [
             'id_kendaraan' => $kendaraan->id,
-            'jenis_pengajuan' => 'RUTIN',
-            'deskripsi_keluhan' => 'Servis berkala kendaraan.',
+            'tanggal_servis' => now()->subDay()->toDateString(),
+            'kilometer_servis' => 1600,
+            'nama_bengkel' => 'Bengkel PLN',
+            'total_biaya' => 300000,
         ]);
 
-        $this->assertDatabaseHas('pengajuan_servis', [
+        $this->assertDatabaseHas('riwayat_servis', [
             'id_kendaraan' => $kendaraan->id,
-            'id_pengaju' => $pengelola->id,
-            'jenis_pengajuan' => 'RUTIN',
-            'deskripsi_keluhan' => 'Servis berkala kendaraan.',
-            'status_persetujuan' => 'MENUNGGU',
+            'id_pembuat' => $pengelola->id,
+        ]);
+        $this->assertDatabaseHas('kendaraan', [
+            'id' => $kendaraan->id,
+            'status_perawatan' => 'BAIK',
         ]);
     }
 

@@ -5,10 +5,13 @@ namespace Tests\Feature;
 use App\Models\Kendaraan;
 use App\Models\OdometerLog;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class OdometerLogTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_guest_is_redirected_from_odometer_log_submission(): void
     {
         $response = $this->post(route('odometer-log.store'));
@@ -34,7 +37,7 @@ class OdometerLogTest extends TestCase
         $this->assertDatabaseHas('odometer_logs', [
             'id_kendaraan' => $vehicle->id,
             'kilometer' => 1350,
-            'tanggal_pencatatan' => '2026-09-28',
+            'tanggal_pencatatan' => '2026-09-28 00:00:00',
             'keterangan' => 'Pencatatan rutin',
             'id_penginput' => $user->id,
         ]);

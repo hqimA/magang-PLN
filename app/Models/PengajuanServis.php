@@ -16,6 +16,7 @@ class PengajuanServis extends Model
         'jenis_pengajuan',
         'deskripsi_keluhan',
         'estimasi_biaya',
+        'kilometer_pengajuan',
         'status_persetujuan',
         'alasan_penolakan',
         'id_disetujui_oleh',
@@ -26,6 +27,7 @@ class PengajuanServis extends Model
     {
         return [
             'estimasi_biaya' => 'decimal:2',
+            'kilometer_pengajuan' => 'integer',
             'dibuat_pada' => 'datetime',
         ];
     }

@@ -14,10 +14,12 @@ class KendaraanController extends Controller
      */
     public function index(Request $request)
     {
+        $user = $request->user();
         $search = trim((string) $request->query('search', ''));
         $status = (string) $request->query('status', '');
 
         $kendaraans = Kendaraan::with('pengelola')
+            ->when(! $user->isAdmin(), fn ($query) => $query->where('id_pengelola', $user->id))
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('plat_nomor', 'like', "%{$search}%")
@@ -36,15 +38,21 @@ class KendaraanController extends Controller
         return view('kendaraan.index', compact('kendaraans', 'search', 'status'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
-        $pengelolas = User::all();
+        $user = $request->user();
+
+        $pengelolas = $user->isAdmin()
+            ? User::orderBy('name')->get()
+            : User::whereKey($user->id)->get();
 
         return view('kendaraan.create', compact('pengelolas'));
     }
 
     public function store(Request $request)
     {
+        $user = $request->user();
+
         $validated = $request->validate([
             'plat_nomor' => 'required|string|max:15|unique:kendaraan,plat_nomor',
             'merk_tipe' => 'required|string|max:100',
@@ -58,6 +66,11 @@ class KendaraanController extends Controller
             'id_pengelola' => 'required|exists:users,id',
             'foto_kendaraan' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
+
+        // Pengelola hanya dapat membuat kendaraan atas namanya sendiri.
+        if (! $user->isAdmin()) {
+            $validated['id_pengelola'] = $user->id;
+        }
 
         if ($request->hasFile('foto_kendaraan')) {
             $validated['foto_kendaraan'] = $request->file('foto_kendaraan')->store('kendaraan', 'public');
@@ -73,17 +86,26 @@ class KendaraanController extends Controller
         //
     }
 
-    public function edit(string $id)
+    public function edit(Request $request, string $id)
     {
+        $user = $request->user();
         $kendaraan = Kendaraan::findOrFail($id);
-        $pengelolas = User::all();
+
+        $this->authorizeKendaraan($user, $kendaraan);
+
+        $pengelolas = $user->isAdmin()
+            ? User::orderBy('name')->get()
+            : User::whereKey($user->id)->get();
 
         return view('kendaraan.edit', compact('kendaraan', 'pengelolas'));
     }
 
     public function update(Request $request, string $id)
     {
+        $user = $request->user();
         $kendaraan = Kendaraan::findOrFail($id);
+
+        $this->authorizeKendaraan($user, $kendaraan);
 
         $validated = $request->validate([
             'plat_nomor' => 'required|string|max:15|unique:kendaraan,plat_nomor,'.$kendaraan->id,
@@ -107,13 +129,21 @@ class KendaraanController extends Controller
             $validated['foto_kendaraan'] = $request->file('foto_kendaraan')->store('kendaraan', 'public');
         }
 
+        // Pengelola tidak dapat memindahkan kendaraan ke pengelola lain.
+        if (! $user->isAdmin()) {
+            $validated['id_pengelola'] = $kendaraan->id_pengelola;
+        }
+
         $kendaraan->update($validated);
 
         return redirect()->route('kendaraan.index')->with('success', 'Kendaraan berhasil diperbarui.');
     }
 
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
+        // Penghapusan kendaraan hanya untuk Admin.
+        abort_unless($request->user()->isAdmin(), 403);
+
         $kendaraan = Kendaraan::findOrFail($id);
 
         // Hapus foto jika ada
@@ -124,5 +154,16 @@ class KendaraanController extends Controller
         $kendaraan->delete();
 
         return redirect()->route('kendaraan.index')->with('success', 'Kendaraan berhasil dihapus.');
+    }
+
+    /**
+     * Pengelola hanya boleh mengakses kendaraan yang menjadi tanggung jawabnya.
+     */
+    private function authorizeKendaraan(User $user, Kendaraan $kendaraan): void
+    {
+        abort_unless(
+            $user->isAdmin() || (int) $kendaraan->id_pengelola === (int) $user->id,
+            403,
+        );
     }
 }
