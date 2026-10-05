@@ -5,6 +5,7 @@ use App\Http\Controllers\ExpenseReportController;
 use App\Http\Controllers\KendaraanController;
 use App\Http\Controllers\MileageController;
 use App\Http\Controllers\OdometerLogController;
+use App\Http\Controllers\PengelolaKendaraanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RiwayatServisController;
 use App\Http\Controllers\ServiceReminderController;
@@ -24,6 +25,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('home');
 
     Route::resource('kendaraan', KendaraanController::class);
+
+    Route::get('/pengelola/kendaraan', [PengelolaKendaraanController::class, 'index'])->name('pengelola.kendaraan');
 
     Route::get('/mileage', [MileageController::class, 'index'])->name('mileage.index');
     Route::get('/mileage/history', [MileageController::class, 'history'])->name('mileage.history');

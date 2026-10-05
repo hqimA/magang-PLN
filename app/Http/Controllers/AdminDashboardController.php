@@ -7,15 +7,16 @@ use App\Models\LaporanKerusakan;
 use App\Models\PengajuanServis;
 use App\Models\RiwayatPerbaikan;
 use App\Models\RiwayatServis;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class AdminDashboardController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
         if ($request->user()->peran !== 'ADMIN') {
-            return view('dashboard');
+            return redirect()->route('pengelola.kendaraan');
         }
 
         $bulanIni = now();

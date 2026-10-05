@@ -27,7 +27,7 @@ class KendaraanFactory extends Factory
             'kategori_penggunaan' => fake()->randomElement(['PEJABAT', 'TEKNISI', 'ANGKUT_BARANG', 'MOTOR_OPERASIONAL']),
             'kilometer_terakhir' => fake()->numberBetween(0, 200000),
             'tanggal_pembelian' => fake()->date(),
-            'status_perawatan' => fake()->randomElement(['BAIK', 'PERLU SERVIS', 'SEDANG SERVIS', 'RUSAK']),
+            'status_perawatan' => fake()->randomElement(['BAIK', 'PERLU_SERVIS', 'SEDANG_SERVIS', 'RUSAK']),
             'id_pengelola' => User::factory(),
         ];
     }
