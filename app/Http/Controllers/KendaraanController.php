@@ -54,6 +54,7 @@ class KendaraanController extends Controller
             'kategori_penggunaan' => 'required|in:PEJABAT,TEKNISI,ANGKUT_BARANG,MOTOR_OPERASIONAL',
             'kilometer_terakhir' => 'required|integer',
             'tanggal_pembelian' => 'required|date',
+            ...$this->documentExpiryDateRules(),
             'status_perawatan' => 'required|in:BAIK,PERLU_SERVIS,SEDANG_SERVIS,RUSAK',
             'id_pengelola' => 'required|exists:users,id',
             'foto_kendaraan' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
@@ -94,6 +95,7 @@ class KendaraanController extends Controller
             'kategori_penggunaan' => 'required|in:PEJABAT,TEKNISI,ANGKUT_BARANG,MOTOR_OPERASIONAL',
             'kilometer_terakhir' => 'required|integer',
             'tanggal_pembelian' => 'required|date',
+            ...$this->documentExpiryDateRules(),
             'status_perawatan' => 'required|in:BAIK,PERLU_SERVIS,SEDANG_SERVIS,RUSAK',
             'id_pengelola' => 'required|exists:users,id',
             'foto_kendaraan' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
@@ -124,5 +126,15 @@ class KendaraanController extends Controller
         $kendaraan->delete();
 
         return redirect()->route('kendaraan.index')->with('success', 'Kendaraan berhasil dihapus.');
+    }
+
+    private function documentExpiryDateRules(): array
+    {
+        $maximumDate = today()->addYears(5)->toDateString();
+
+        return [
+            'tanggal_stnk_berlaku_sampai' => ['nullable', 'date', 'before_or_equal:'.$maximumDate],
+            'tanggal_kir_berlaku_sampai' => ['nullable', 'date', 'before_or_equal:'.$maximumDate],
+        ];
     }
 }

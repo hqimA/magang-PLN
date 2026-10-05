@@ -27,6 +27,8 @@ use Illuminate\Support\Carbon;
     'interval_servis_bulan',
     'threshold_servis_km',
     'threshold_servis_hari',
+    'tanggal_stnk_berlaku_sampai',
+    'tanggal_kir_berlaku_sampai',
 ])]
 class Kendaraan extends Model
 {
@@ -111,6 +113,8 @@ class Kendaraan extends Model
             'threshold_servis_km' => 'integer',
             'threshold_servis_hari' => 'integer',
             'tanggal_pembelian' => 'date',
+            'tanggal_stnk_berlaku_sampai' => 'date',
+            'tanggal_kir_berlaku_sampai' => 'date',
             'dibuat_pada' => 'datetime',
         ];
     }

@@ -85,6 +85,18 @@
                                 <x-input-error :messages="$errors->get('tanggal_pembelian')" class="mt-2" />
                             </div>
 
+                            <div>
+                                <x-input-label for="tanggal_stnk_berlaku_sampai" :value="__('STNK Berlaku Sampai')" />
+                                <x-text-input id="tanggal_stnk_berlaku_sampai" class="block mt-1 w-full" type="date" name="tanggal_stnk_berlaku_sampai" :value="old('tanggal_stnk_berlaku_sampai')" />
+                                <x-input-error :messages="$errors->get('tanggal_stnk_berlaku_sampai')" class="mt-2" />
+                            </div>
+
+                            <div>
+                                <x-input-label for="tanggal_kir_berlaku_sampai" :value="__('KIR Berlaku Sampai')" />
+                                <x-text-input id="tanggal_kir_berlaku_sampai" class="block mt-1 w-full" type="date" name="tanggal_kir_berlaku_sampai" :value="old('tanggal_kir_berlaku_sampai')" />
+                                <x-input-error :messages="$errors->get('tanggal_kir_berlaku_sampai')" class="mt-2" />
+                            </div>
+
                             <!-- Status Perawatan -->
                             <div>
                                 <x-input-label for="status_perawatan" :value="__('Status Kendaraan')" />
