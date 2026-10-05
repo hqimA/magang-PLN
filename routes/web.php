@@ -7,6 +7,7 @@ use App\Http\Controllers\MileageController;
 use App\Http\Controllers\OdometerLogController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RiwayatServisController;
+use App\Http\Controllers\ServiceApprovalController;
 use App\Http\Controllers\ServiceReminderController;
 use Illuminate\Support\Facades\Route;
 
@@ -39,6 +40,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('/odometer-log', [OdometerLogController::class, 'store'])->name('odometer-log.store');
     Route::post('/riwayat-servis', [RiwayatServisController::class, 'store'])->name('riwayat-servis.store');
+    Route::post('/pengajuan-servis/{id}/approve', [ServiceApprovalController::class, 'approve'])
+        ->middleware('role:admin')
+        ->name('pengajuan-servis.approve');
+    Route::post('/pengajuan-servis/{id}/reject', [ServiceApprovalController::class, 'reject'])
+        ->middleware('role:admin')
+        ->name('pengajuan-servis.reject');
     Route::get('/laporan-pengeluaran', [ExpenseReportController::class, 'index'])
         ->middleware('role:admin')
         ->name('laporan-pengeluaran.index');
