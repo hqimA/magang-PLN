@@ -59,6 +59,19 @@ class Kendaraan extends Model
         return $this->hasOne(RiwayatServis::class, 'id_kendaraan')->latestOfMany('tanggal_servis');
     }
 
+    public function mileages(): HasMany
+    {
+        return $this->hasMany(Mileage::class, 'id_kendaraan');
+    }
+
+    /**
+     * Catatan odometer terbaru, dipakai sebagai kilometer terakhir.
+     */
+    public function mileageTerakhir(): ?Mileage
+    {
+        return $this->mileages()->orderByDesc('kilometer_akhir')->orderByDesc('tanggal_perjalanan')->first();
+    }
+
     /**
      * @return array{status: string, alasan: string, kilometer_saat_ini: int, target_kilometer: int, sisa_kilometer: int, tanggal_acuan: string, tanggal_target: string, sisa_hari: int}
      */
