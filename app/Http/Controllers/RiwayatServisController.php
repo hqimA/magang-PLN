@@ -9,11 +9,69 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\View\View;
 use RuntimeException;
 use Throwable;
 
 class RiwayatServisController extends Controller
 {
+    public function index(Request $request): View
+    {
+        $user = $request->user();
+
+        $query = RiwayatServis::query()
+            ->with(['kendaraan.pengelola', 'rincianSparepart', 'pengajuan'])
+            ->when(
+                $user->peran !== 'ADMIN',
+                fn ($q) => $q->whereHas('kendaraan', fn ($k) => $k->where('id_pengelola', $user->id))
+            );
+
+        // Search by plat_nomor or nama_bengkel
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('nama_bengkel', 'like', "%{$search}%")
+                    ->orWhereHas('kendaraan', fn ($k) => $k->where('plat_nomor', 'like', "%{$search}%")
+                        ->orWhere('merk_tipe', 'like', "%{$search}%"));
+            });
+        }
+
+        // Filter by kendaraan
+        if ($idKendaraan = $request->input('id_kendaraan')) {
+            $query->where('id_kendaraan', $idKendaraan);
+        }
+
+        // Filter by date range
+        if ($from = $request->input('dari')) {
+            $query->whereDate('tanggal_servis', '>=', $from);
+        }
+        if ($to = $request->input('sampai')) {
+            $query->whereDate('tanggal_servis', '<=', $to);
+        }
+
+        $riwayatServis = $query->orderByDesc('tanggal_servis')->paginate(15)->withQueryString();
+
+        $kendaraanList = Kendaraan::query()
+            ->when($user->peran !== 'ADMIN', fn ($q) => $q->where('id_pengelola', $user->id))
+            ->orderBy('plat_nomor')
+            ->get(['id', 'plat_nomor', 'merk_tipe']);
+
+        return view('riwayat-servis.index', compact('riwayatServis', 'kendaraanList'));
+    }
+
+    public function show(RiwayatServis $riwayatServis): View
+    {
+        $user = auth()->user();
+
+        // Authorization: non-admin can only see their own vehicles
+        if ($user->peran !== 'ADMIN' && $riwayatServis->kendaraan->id_pengelola !== $user->id) {
+            abort(403);
+        }
+
+        $riwayatServis->load(['kendaraan.pengelola', 'rincianSparepart', 'pengajuan', 'pembuat']);
+
+        return view('riwayat-servis.show', compact('riwayatServis'));
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([

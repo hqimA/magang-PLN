@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Kendaraan;
 use App\Models\Mileage;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 class MileageController extends Controller
@@ -13,7 +15,8 @@ class MileageController extends Controller
      */
     public function index(Request $request)
     {
-        $kendaraans = Kendaraan::orderBy('plat_nomor')->get();
+        $user = $request->user();
+        $kendaraans = $this->kendaraanTerpakai($user)->orderBy('plat_nomor')->get();
 
         $selectedId = (int) $request->query('kendaraan', 0);
         $selected = $kendaraans->firstWhere('id', $selectedId) ?? $kendaraans->first();
@@ -35,11 +38,12 @@ class MileageController extends Controller
      */
     public function history(Request $request)
     {
+        $user = $request->user();
         $kendaraanId = (int) $request->query('kendaraan', 0);
         $dari = (string) $request->query('dari', '');
         $sampai = (string) $request->query('sampai', '');
 
-        $riwayat = Mileage::with(['kendaraan', 'pencatat'])
+        $riwayat = $this->riwayatTerpakai($user)
             ->when($kendaraanId > 0, fn ($query) => $query->where('id_kendaraan', $kendaraanId))
             ->when($dari !== '', fn ($query) => $query->whereDate('tanggal_perjalanan', '>=', $dari))
             ->when($sampai !== '', fn ($query) => $query->whereDate('tanggal_perjalanan', '<=', $sampai))
@@ -47,7 +51,7 @@ class MileageController extends Controller
             ->orderByDesc('id')
             ->get();
 
-        $kendaraans = Kendaraan::orderBy('plat_nomor')->get();
+        $kendaraans = $this->kendaraanTerpakai($user)->orderBy('plat_nomor')->get();
 
         return view('mileage.history', compact('riwayat', 'kendaraans', 'kendaraanId', 'dari', 'sampai'));
     }
@@ -57,7 +61,8 @@ class MileageController extends Controller
      */
     public function odometer(Request $request)
     {
-        $kendaraans = Kendaraan::orderBy('plat_nomor')->get();
+        $user = $request->user();
+        $kendaraans = $this->kendaraanTerpakai($user)->orderBy('plat_nomor')->get();
 
         $selectedId = (int) $request->query('kendaraan', 0);
         $selected = $kendaraans->firstWhere('id', $selectedId) ?? $kendaraans->first();
@@ -86,6 +91,8 @@ class MileageController extends Controller
         ]);
 
         $kendaraan = Kendaraan::findOrFail($validated['id_kendaraan']);
+
+        $this->authorizeKendaraan($request->user(), $kendaraan);
 
         $odometerSebelumnya = $kendaraan->kilometer_terakhir ?? 0;
 
@@ -140,6 +147,8 @@ class MileageController extends Controller
 
         $kendaraan = Kendaraan::findOrFail($validated['id_kendaraan']);
 
+        $this->authorizeKendaraan($request->user(), $kendaraan);
+
         Mileage::create([
             'id_kendaraan' => $kendaraan->id,
             'tanggal_perjalanan' => $validated['tanggal_perjalanan'],
@@ -155,5 +164,37 @@ class MileageController extends Controller
         return redirect()
             ->route('mileage.index', ['kendaraan' => $kendaraan->id])
             ->with('success', 'Perjalanan berhasil dicatat.');
+    }
+
+    /**
+     * Admin melihat seluruh kendaraan, Pengelola hanya kendaraannya sendiri.
+     */
+    private function kendaraanTerpakai(User $user): Builder
+    {
+        return Kendaraan::query()
+            ->when(! $user->isAdmin(), fn ($query) => $query->where('id_pengelola', $user->id));
+    }
+
+    private function riwayatTerpakai(User $user): Builder
+    {
+        return Mileage::with(['kendaraan', 'pencatat'])
+            ->when(
+                ! $user->isAdmin(),
+                fn ($query) => $query->whereHas(
+                    'kendaraan',
+                    fn ($k) => $k->where('id_pengelola', $user->id),
+                ),
+            );
+    }
+
+    /**
+     * Pengelola hanya boleh mencatat mileage kendaraan tanggung jawabnya.
+     */
+    private function authorizeKendaraan(User $user, Kendaraan $kendaraan): void
+    {
+        abort_unless(
+            $user->isAdmin() || (int) $kendaraan->id_pengelola === (int) $user->id,
+            403,
+        );
     }
 }

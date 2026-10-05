@@ -20,14 +20,16 @@ class MileageTrackerTest extends TestCase
         $this->withoutVite();
     }
 
+    private ?User $user = null;
+
     private function user(): User
     {
-        return User::factory()->create();
+        return $this->user ??= User::factory()->pengelola()->create();
     }
 
     private function kendaraan(array $attributes = []): Kendaraan
     {
-        return Kendaraan::factory()->create($attributes);
+        return Kendaraan::factory()->for($this->user(), 'pengelola')->create($attributes);
     }
 
     public function test_mileage_index_menampilkan_daftar_kendaraan_dan_trip_history(): void

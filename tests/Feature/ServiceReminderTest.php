@@ -73,7 +73,7 @@ class ServiceReminderTest extends TestCase
             'kilometer_terakhir' => 4500,
             'interval_servis_km' => 5000,
             'threshold_servis_hari' => 10,
-            'tanggal_pembelian' => '2026-01-01',
+            'interval_servis_bulan' => 0,
         ]);
         RiwayatServis::create([
             'id_kendaraan' => $vehicle->id,
@@ -105,6 +105,7 @@ class ServiceReminderTest extends TestCase
             'kilometer_terakhir' => 300,
             'interval_servis_km' => 1000,
             'threshold_servis_hari' => 10,
+            'interval_servis_bulan' => 0,
             'tanggal_pembelian' => '2026-09-10',
         ]);
 
