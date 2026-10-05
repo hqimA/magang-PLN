@@ -53,6 +53,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/laporan-pengeluaran', [ExpenseReportController::class, 'index'])
         ->middleware('role:ADMIN')
         ->name('laporan-pengeluaran.index');
+    Route::get('/laporan-pengeluaran/excel', [ExpenseReportController::class, 'exportExcel'])
+        ->middleware('role:admin')
+        ->name('laporan-pengeluaran.excel');
+    Route::get('/laporan-pengeluaran/pdf', [ExpenseReportController::class, 'exportPdf'])
+        ->middleware('role:admin')
+        ->name('laporan-pengeluaran.pdf');
     Route::get('/service-reminders', [ServiceReminderController::class, 'index'])->name('service-reminders.index');
     Route::get('/service-reminder', [ServiceReminderController::class, 'viewIndex'])->name('service-reminder.index');
 
