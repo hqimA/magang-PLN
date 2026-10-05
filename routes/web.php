@@ -3,10 +3,13 @@
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\ExpenseReportController;
 use App\Http\Controllers\KendaraanController;
+use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\MileageController;
 use App\Http\Controllers\OdometerLogController;
+use App\Http\Controllers\PengelolaKendaraanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RiwayatServisController;
+use App\Http\Controllers\ServiceApprovalController;
 use App\Http\Controllers\ServiceReminderController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -32,17 +35,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('role:ADMIN')
         ->name('kendaraan.destroy');
 
+    Route::get('/pengelola/kendaraan', [PengelolaKendaraanController::class, 'index'])->name('pengelola.kendaraan');
+
     Route::get('/mileage', [MileageController::class, 'index'])->name('mileage.index');
     Route::get('/mileage/history', [MileageController::class, 'history'])->name('mileage.history');
     Route::get('/mileage/odometer', [MileageController::class, 'odometer'])->name('mileage.odometer');
     Route::post('/mileage/odometer', [MileageController::class, 'store'])->name('mileage.odometer.store');
     Route::post('/mileage/trip', [MileageController::class, 'storeTrip'])->name('mileage.trip.store');
 
-    Route::get('/maintenance', [\App\Http\Controllers\MaintenanceController::class, 'index'])->name('maintenance.index');
-    Route::get('/maintenance/create', [\App\Http\Controllers\MaintenanceController::class, 'create'])->name('maintenance.create');
-    Route::post('/maintenance', [\App\Http\Controllers\MaintenanceController::class, 'store'])->name('maintenance.store');
-    Route::get('/maintenance/mileage/{kendaraan}', [\App\Http\Controllers\MaintenanceController::class, 'mileageKendaraan'])->name('maintenance.mileage-kendaraan');
-    Route::get('/maintenance/{pengajuan}', [\App\Http\Controllers\MaintenanceController::class, 'show'])->name('maintenance.show');
+    Route::get('/maintenance', [MaintenanceController::class, 'index'])->name('maintenance.index');
+    Route::get('/maintenance/create', [MaintenanceController::class, 'create'])->name('maintenance.create');
+    Route::post('/maintenance', [MaintenanceController::class, 'store'])->name('maintenance.store');
+    Route::get('/maintenance/mileage/{kendaraan}', [MaintenanceController::class, 'mileageKendaraan'])->name('maintenance.mileage-kendaraan');
+    Route::get('/maintenance/{pengajuan}', [MaintenanceController::class, 'show'])->name('maintenance.show');
 });
 
 Route::middleware('auth')->group(function () {
@@ -50,9 +55,21 @@ Route::middleware('auth')->group(function () {
     Route::get('/riwayat-servis', [RiwayatServisController::class, 'index'])->name('service-history.index');
     Route::get('/riwayat-servis/{riwayatServis}', [RiwayatServisController::class, 'show'])->name('service-history.show');
     Route::post('/riwayat-servis', [RiwayatServisController::class, 'store'])->name('riwayat-servis.store');
+    Route::post('/pengajuan-servis/{id}/approve', [ServiceApprovalController::class, 'approve'])
+        ->middleware('role:admin')
+        ->name('pengajuan-servis.approve');
+    Route::post('/pengajuan-servis/{id}/reject', [ServiceApprovalController::class, 'reject'])
+        ->middleware('role:admin')
+        ->name('pengajuan-servis.reject');
     Route::get('/laporan-pengeluaran', [ExpenseReportController::class, 'index'])
         ->middleware('role:ADMIN')
         ->name('laporan-pengeluaran.index');
+    Route::get('/laporan-pengeluaran/excel', [ExpenseReportController::class, 'exportExcel'])
+        ->middleware('role:admin')
+        ->name('laporan-pengeluaran.excel');
+    Route::get('/laporan-pengeluaran/pdf', [ExpenseReportController::class, 'exportPdf'])
+        ->middleware('role:admin')
+        ->name('laporan-pengeluaran.pdf');
     Route::get('/service-reminders', [ServiceReminderController::class, 'index'])->name('service-reminders.index');
     Route::get('/service-reminder', [ServiceReminderController::class, 'viewIndex'])->name('service-reminder.index');
 
@@ -65,8 +82,8 @@ Route::middleware('auth')->group(function () {
         Route::put('/users/{user}', [UserController::class, 'update'])->name('user.update');
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('user.destroy');
 
-        Route::patch('/pengajuan/{pengajuan}/approve', [\App\Http\Controllers\MaintenanceController::class, 'approve'])->name('pengajuan.approve');
-        Route::patch('/pengajuan/{pengajuan}/reject', [\App\Http\Controllers\MaintenanceController::class, 'reject'])->name('pengajuan.reject');
+        Route::patch('/pengajuan/{pengajuan}/approve', [MaintenanceController::class, 'approve'])->name('pengajuan.approve');
+        Route::patch('/pengajuan/{pengajuan}/reject', [MaintenanceController::class, 'reject'])->name('pengajuan.reject');
     });
 
     Route::post('/service-reminder/settings', [ServiceReminderController::class, 'updateSettings'])

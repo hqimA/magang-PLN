@@ -25,11 +25,25 @@
                     @if($tab === 'pengajuan')
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-medium text-gray-900">Daftar Pengajuan Maintenance</h3>
+                            @if(!auth()->user()->isAdmin())
+                                <a href="{{ route('maintenance.create') }}"
+                                   class="inline-flex items-center px-3.5 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-sm">
+                                    + Ajukan Maintenance
+                                </a>
+                            @endif
                         </div>
 
                         @if($pengajuanMaintenance->isEmpty())
                             <div class="text-center py-8 text-gray-500">
-                                Tidak ada pengajuan maintenance yang menunggu persetujuan.
+                                <p>Tidak ada pengajuan maintenance yang menunggu persetujuan.</p>
+                                @if(!auth()->user()->isAdmin())
+                                    <div class="mt-4">
+                                        <a href="{{ route('maintenance.create') }}"
+                                           class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 transition shadow-sm">
+                                            + Ajukan Maintenance Sekarang
+                                        </a>
+                                    </div>
+                                @endif
                             </div>
                         @else
                             <table class="min-w-full divide-y divide-gray-200">
@@ -37,6 +51,7 @@
                                     <tr>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kendaraan</th>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">KM</th>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
@@ -53,6 +68,12 @@
                                                 <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
                                                     {{ $p->jenis_pengajuan }}
                                                 </span>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                @php
+                                                    $kmAkhir = $p->kendaraan->mileageTerbaru?->kilometer_akhir ?? $p->kilometer_pengajuan ?? $p->kendaraan->kilometer_terakhir;
+                                                @endphp
+                                                {{ $kmAkhir !== null ? number_format($kmAkhir) . ' km' : '-' }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 {{ $p->dibuat_pada->translatedFormat('d M Y') }}
@@ -93,6 +114,7 @@
                                     <tr>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kendaraan</th>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">KM</th>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Disetujui</th>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
@@ -109,6 +131,12 @@
                                                 <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
                                                     {{ $m->jenis_pengajuan }}
                                                 </span>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                @php
+                                                    $kmAkhir = $m->kendaraan->mileageTerbaru?->kilometer_akhir ?? $m->kilometer_pengajuan ?? $m->kendaraan->kilometer_terakhir;
+                                                @endphp
+                                                {{ $kmAkhir !== null ? number_format($kmAkhir) . ' km' : '-' }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 {{ $m->dibuat_pada->translatedFormat('d M Y') }}

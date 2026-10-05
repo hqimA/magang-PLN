@@ -5,39 +5,40 @@ namespace App\Http\Controllers;
 use App\Models\Kendaraan;
 use App\Models\Mileage;
 use App\Models\PengajuanServis;
-use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class MaintenanceController extends Controller
 {
     public function index(Request $request): View
     {
-        $tab  = $request->query('tab', 'pengajuan');
+        $tab = $request->query('tab', 'pengajuan');
         $user = $request->user();
 
         $pengajuanMaintenance = collect();
-        $maintenanceAktif     = collect();
+        $maintenanceAktif = collect();
 
         if ($tab === 'pengajuan') {
             if ($user->isAdmin()) {
                 // Admin: semua pengajuan yang masih MENUNGGU
-                $pengajuanMaintenance = PengajuanServis::with(['kendaraan', 'pengaju'])
+                $pengajuanMaintenance = PengajuanServis::with(['kendaraan.mileageTerbaru', 'pengaju'])
                     ->where('status_persetujuan', 'MENUNGGU')
                     ->orderBy('dibuat_pada', 'desc')
                     ->get();
             } else {
                 // Pengelola: hanya pengajuan yang dibuat oleh dirinya sendiri (semua status)
-                $pengajuanMaintenance = PengajuanServis::with(['kendaraan', 'pengaju'])
+                $pengajuanMaintenance = PengajuanServis::with(['kendaraan.mileageTerbaru', 'pengaju'])
                     ->where('id_pengaju', $user->id)
                     ->orderBy('dibuat_pada', 'desc')
                     ->get();
             }
         } elseif ($tab === 'aktif') {
-            $maintenanceAktif = PengajuanServis::with(['kendaraan', 'pengaju', 'disetujuiOleh'])
+            $maintenanceAktif = PengajuanServis::with(['kendaraan.mileageTerbaru', 'pengaju', 'disetujuiOleh'])
                 ->where('status_persetujuan', 'DISETUJUI')
                 ->doesntHave('riwayatServis')
-                ->when(! $user->isAdmin(), fn ($q) => $q->whereHas('kendaraan', fn($k) => $k->where('id_pengelola', $user->id)))
+                ->when(! $user->isAdmin(), fn ($q) => $q->whereHas('kendaraan', fn ($k) => $k->where('id_pengelola', $user->id)))
                 ->orderBy('dibuat_pada', 'desc')
                 ->get();
         }
@@ -67,7 +68,7 @@ class MaintenanceController extends Controller
     }
 
     /** AJAX: return kilometer_akhir terbaru untuk kendaraan tertentu. */
-    public function mileageKendaraan(Request $request, Kendaraan $kendaraan): \Illuminate\Http\JsonResponse
+    public function mileageKendaraan(Request $request, Kendaraan $kendaraan): JsonResponse
     {
         abort_if($request->user()->isAdmin(), 403);
         abort_unless((int) $kendaraan->id_pengelola === (int) $request->user()->id, 403);
@@ -87,10 +88,10 @@ class MaintenanceController extends Controller
         abort_if($request->user()->isAdmin(), 403, 'Admin tidak dapat membuat pengajuan maintenance.');
 
         $validated = $request->validate([
-            'id_kendaraan'      => ['required', 'exists:kendaraan,id'],
-            'jenis_pengajuan'   => ['required', 'in:RUTIN,DARURAT'],
+            'id_kendaraan' => ['required', 'exists:kendaraan,id'],
+            'jenis_pengajuan' => ['required', 'in:RUTIN,DARURAT'],
             'deskripsi_keluhan' => ['required', 'string', 'max:2000'],
-            'estimasi_biaya'    => ['nullable', 'numeric', 'min:0'],
+            'estimasi_biaya' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         // Pastikan kendaraan milik Pengelola yang login
@@ -105,13 +106,13 @@ class MaintenanceController extends Controller
             ->first();
 
         PengajuanServis::create([
-            'id_kendaraan'          => $kendaraan->id,
-            'id_pengaju'            => $request->user()->id,
-            'jenis_pengajuan'       => $validated['jenis_pengajuan'],
-            'deskripsi_keluhan'     => $validated['deskripsi_keluhan'],
-            'estimasi_biaya'        => $validated['estimasi_biaya'] ?? null,
-            'kilometer_pengajuan'   => $latestMileage?->kilometer_akhir,
-            'status_persetujuan'    => 'MENUNGGU',
+            'id_kendaraan' => $kendaraan->id,
+            'id_pengaju' => $request->user()->id,
+            'jenis_pengajuan' => $validated['jenis_pengajuan'],
+            'deskripsi_keluhan' => $validated['deskripsi_keluhan'],
+            'estimasi_biaya' => $validated['estimasi_biaya'] ?? null,
+            'kilometer_pengajuan' => $latestMileage?->kilometer_akhir,
+            'status_persetujuan' => 'MENUNGGU',
         ]);
 
         return redirect()->route('maintenance.index', ['tab' => 'pengajuan'])
@@ -126,7 +127,7 @@ class MaintenanceController extends Controller
             abort(403);
         }
 
-        $pengajuan->load(['kendaraan', 'pengaju', 'disetujuiOleh', 'riwayatServis']);
+        $pengajuan->load(['kendaraan.mileageTerbaru', 'pengaju', 'disetujuiOleh', 'riwayatServis']);
 
         return view('maintenance.show', compact('pengajuan'));
     }
@@ -141,7 +142,7 @@ class MaintenanceController extends Controller
 
         $pengajuan->update([
             'status_persetujuan' => 'DISETUJUI',
-            'id_disetujui_oleh'  => $request->user()->id,
+            'id_disetujui_oleh' => $request->user()->id,
         ]);
 
         return back()->with('success', 'Pengajuan berhasil disetujui dan masuk ke Maintenance Aktif.');
@@ -161,8 +162,8 @@ class MaintenanceController extends Controller
 
         $pengajuan->update([
             'status_persetujuan' => 'DITOLAK',
-            'id_disetujui_oleh'  => $request->user()->id,
-            'alasan_penolakan'   => $request->input('alasan_penolakan'),
+            'id_disetujui_oleh' => $request->user()->id,
+            'alasan_penolakan' => $request->input('alasan_penolakan'),
         ]);
 
         return back()->with('success', 'Pengajuan telah ditolak.');

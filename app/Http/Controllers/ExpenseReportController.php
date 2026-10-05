@@ -2,14 +2,55 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\ExpenseReportExport;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ExpenseReportController extends Controller
 {
     public function index(Request $request): View
+    {
+        return view('admin.reports.expense', $this->getReportData($request));
+    }
+
+    public function exportExcel(Request $request): BinaryFileResponse
+    {
+        $report = $this->getReportData($request);
+        $rows = collect($report['rekap'])
+            ->map(fn (array $row): array => [
+                $row['plat_nomor'],
+                $row['merk_tipe'],
+                $row['pengelola'],
+                $row['total_biaya_servis'],
+                $row['total_biaya_perbaikan'],
+                $row['grand_total_pengeluaran'],
+            ])
+            ->all();
+
+        return Excel::download(
+            new ExpenseReportExport($rows),
+            sprintf('laporan-pengeluaran-%04d-%02d.xlsx', $report['tahun'], $report['bulan'])
+        );
+    }
+
+    public function exportPdf(Request $request): Response
+    {
+        $report = $this->getReportData($request);
+
+        return Pdf::loadView('pdf.expense_report', $report)
+            ->download(sprintf('laporan-pengeluaran-%04d-%02d.pdf', $report['tahun'], $report['bulan']));
+    }
+
+    /**
+     * @return array{rekap: array<int, array{plat_nomor: string, merk_tipe: string, pengelola: string, total_biaya_servis: float, total_biaya_perbaikan: float, grand_total_pengeluaran: float}>, bulan: int, tahun: int}
+     */
+    private function getReportData(Request $request): array
     {
         $filters = $request->validate([
             'bulan' => ['sometimes', 'integer', 'between:1,12'],
@@ -72,6 +113,6 @@ class ExpenseReportController extends Controller
             ])
             ->all();
 
-        return view('admin.reports.expense', compact('rekap', 'bulan', 'tahun'));
+        return compact('rekap', 'bulan', 'tahun');
     }
 }

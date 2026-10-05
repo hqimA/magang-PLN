@@ -59,12 +59,12 @@
             </button>
 
             <div x-show="open" x-transition.duration.200ms class="mt-1 space-y-1 ps-11">
-                <a href="{{ route('maintenance.index') }}"
-                    class="block rounded-md px-3 py-2 text-sm transition duration-150 ease-in-out {{ request()->routeIs('maintenance.*') ? 'bg-indigo-50 font-medium text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                <a href="{{ route('maintenance.index', ['tab' => 'pengajuan']) }}"
+                    class="block rounded-md px-3 py-2 text-sm transition duration-150 ease-in-out {{ request()->routeIs('maintenance.*') && request()->query('tab', 'pengajuan') === 'pengajuan' ? 'bg-indigo-50 font-medium text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                     {{ __('Pengajuan Maintenance') }}
                 </a>
-                <a href="{{ route('maintenance.index') }}"
-                    class="block rounded-md px-3 py-2 text-sm text-gray-600 transition duration-150 ease-in-out hover:bg-gray-50 hover:text-gray-900">
+                <a href="{{ route('maintenance.index', ['tab' => 'aktif']) }}"
+                    class="block rounded-md px-3 py-2 text-sm transition duration-150 ease-in-out {{ request()->routeIs('maintenance.*') && request()->query('tab') === 'aktif' ? 'bg-indigo-50 font-medium text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                     {{ __('Maintenance Aktif') }}
                 </a>
                 <a href="{{ route('service-history.index') }}"

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Kendaraan;
+use App\Models\ServiceReminderSetting;
 use App\Services\MileagePredictionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -36,11 +37,11 @@ class ServiceReminderController extends Controller
     public function viewIndex(Request $request)
     {
         $user = $request->user();
-        $setting = \App\Models\ServiceReminderSetting::first();
+        $setting = ServiceReminderSetting::first();
         $isActive = $setting ? $setting->is_active : true;
-        
+
         $vehicles = collect();
-        
+
         if ($isActive) {
             $vehicles = Kendaraan::query()
                 ->with(['riwayatServisTerbaru', 'pengelola'])
@@ -51,6 +52,7 @@ class ServiceReminderController extends Controller
                     if ($setting) {
                         $vehicle->threshold_servis_hari = $setting->reminder_days_before;
                     }
+
                     return [
                         'id' => $vehicle->id,
                         'plat_nomor' => $vehicle->plat_nomor,
@@ -67,7 +69,7 @@ class ServiceReminderController extends Controller
 
         return view('service-reminder.index', [
             'vehicles' => $vehicles,
-            'setting' => $setting ?? new \App\Models\ServiceReminderSetting(['is_active' => true, 'reminder_days_before' => 7]),
+            'setting' => $setting ?? new ServiceReminderSetting(['is_active' => true, 'reminder_days_before' => 7]),
         ]);
     }
 
@@ -81,7 +83,7 @@ class ServiceReminderController extends Controller
             'reminder_days_before' => 'required|integer|min:1|max:365',
         ]);
 
-        $setting = \App\Models\ServiceReminderSetting::first() ?? new \App\Models\ServiceReminderSetting();
+        $setting = ServiceReminderSetting::first() ?? new ServiceReminderSetting;
         $setting->is_active = $request->has('is_active');
         $setting->reminder_days_before = $validated['reminder_days_before'];
         $setting->save();

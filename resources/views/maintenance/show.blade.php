@@ -97,6 +97,15 @@
                             <dd class="mt-1 font-medium text-gray-900">{{ $pengajuan->pengaju?->name ?? '-' }}</dd>
                         </div>
                         <div>
+                            <dt class="text-gray-500">Kilometer Akhir</dt>
+                            <dd class="mt-1 font-semibold text-gray-900">
+                                @php
+                                    $kmAkhir = $pengajuan->kendaraan->mileageTerbaru?->kilometer_akhir ?? $pengajuan->kilometer_pengajuan ?? $pengajuan->kendaraan->kilometer_terakhir;
+                                @endphp
+                                {{ $kmAkhir !== null ? number_format($kmAkhir) . ' km' : '-' }}
+                            </dd>
+                        </div>
+                        <div>
                             <dt class="text-gray-500">Estimasi Biaya</dt>
                             <dd class="mt-1 font-semibold text-gray-900">
                                 {{ $pengajuan->estimasi_biaya

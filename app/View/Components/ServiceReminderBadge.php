@@ -6,24 +6,28 @@ use App\Models\Kendaraan;
 use App\Models\ServiceReminderSetting;
 use Closure;
 use Illuminate\Contracts\View\View;
-use Illuminate\View\Component;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\View\Component;
 
 class ServiceReminderBadge extends Component
 {
     public int $count = 0;
+
     public bool $isActive = true;
 
     public function __construct()
     {
         $setting = ServiceReminderSetting::first();
-        if ($setting && !$setting->is_active) {
+        if ($setting && ! $setting->is_active) {
             $this->isActive = false;
+
             return;
         }
 
         $user = Auth::user();
-        if (!$user) return;
+        if (! $user) {
+            return;
+        }
 
         $this->count = Kendaraan::query()
             ->with(['riwayatServisTerbaru'])
@@ -33,6 +37,7 @@ class ServiceReminderBadge extends Component
                 if ($setting) {
                     $vehicle->threshold_servis_hari = $setting->reminder_days_before;
                 }
+
                 return $vehicle->serviceReminder();
             })
             ->filter(fn ($reminder) => $reminder['status'] !== 'TERJADWAL')
