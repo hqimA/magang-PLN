@@ -29,6 +29,7 @@ class UserFactory extends Factory
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
+            'peran' => 'PENGELOLA',
             'remember_token' => Str::random(10),
         ];
     }
@@ -40,6 +41,26 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    /**
+     * User dengan peran ADMIN.
+     */
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'peran' => 'ADMIN',
+        ]);
+    }
+
+    /**
+     * User dengan peran PENGELOLA.
+     */
+    public function pengelola(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'peran' => 'PENGELOLA',
         ]);
     }
 }
