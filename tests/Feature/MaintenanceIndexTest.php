@@ -143,4 +143,56 @@ class MaintenanceIndexTest extends TestCase
             'kilometer_pengajuan' => 4500,
         ]);
     }
+
+    public function test_selesaikan_maintenance_aktif_menginput_ke_tabel_riwayat_servis(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $pengelola = User::factory()->pengelola()->create();
+        $kendaraan = Kendaraan::factory()->for($pengelola, 'pengelola')->create([
+            'kilometer_terakhir' => 5000,
+            'interval_servis_km' => 5000,
+            'status_perawatan' => 'SEDANG_SERVIS',
+        ]);
+
+        $pengajuan = PengajuanServis::create([
+            'id_kendaraan' => $kendaraan->id,
+            'id_pengaju' => $pengelola->id,
+            'id_disetujui_oleh' => $admin->id,
+            'jenis_pengajuan' => 'RUTIN',
+            'deskripsi_keluhan' => 'Servis berkala',
+            'status_persetujuan' => 'DISETUJUI',
+            'estimasi_biaya' => 750000,
+            'dibuat_pada' => now(),
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->from(route('maintenance.index', ['tab' => 'aktif']))
+            ->post(route('riwayat-servis.store'), [
+                'id_pengajuan' => $pengajuan->id,
+                'id_kendaraan' => $kendaraan->id,
+                'tanggal_servis' => now()->toDateString(),
+                'kilometer_servis' => 5500,
+                'nama_bengkel' => 'Bengkel Resmi PLN',
+                'total_biaya' => 800000,
+            ]);
+
+        $response->assertRedirect(route('maintenance.index', ['tab' => 'aktif']));
+        $this->assertDatabaseHas('riwayat_servis', [
+            'id_pengajuan' => $pengajuan->id,
+            'id_kendaraan' => $kendaraan->id,
+            'kilometer_servis' => 5500,
+            'nama_bengkel' => 'Bengkel Resmi PLN',
+            'total_biaya' => 800000,
+            'target_kilometer_berikutnya' => 10500,
+            'id_pembuat' => $admin->id,
+        ]);
+
+        $kendaraan->refresh();
+        $this->assertEquals(5500, $kendaraan->kilometer_terakhir);
+        $this->assertEquals('BAIK', $kendaraan->status_perawatan);
+
+        // Setelah selesai, maintenance tidak lagi muncul di tab aktif
+        $aktifResponse = $this->actingAs($admin)->get(route('maintenance.index', ['tab' => 'aktif']));
+        $aktifResponse->assertDontSee('Bengkel Resmi PLN');
+    }
 }

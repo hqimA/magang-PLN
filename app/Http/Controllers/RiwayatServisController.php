@@ -75,6 +75,7 @@ class RiwayatServisController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
+            'id_pengajuan' => ['nullable', 'integer', 'exists:pengajuan_servis,id'],
             'id_kendaraan' => ['required', 'integer', 'exists:kendaraan,id'],
             'tanggal_servis' => ['required', 'date'],
             'kilometer_servis' => ['required', 'numeric'],
@@ -109,7 +110,7 @@ class RiwayatServisController extends Controller
                 }
 
                 $riwayatServis = RiwayatServis::query()->create([
-                    'id_pengajuan' => null,
+                    'id_pengajuan' => $validated['id_pengajuan'] ?? null,
                     'id_kendaraan' => $kendaraan->id,
                     'tanggal_servis' => $validated['tanggal_servis'],
                     'kilometer_servis' => $validated['kilometer_servis'],
@@ -146,6 +147,8 @@ class RiwayatServisController extends Controller
             throw $exception;
         }
 
-        return back()->with('status', 'riwayat-servis-created');
+        return back()
+            ->with('status', 'riwayat-servis-created')
+            ->with('success', 'Maintenance berhasil diselesaikan dan dicatat ke Riwayat Servis.');
     }
 }

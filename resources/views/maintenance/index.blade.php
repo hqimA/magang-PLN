@@ -148,10 +148,23 @@
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <a href="{{ route('maintenance.show', $m->id) }}" class="text-indigo-600 hover:text-indigo-900">Detail</a>
-                                                @if(auth()->user()->isAdmin())
-                                                    <span class="mx-1 text-gray-300">|</span>
-                                                    <a href="{{ route('riwayat-servis.store', ['pengajuan_id' => $m->id]) }}" class="text-emerald-600 hover:text-emerald-900">Selesaikan</a>
-                                                @endif
+                                                <span class="mx-1 text-gray-300">|</span>
+                                                <button type="button"
+                                                        x-data=""
+                                                        x-on:click="
+                                                            $dispatch('set-selesaikan', {
+                                                                id: {{ $m->id }},
+                                                                kendaraan_id: {{ $m->kendaraan->id }},
+                                                                kendaraan_text: '{{ addslashes($m->kendaraan->merk_tipe) }} ({{ $m->kendaraan->plat_nomor }})',
+                                                                kilometer: {{ $kmAkhir ?? 0 }},
+                                                                estimasi_biaya: {{ (int) $m->estimasi_biaya }},
+                                                                deskripsi: '{{ addslashes(preg_replace('/\s+/', ' ', $m->deskripsi_keluhan)) }}'
+                                                            });
+                                                            $dispatch('open-modal', 'modal-selesaikan-maintenance');
+                                                        "
+                                                        class="text-emerald-600 hover:text-emerald-900 font-medium">
+                                                    Selesaikan
+                                                </button>
                                             </td>
                                         </tr>
                                     @endforeach
@@ -163,4 +176,105 @@
             </div>
         </div>
     </div>
+
+    {{-- Modal Selesaikan Maintenance (Input Riwayat Servis) --}}
+    <x-modal name="modal-selesaikan-maintenance" focusable>
+        <form method="POST" action="{{ route('riwayat-servis.store') }}" enctype="multipart/form-data" class="p-6"
+              x-data="{
+                  maintenance: {
+                      id: '',
+                      kendaraan_id: '',
+                      kendaraan_text: '',
+                      kilometer: '',
+                      estimasi_biaya: '',
+                      deskripsi: ''
+                  }
+              }"
+              x-on:set-selesaikan.window="maintenance = $event.detail">
+            @csrf
+            <input type="hidden" name="id_pengajuan" x-bind:value="maintenance.id" />
+            <input type="hidden" name="id_kendaraan" x-bind:value="maintenance.kendaraan_id" />
+
+            <div class="flex items-center justify-between pb-3 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">
+                    Selesaikan Maintenance
+                </h2>
+                <button type="button" x-on:click="$dispatch('close')" class="text-gray-400 hover:text-gray-500">
+                    <span class="sr-only">Tutup</span>
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <p class="mt-2 text-sm text-gray-500">
+                Lengkapi rincian servis selesai untuk dicatat ke Riwayat Servis kendaraan.
+            </p>
+
+            <div class="mt-4 p-3 bg-gray-50 rounded-lg text-sm space-y-1.5 border border-gray-200">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-500 text-xs uppercase tracking-wider font-medium">Kendaraan</span>
+                    <span class="font-semibold text-gray-900" x-text="maintenance.kendaraan_text"></span>
+                </div>
+                <div class="flex justify-between items-start gap-4">
+                    <span class="text-gray-500 text-xs uppercase tracking-wider font-medium">Keluhan</span>
+                    <span class="text-gray-700 text-right truncate max-w-xs" x-text="maintenance.deskripsi"></span>
+                </div>
+            </div>
+
+            <div class="mt-5 space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <x-input-label for="tanggal_servis" value="Tanggal Servis Selesai *" />
+                        <x-text-input id="tanggal_servis" name="tanggal_servis" type="date"
+                                      class="mt-1 block w-full text-sm"
+                                      value="{{ date('Y-m-d') }}" required />
+                        <x-input-error :messages="$errors->get('tanggal_servis')" class="mt-1" />
+                    </div>
+                    <div>
+                        <x-input-label for="kilometer_servis" value="Odometer Selesai (KM) *" />
+                        <x-text-input id="kilometer_servis" name="kilometer_servis" type="number" min="0"
+                                      class="mt-1 block w-full text-sm"
+                                      x-bind:value="maintenance.kilometer" required />
+                        <x-input-error :messages="$errors->get('kilometer_servis')" class="mt-1" />
+                    </div>
+                </div>
+
+                <div>
+                    <x-input-label for="nama_bengkel" value="Nama Bengkel / Pelaksana Servis *" />
+                    <x-text-input id="nama_bengkel" name="nama_bengkel" type="text"
+                                  class="mt-1 block w-full text-sm"
+                                  placeholder="Contoh: Bengkel Resmi Toyota / Bengkel Rekanan PLN" required />
+                    <x-input-error :messages="$errors->get('nama_bengkel')" class="mt-1" />
+                </div>
+
+                <div>
+                    <x-input-label for="total_biaya" value="Total Biaya Aktual (Rp) *" />
+                    <div class="mt-1 relative rounded-md shadow-sm">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 text-sm pointer-events-none">Rp</span>
+                        <x-text-input id="total_biaya" name="total_biaya" type="number" min="0" step="1000"
+                                      class="block w-full pl-9 text-sm"
+                                      x-bind:value="maintenance.estimasi_biaya" required />
+                    </div>
+                    <x-input-error :messages="$errors->get('total_biaya')" class="mt-1" />
+                </div>
+
+                <div>
+                    <x-input-label for="foto_nota" value="Upload Nota / Dokumentasi Servis (Opsional)" />
+                    <input id="foto_nota" name="foto_nota" type="file" accept="image/*,.pdf"
+                           class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+                    <x-input-error :messages="$errors->get('foto_nota')" class="mt-1" />
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-3 pt-3 border-t border-gray-200">
+                <x-secondary-button type="button" x-on:click="$dispatch('close')">
+                    Batal
+                </x-secondary-button>
+                <x-primary-button class="bg-emerald-600 hover:bg-emerald-700 focus:bg-emerald-700 active:bg-emerald-900">
+                    Simpan ke Riwayat Servis
+                </x-primary-button>
+            </div>
+        </form>
+    </x-modal>
 </x-app-layout>
