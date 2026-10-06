@@ -6,6 +6,7 @@ use App\Models\Kendaraan;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Carbon;
 
 class KendaraanController extends Controller
 {
@@ -62,7 +63,7 @@ class KendaraanController extends Controller
             'kategori_penggunaan' => 'required|in:PEJABAT,TEKNISI,ANGKUT_BARANG,MOTOR_OPERASIONAL',
             'kilometer_terakhir' => 'required|integer',
             'tanggal_pembelian' => 'required|date',
-            ...$this->documentExpiryDateRules(),
+            ...$this->documentExpiryDateRules($request),
             'status_perawatan' => 'required|in:BAIK,PERLU_SERVIS,SEDANG_SERVIS,RUSAK',
             'id_pengelola' => 'required|exists:users,id',
             'foto_kendaraan' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
@@ -117,7 +118,7 @@ class KendaraanController extends Controller
             'kategori_penggunaan' => 'required|in:PEJABAT,TEKNISI,ANGKUT_BARANG,MOTOR_OPERASIONAL',
             'kilometer_terakhir' => 'required|integer',
             'tanggal_pembelian' => 'required|date',
-            ...$this->documentExpiryDateRules(),
+            ...$this->documentExpiryDateRules($request),
             'status_perawatan' => 'required|in:BAIK,PERLU_SERVIS,SEDANG_SERVIS,RUSAK',
             'id_pengelola' => 'required|exists:users,id',
             'foto_kendaraan' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
@@ -156,6 +157,32 @@ class KendaraanController extends Controller
         $kendaraan->delete();
 
         return redirect()->route('kendaraan.index')->with('success', 'Kendaraan berhasil dihapus.');
+    }
+
+    /**
+     * Validasi masa berlaku STNK dan KIR tidak boleh melebihi lima tahun sejak tanggal pembelian.
+     */
+    private function documentExpiryDateRules(Request $request): array
+    {
+        $purchaseDate = $request->input('tanggal_pembelian');
+        $maximumExpiryDate = $purchaseDate
+            ? Carbon::parse($purchaseDate)->addYears(5)->toDateString()
+            : null;
+
+        return [
+            'tanggal_stnk_berlaku_sampai' => [
+                'nullable',
+                'date',
+                'after_or_equal:tanggal_pembelian',
+                ...($maximumExpiryDate ? ['before_or_equal:'.$maximumExpiryDate] : []),
+            ],
+            'tanggal_kir_berlaku_sampai' => [
+                'nullable',
+                'date',
+                'after_or_equal:tanggal_pembelian',
+                ...($maximumExpiryDate ? ['before_or_equal:'.$maximumExpiryDate] : []),
+            ],
+        ];
     }
 
     /**
