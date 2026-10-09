@@ -22,8 +22,8 @@ class DatabaseSeeder extends Seeder
             // 3. Kendaraan (sekarang sudah assign id_template otomatis)
             KendaraanSeeder::class,
 
-            // 4. Status komponen per kendaraan (butuh kendaraan + template komponen)
-            StatusKomponenKendaraanSeeder::class,
+            // 4. Komponen kendaraan dari template
+            KomponenKendaraanSeeder::class,
 
             // 5. Data operasional (butuh kendaraan + users)
             LaporanKerusakanSeeder::class,

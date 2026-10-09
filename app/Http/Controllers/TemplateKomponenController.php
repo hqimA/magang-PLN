@@ -146,9 +146,7 @@ class TemplateKomponenController extends Controller
         $idTemplate = $templateKomponen->id_template;
         $nama = $templateKomponen->nama_komponen;
 
-        $terpakai = $templateKomponen->pengajuanKomponen()->exists()
-            || $templateKomponen->detailKomponenServis()->exists()
-            || $templateKomponen->statusKendaraan()->exists();
+        $terpakai = $templateKomponen->komponenKendaraan()->exists();
 
         if ($terpakai) {
             $templateKomponen->update(['is_aktif' => false]);
