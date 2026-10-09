@@ -18,19 +18,58 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
+    // ── Relasi ───────────────────────────────────────────────────────────────
+
     public function kendaraan(): HasMany
     {
         return $this->hasMany(Kendaraan::class, 'id_pengelola');
     }
 
+    public function laporanKerusakan(): HasMany
+    {
+        return $this->hasMany(LaporanKerusakan::class, 'id_pelapor');
+    }
+
+    public function pengajuanServis(): HasMany
+    {
+        return $this->hasMany(PengajuanServis::class, 'id_pengaju');
+    }
+
+    public function pengajuanDisetujui(): HasMany
+    {
+        return $this->hasMany(PengajuanServis::class, 'id_disetujui_oleh');
+    }
+
+    public function riwayatServisDibuat(): HasMany
+    {
+        return $this->hasMany(RiwayatServis::class, 'id_pembuat');
+    }
+
+    public function riwayatPerbaikanDibuat(): HasMany
+    {
+        return $this->hasMany(RiwayatPerbaikan::class, 'id_pembuat');
+    }
+
+    public function odometerLogs(): HasMany
+    {
+        return $this->hasMany(OdometerLog::class, 'id_penginput');
+    }
+
+    public function notifikasi(): HasMany
+    {
+        return $this->hasMany(Notifikasi::class, 'id_pengguna');
+    }
+
+    public function mileage(): HasMany
+    {
+        return $this->hasMany(Mileage::class, 'id_pencatat');
+    }
+
+    // ── Helper ───────────────────────────────────────────────────────────────
+
     public function isAdmin(): bool
     {
         return $this->peran === 'ADMIN';
-    }
-
-    public function isTeknisi(): bool
-    {
-        return $this->peran === 'TEKNISI' || $this->isPengelola(); // Handling based on db_magangpln.sql enum
     }
 
     public function isPengelola(): bool
@@ -38,11 +77,13 @@ class User extends Authenticatable
         return $this->peran === 'PENGELOLA';
     }
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
+    public function isTeknisi(): bool
+    {
+        return $this->peran === 'TEKNISI' || $this->isPengelola();
+    }
+
+    // ── Casts ────────────────────────────────────────────────────────────────
+
     protected function casts(): array
     {
         return [

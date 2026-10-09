@@ -31,6 +31,8 @@ class OdometerLog extends Model
         ];
     }
 
+    // ── Relasi ───────────────────────────────────────────────────────────────
+
     public function kendaraan(): BelongsTo
     {
         return $this->belongsTo(Kendaraan::class, 'id_kendaraan');

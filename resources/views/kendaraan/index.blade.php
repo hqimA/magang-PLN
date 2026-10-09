@@ -102,6 +102,10 @@
                                             <td class="px-4 py-3 text-sm text-gray-700">{{ $kendaraan->pengelola?->name ?? '-' }}</td>
                                             <td class="px-4 py-3 text-sm">
                                                 <div class="flex items-center gap-2">
+                                                    <a href="{{ route('kendaraan.show', $kendaraan->id) }}"
+                                                       class="inline-flex items-center px-3 py-1 bg-indigo-50 border border-indigo-200 rounded-md font-semibold text-xs text-indigo-700 uppercase tracking-widest shadow-sm hover:bg-indigo-100 transition ease-in-out duration-150">
+                                                        Komponen
+                                                    </a>
                                                     <a href="{{ route('kendaraan.edit', $kendaraan->id) }}"
                                                        class="inline-flex items-center px-3 py-1 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
                                                         Edit

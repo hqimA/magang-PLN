@@ -3,14 +3,12 @@
 namespace Database\Seeders;
 
 use App\Models\Kendaraan;
+use App\Models\TemplateJadwalServis;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class KendaraanSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $pengelola1 = User::where('email', 'pengelola@pln.co.id')->first()
@@ -149,11 +147,44 @@ class KendaraanSeeder extends Seeder
             ],
         ];
 
-        foreach ($kendaraans as $kendaraanData) {
+        foreach ($kendaraans as $data) {
+            $data['id_template'] = $this->resolveTemplate(
+                $data['jenis_bbm'],
+                $data['transmisi'],
+                $data['kategori_penggunaan']
+            );
+
             Kendaraan::updateOrCreate(
-                ['plat_nomor' => $kendaraanData['plat_nomor']],
-                $kendaraanData
+                ['plat_nomor' => $data['plat_nomor']],
+                $data
             );
         }
+    }
+
+    /**
+     * Auto-assign template berdasarkan jenis_bbm + transmisi + kategori_penggunaan.
+     * Urutan pengecekan:
+     * 1. Motor → kategori_penggunaan = MOTOR_OPERASIONAL
+     * 2. EV    → jenis_bbm = LISTRIK
+     * 3. Diesel Manual / Diesel Otomatis → jenis_bbm = SOLAR/DIESEL
+     * 4. Bensin Manual / Bensin Otomatis → jenis_bbm = BENSIN
+     */
+    private function resolveTemplate(string $jenis_bbm, string $transmisi, string $kategori): ?int
+    {
+        $nama = match (true) {
+            $kategori === 'MOTOR_OPERASIONAL' => 'Motor',
+            $jenis_bbm === 'LISTRIK' => 'EV',
+            in_array($jenis_bbm, ['SOLAR', 'DIESEL']) && $transmisi === 'MANUAL' => 'Diesel Manual',
+            in_array($jenis_bbm, ['SOLAR', 'DIESEL']) && $transmisi === 'OTOMATIS' => 'Diesel Otomatis',
+            $jenis_bbm === 'BENSIN' && $transmisi === 'MANUAL' => 'Bensin Manual',
+            $jenis_bbm === 'BENSIN' && $transmisi === 'OTOMATIS' => 'Bensin Otomatis',
+            default => null,
+        };
+
+        if (! $nama) {
+            return null;
+        }
+
+        return TemplateJadwalServis::where('nama', $nama)->value('id');
     }
 }
