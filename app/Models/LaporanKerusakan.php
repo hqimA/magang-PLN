@@ -2,10 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class LaporanKerusakan extends Model
 {
+    use HasFactory;
+
     protected $table = 'laporan_kerusakan';
 
     public $timestamps = false;
@@ -28,17 +33,19 @@ class LaporanKerusakan extends Model
         ];
     }
 
-    public function kendaraan()
+    // ── Relasi ───────────────────────────────────────────────────────────────
+
+    public function kendaraan(): BelongsTo
     {
         return $this->belongsTo(Kendaraan::class, 'id_kendaraan');
     }
 
-    public function pelapor()
+    public function pelapor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'id_pelapor');
     }
 
-    public function riwayatPerbaikan()
+    public function riwayatPerbaikan(): HasOne
     {
         return $this->hasOne(RiwayatPerbaikan::class, 'id_laporan_kerusakan');
     }

@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\KategoriKomponen;
 use App\Models\Kendaraan;
+use App\Models\TemplateJadwalServis;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -81,9 +83,23 @@ class KendaraanController extends Controller
         return redirect()->route('kendaraan.index')->with('success', 'Kendaraan berhasil ditambahkan.');
     }
 
-    public function show(string $id)
+    public function show(Request $request, string $id)
     {
-        //
+        $user = $request->user();
+        $kendaraan = Kendaraan::with([
+            'pengelola',
+            'template',
+            'komponen' => fn ($q) => $q->orderBy('nomor_urut'),
+            'mileageTerbaru',
+        ])->findOrFail($id);
+
+        $this->authorizeKendaraan($user, $kendaraan);
+
+        $rekomendasiTemplate = $kendaraan->templateRekomendasi();
+        $allTemplates = TemplateJadwalServis::where('is_aktif', true)->orderBy('nama')->get();
+        $kategoriList = KategoriKomponen::cases();
+
+        return view('kendaraan.show', compact('kendaraan', 'rekomendasiTemplate', 'allTemplates', 'kategoriList'));
     }
 
     public function edit(Request $request, string $id)

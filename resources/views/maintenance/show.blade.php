@@ -133,6 +133,75 @@
                 </div>
             </div>
 
+            {{-- Rincian Komponen yang Diajukan --}}
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-base font-semibold text-gray-700">Komponen & Suku Cadang yang Diajukan</h3>
+                        <span class="text-xs font-semibold px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            {{ $pengajuan->komponen->count() }} Komponen
+                        </span>
+                    </div>
+
+                    @if($pengajuan->komponen->isEmpty())
+                        <div class="text-center py-6 bg-gray-50 rounded-lg border border-dashed border-gray-200 text-gray-500 text-sm">
+                            Tidak ada rincian komponen spesifik (Pengajuan Servis Umum).
+                        </div>
+                    @else
+                        <div class="overflow-x-auto border border-gray-200 rounded-lg">
+                            <table class="min-w-full divide-y divide-gray-200 text-sm text-left">
+                                <thead class="bg-gray-50 text-gray-600 font-semibold text-xs uppercase tracking-wider">
+                                    <tr>
+                                        <th class="px-4 py-3">No</th>
+                                        <th class="px-4 py-3">Komponen</th>
+                                        <th class="px-4 py-3">Kategori</th>
+                                        <th class="px-4 py-3 text-center">Aksi yang Diajukan</th>
+                                        <th class="px-4 py-3">Catatan</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 bg-white">
+                                    @foreach($pengajuan->komponen as $index => $item)
+                                        <tr class="hover:bg-gray-50/70 transition">
+                                            <td class="px-4 py-3 font-medium text-gray-400 w-12">{{ $index + 1 }}</td>
+                                            <td class="px-4 py-3 font-semibold text-gray-900">
+                                                {{ $item->komponenKendaraan?->nama_komponen ?? 'Komponen #' . $item->id_komponen_kendaraan }}
+                                            </td>
+                                            <td class="px-4 py-3 text-gray-600 text-xs">
+                                                @php
+                                                    $kat = $item->komponenKendaraan?->kategori instanceof \BackedEnum
+                                                        ? $item->komponenKendaraan->kategori->value
+                                                        : (string) ($item->komponenKendaraan?->kategori ?? '-');
+                                                @endphp
+                                                <span class="px-2 py-0.5 rounded bg-gray-100 text-gray-700 font-medium">
+                                                    {{ str_replace('_', ' ', ucwords(strtolower($kat), '_')) }}
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                @php
+                                                    $aksiVal = $item->jenis_aksi instanceof \BackedEnum ? $item->jenis_aksi->value : (string) $item->jenis_aksi;
+                                                @endphp
+                                                @if($aksiVal === 'G')
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+                                                        Ganti (G)
+                                                    </span>
+                                                @else
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
+                                                        Periksa (P)
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td class="px-4 py-3 text-gray-600 text-xs italic">
+                                                {{ $item->catatan ?? '—' }}
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
             {{-- Riwayat Servis jika sudah diselesaikan --}}
             @if($pengajuan->riwayatServis)
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">

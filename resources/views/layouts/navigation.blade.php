@@ -27,6 +27,11 @@
                     <x-nav-link :href="route('maintenance.index')" :active="request()->routeIs('maintenance.*')">
                         {{ __('Maintenance') }}
                     </x-nav-link>
+                    @if(Auth::user()->isAdmin())
+                        <x-nav-link :href="route('template-komponen.index')" :active="request()->routeIs('template-komponen.*')">
+                            {{ __('Template Komponen') }}
+                        </x-nav-link>
+                    @endif
                 </div>
             </div>
 
@@ -49,6 +54,12 @@
                         <x-dropdown-link :href="route('profile.edit')">
                             {{ __('Profile') }}
                         </x-dropdown-link>
+
+                        @if(Auth::user()->isAdmin())
+                            <x-dropdown-link :href="route('template-komponen.index')">
+                                {{ __('Template Komponen') }}
+                            </x-dropdown-link>
+                        @endif
 
                         <!-- Authentication -->
                         <form method="POST" action="{{ route('logout') }}">
@@ -94,6 +105,11 @@
             <x-responsive-nav-link :href="route('maintenance.index')" :active="request()->routeIs('maintenance.*')">
                 {{ __('Maintenance') }}
             </x-responsive-nav-link>
+            @if(Auth::user()->isAdmin())
+                <x-responsive-nav-link :href="route('template-komponen.index')" :active="request()->routeIs('template-komponen.*')">
+                    {{ __('Template Komponen') }}
+                </x-responsive-nav-link>
+            @endif
         </div>
 
         <!-- Responsive Settings Options -->

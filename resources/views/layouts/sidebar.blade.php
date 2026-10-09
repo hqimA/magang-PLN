@@ -5,7 +5,8 @@
     $maintenanceActive = request()->routeIs('maintenance.*')
         || request()->routeIs('service-history.*')
         || request()->routeIs('service-reminder.*')
-        || request()->routeIs('service-reminders.*');
+        || request()->routeIs('service-reminders.*')
+        || request()->routeIs('template-komponen.*');
 @endphp
 
 {{-- Sidebar Navigation --}}
@@ -116,6 +117,12 @@
                     <span>{{ __('Service Reminder') }}</span>
                     <x-service-reminder-badge />
                 </a>
+                @if($isAdmin)
+                    <a href="{{ route('template-komponen.index') }}"
+                        class="block rounded-md px-3 py-2 text-sm transition duration-150 ease-in-out {{ request()->routeIs('template-komponen.*') ? 'bg-indigo-50 font-medium text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                        {{ __('Template Komponen') }}
+                    </a>
+                @endif
             </div>
         </div>
 
@@ -134,13 +141,21 @@
 
         {{-- Admin Only --}}
         @if($isAdmin)
+            {{-- Template Komponen (khusus Admin) --}}
+            <a href="{{ route('template-komponen.index') }}"
+                class="mt-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition duration-150 ease-in-out {{ request()->routeIs('template-komponen.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                <svg class="h-5 w-5 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+                </svg>
+                <span>{{ __('Template Komponen') }}</span>
+            </a>
 
-            {{-- Laporan --}}
-            <a
-                href="{{ route('laporan-pengeluaran.index') }}"
-                class="mt-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition duration-150 ease-in-out {{ request()->routeIs('laporan-pengeluaran.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}"
-            >
-                <i class="hgi hgi-stroke hgi-file-01 h-5 w-5 shrink-0"></i>
+            {{-- Laporan (khusus Admin) --}}
+            <a href="{{ route('laporan-pengeluaran.index') }}"
+                class="mt-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition duration-150 ease-in-out {{ request()->routeIs('laporan-pengeluaran.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                <svg class="h-5 w-5 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                </svg>
                 <span>{{ __('Laporan') }}</span>
             </a>
 

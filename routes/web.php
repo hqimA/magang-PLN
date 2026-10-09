@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\ExpenseReportController;
 use App\Http\Controllers\KendaraanController;
+use App\Http\Controllers\KendaraanKomponenController;
 use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\MileageController;
 use App\Http\Controllers\OdometerLogController;
@@ -11,6 +12,8 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RiwayatServisController;
 use App\Http\Controllers\ServiceApprovalController;
 use App\Http\Controllers\ServiceReminderController;
+use App\Http\Controllers\TemplateJadwalServisController;
+use App\Http\Controllers\TemplateKomponenController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -35,6 +38,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('role:ADMIN')
         ->name('kendaraan.destroy');
 
+    // Manajemen Komponen Spesifik Kendaraan & Penerapan Template
+    Route::post('/kendaraan/{kendaraan}/apply-template', [KendaraanKomponenController::class, 'applyTemplate'])->name('kendaraan.apply-template');
+    Route::post('/kendaraan/{kendaraan}/komponen', [KendaraanKomponenController::class, 'store'])->name('kendaraan.komponen.store');
+    Route::put('/kendaraan/{kendaraan}/komponen/{komponen}', [KendaraanKomponenController::class, 'update'])->name('kendaraan.komponen.update');
+    Route::delete('/kendaraan/{kendaraan}/komponen/{komponen}', [KendaraanKomponenController::class, 'destroy'])->name('kendaraan.komponen.destroy');
+
     Route::get('/pengelola/kendaraan', [PengelolaKendaraanController::class, 'index'])->name('pengelola.kendaraan');
 
     Route::get('/mileage', [MileageController::class, 'index'])->name('mileage.index');
@@ -47,6 +56,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/maintenance/create', [MaintenanceController::class, 'create'])->name('maintenance.create');
     Route::post('/maintenance', [MaintenanceController::class, 'store'])->name('maintenance.store');
     Route::get('/maintenance/mileage/{kendaraan}', [MaintenanceController::class, 'mileageKendaraan'])->name('maintenance.mileage-kendaraan');
+    Route::get('/maintenance/komponen/{kendaraan}', [MaintenanceController::class, 'komponenKendaraan'])->name('maintenance.komponen-kendaraan');
     Route::get('/maintenance/{pengajuan}', [MaintenanceController::class, 'show'])->name('maintenance.show');
 });
 
@@ -84,6 +94,9 @@ Route::middleware('auth')->group(function () {
 
         Route::patch('/pengajuan/{pengajuan}/approve', [MaintenanceController::class, 'approve'])->name('pengajuan.approve');
         Route::patch('/pengajuan/{pengajuan}/reject', [MaintenanceController::class, 'reject'])->name('pengajuan.reject');
+
+        Route::resource('template-komponen', TemplateKomponenController::class);
+        Route::resource('template-jadwal-servis', TemplateJadwalServisController::class);
     });
 
     Route::post('/service-reminder/settings', [ServiceReminderController::class, 'updateSettings'])
