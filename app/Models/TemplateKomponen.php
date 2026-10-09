@@ -48,11 +48,6 @@ class TemplateKomponen extends Model
         return $this->hasMany(TemplateJadwalDetail::class, 'id_template_komponen');
     }
 
-    public function statusKendaraan(): HasMany
-    {
-        return $this->hasMany(StatusKomponenKendaraan::class, 'id_template_komponen');
-    }
-
     public function komponenKendaraan(): HasMany
     {
         return $this->hasMany(KomponenKendaraan::class, 'id_template_komponen');
