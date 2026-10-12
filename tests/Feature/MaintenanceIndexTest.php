@@ -7,6 +7,8 @@ use App\Models\Mileage;
 use App\Models\PengajuanServis;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class MaintenanceIndexTest extends TestCase
@@ -112,6 +114,8 @@ class MaintenanceIndexTest extends TestCase
 
     public function test_pengelola_dapat_membuat_pengajuan_maintenance(): void
     {
+        Storage::fake('public');
+
         $pengelola = User::factory()->pengelola()->create();
         $kendaraan = Kendaraan::factory()->for($pengelola, 'pengelola')->create([
             'kilometer_terakhir' => 3000,
@@ -131,6 +135,7 @@ class MaintenanceIndexTest extends TestCase
             'jenis_pengajuan' => 'RUTIN',
             'deskripsi_keluhan' => 'Ganti oli rutin',
             'estimasi_biaya' => 500000,
+            'foto_bukti_odometer' => UploadedFile::fake()->image('odometer.jpg'),
         ]);
 
         $response->assertRedirect(route('maintenance.index', ['tab' => 'pengajuan']));
@@ -141,6 +146,33 @@ class MaintenanceIndexTest extends TestCase
             'deskripsi_keluhan' => 'Ganti oli rutin',
             'status_persetujuan' => 'MENUNGGU',
             'kilometer_pengajuan' => 4500,
+        ]);
+
+        $pengajuan = PengajuanServis::query()->where('id_kendaraan', $kendaraan->id)->firstOrFail();
+
+        $this->assertStringStartsWith('maintenance/', $pengajuan->foto_bukti_odometer);
+        Storage::disk('public')->assertExists($pengajuan->foto_bukti_odometer);
+
+        $this->actingAs($pengelola)
+            ->get(route('maintenance.show', $pengajuan))
+            ->assertOk()
+            ->assertSee('Lihat foto bukti');
+    }
+
+    public function test_pengajuan_maintenance_tanpa_foto_bukti_odometer_ditolak(): void
+    {
+        $pengelola = User::factory()->pengelola()->create();
+        $kendaraan = Kendaraan::factory()->for($pengelola, 'pengelola')->create();
+
+        $this->actingAs($pengelola)->post(route('maintenance.store'), [
+            'id_kendaraan' => $kendaraan->id,
+            'jenis_pengajuan' => 'RUTIN',
+            'deskripsi_keluhan' => 'Ganti oli rutin',
+        ])->assertSessionHasErrors('foto_bukti_odometer');
+
+        $this->assertDatabaseMissing('pengajuan_servis', [
+            'id_kendaraan' => $kendaraan->id,
+            'id_pengaju' => $pengelola->id,
         ]);
     }
 
@@ -198,6 +230,8 @@ class MaintenanceIndexTest extends TestCase
 
     public function test_form_create_dan_ajax_menggunakan_kilometer_terakhir_jika_belum_ada_mileage(): void
     {
+        Storage::fake('public');
+
         $pengelola = User::factory()->pengelola()->create();
         $kendaraan = Kendaraan::factory()->for($pengelola, 'pengelola')->create([
             'kilometer_terakhir' => 8500,
@@ -218,6 +252,7 @@ class MaintenanceIndexTest extends TestCase
             'id_kendaraan' => $kendaraan->id,
             'jenis_pengajuan' => 'DARURAT',
             'deskripsi_keluhan' => 'Ban bocor',
+            'foto_bukti_odometer' => UploadedFile::fake()->image('odometer.jpg'),
         ]);
 
         $storeResponse->assertRedirect(route('maintenance.index', ['tab' => 'pengajuan']));

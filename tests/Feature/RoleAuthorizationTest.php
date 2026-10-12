@@ -6,6 +6,8 @@ use App\Models\Kendaraan;
 use App\Models\RiwayatServis;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class RoleAuthorizationTest extends TestCase
@@ -196,6 +198,7 @@ class RoleAuthorizationTest extends TestCase
             'kilometer_awal' => 1000,
             'kilometer_akhir' => 1200,
             'status_perjalanan' => 'SELESAI',
+            'foto_bukti' => UploadedFile::fake()->image('odometer.jpg'),
         ])->assertForbidden();
 
         $this->assertDatabaseMissing('mileage', ['id_kendaraan' => $kendaraanLain->id]);
@@ -204,6 +207,8 @@ class RoleAuthorizationTest extends TestCase
 
     public function test_pengelola_mencatat_mileage_kendaraan_miliknya(): void
     {
+        Storage::fake('public');
+
         $pengelola = User::factory()->pengelola()->create();
         $kendaraan = Kendaraan::factory()->for($pengelola, 'pengelola')->create([
             'kilometer_terakhir' => 1000,
@@ -215,6 +220,7 @@ class RoleAuthorizationTest extends TestCase
             'kilometer_awal' => 1000,
             'kilometer_akhir' => 1200,
             'status_perjalanan' => 'SELESAI',
+            'foto_bukti' => UploadedFile::fake()->image('odometer.jpg'),
         ])->assertRedirect();
 
         $this->assertDatabaseHas('mileage', [

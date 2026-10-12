@@ -23,6 +23,7 @@ class PengajuanServis extends Model
         'deskripsi_keluhan',
         'estimasi_biaya',
         'kilometer_pengajuan',
+        'foto_bukti_odometer',
         'status_persetujuan',
         'alasan_penolakan',
         'id_disetujui_oleh',

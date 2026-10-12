@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'kilometer_akhir',
     'status_perjalanan',
     'keterangan',
+    'foto_bukti',
     'id_pencatat',
 ])]
 class Mileage extends Model

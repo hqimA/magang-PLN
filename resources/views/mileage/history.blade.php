@@ -69,6 +69,7 @@
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Km Akhir</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Jarak</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bukti Odometer</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keterangan</th>
                                     </tr>
                                 </thead>
@@ -84,6 +85,13 @@
                                             <td class="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{{ number_format($m->total_jarak) }} km</td>
                                             <td class="px-4 py-3 text-sm">
                                                 <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ $st['class'] }}">{{ $st['label'] }}</span>
+                                            </td>
+                                            <td class="px-4 py-3 text-sm whitespace-nowrap">
+                                                @if ($m->foto_bukti)
+                                                    <a href="{{ asset('storage/' . $m->foto_bukti) }}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:underline">Lihat foto</a>
+                                                @else
+                                                    <span class="text-gray-500">Belum ada</span>
+                                                @endif
                                             </td>
                                             <td class="px-4 py-3 text-sm text-gray-600">{{ $m->keterangan ?? '-' }}</td>
                                         </tr>

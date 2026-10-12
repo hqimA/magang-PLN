@@ -40,7 +40,7 @@
                             const kendaraanDetailRoute = '{{ route('kendaraan.show', ['kendaraan' => '__ID__']) }}';
                         </script>
 
-                        <form method="POST" action="{{ route('maintenance.store') }}" id="maintenance-form" class="space-y-6">
+                        <form method="POST" action="{{ route('maintenance.store') }}" id="maintenance-form" class="space-y-6" enctype="multipart/form-data">
                             @csrf
 
                             {{-- Bagian 1: Data Dasar Kendaraan --}}
@@ -70,6 +70,14 @@
                                         <span class="text-xs text-indigo-600 font-medium">Odometer Terakhir</span>
                                     </div>
                                     <p class="mt-1 text-xs text-gray-500">Snapshot odometer otomatis dari data mileage/odometer terkini.</p>
+                                </div>
+
+                                <div class="md:col-span-2">
+                                    <x-input-label for="foto_bukti_odometer" :value="__('Foto Bukti Odometer')" class="font-semibold text-gray-700" />
+                                    <input id="foto_bukti_odometer" name="foto_bukti_odometer" type="file" accept="image/jpeg,image/png,image/webp" required
+                                           class="mt-1 block w-full text-sm text-gray-700 border border-gray-300 rounded-md shadow-sm file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 @error('foto_bukti_odometer') border-red-500 @enderror" />
+                                    <p class="mt-1 text-xs text-gray-500">Foto harus memperlihatkan angka odometer dengan jelas (JPG, PNG, atau WEBP; maksimal 5 MB).</p>
+                                    <x-input-error :messages="$errors->get('foto_bukti_odometer')" class="mt-1" />
                                 </div>
 
                                 {{-- Jenis Pengajuan --}}

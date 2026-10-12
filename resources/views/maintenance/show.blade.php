@@ -114,6 +114,16 @@
                             </dd>
                         </div>
                         <div>
+                            <dt class="text-gray-500">Bukti Odometer</dt>
+                            <dd class="mt-1 font-medium text-gray-900">
+                                @if($pengajuan->foto_bukti_odometer)
+                                    <a href="{{ asset('storage/' . $pengajuan->foto_bukti_odometer) }}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:underline">Lihat foto bukti</a>
+                                @else
+                                    -
+                                @endif
+                            </dd>
+                        </div>
+                        <div>
                             <dt class="text-gray-500">Disetujui Oleh</dt>
                             <dd class="mt-1 font-medium text-gray-900">{{ $pengajuan->disetujuiOleh?->name ?? '-' }}</dd>
                         </div>

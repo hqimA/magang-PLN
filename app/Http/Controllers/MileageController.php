@@ -7,6 +7,10 @@ use App\Models\Mileage;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use RuntimeException;
+use Throwable;
 
 class MileageController extends Controller
 {
@@ -85,9 +89,11 @@ class MileageController extends Controller
             'tanggal_perjalanan' => 'required|date',
             'status_perjalanan' => 'required|in:SELESAI,BERJALAN,TERBATAS',
             'keterangan' => 'nullable|string|max:1000',
+            'foto_bukti' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
         ], [], [
             'id_kendaraan' => 'kendaraan',
             'odometer_baru' => 'odometer',
+            'foto_bukti' => 'foto bukti odometer',
         ]);
 
         $kendaraan = Kendaraan::findOrFail($validated['id_kendaraan']);
@@ -104,8 +110,7 @@ class MileageController extends Controller
                 ]);
         }
 
-        $mileage = Mileage::create([
-            'id_kendaraan' => $kendaraan->id,
+        $this->simpanMileage($request, $kendaraan, [
             'tanggal_perjalanan' => $validated['tanggal_perjalanan'],
             'kilometer_awal' => $odometerSebelumnya,
             'kilometer_akhir' => $validated['odometer_baru'],
@@ -114,11 +119,9 @@ class MileageController extends Controller
             'id_pencatat' => $request->user()?->id,
         ]);
 
-        $kendaraan->update(['kilometer_terakhir' => $mileage->kilometer_akhir]);
-
         return redirect()
             ->route('mileage.odometer', ['kendaraan' => $kendaraan->id])
-            ->with('success', 'Odometer berhasil disimpan. Kilometer terakhir kendaraan kini '.number_format($mileage->kilometer_akhir).' km.');
+            ->with('success', 'Odometer dan foto bukti berhasil disimpan. Kilometer terakhir kendaraan kini '.number_format($validated['odometer_baru']).' km.');
     }
 
     /**
@@ -133,8 +136,10 @@ class MileageController extends Controller
             'kilometer_akhir' => 'required|integer|min:0',
             'status_perjalanan' => 'required|in:SELESAI,BERJALAN,TERBATAS',
             'keterangan' => 'nullable|string|max:1000',
+            'foto_bukti' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
         ], [], [
             'kilometer_akhir' => 'kilometer akhir',
+            'foto_bukti' => 'foto bukti odometer',
         ]);
 
         if ((int) $validated['kilometer_akhir'] < (int) $validated['kilometer_awal']) {
@@ -149,8 +154,7 @@ class MileageController extends Controller
 
         $this->authorizeKendaraan($request->user(), $kendaraan);
 
-        Mileage::create([
-            'id_kendaraan' => $kendaraan->id,
+        $this->simpanMileage($request, $kendaraan, [
             'tanggal_perjalanan' => $validated['tanggal_perjalanan'],
             'kilometer_awal' => $validated['kilometer_awal'],
             'kilometer_akhir' => $validated['kilometer_akhir'],
@@ -159,11 +163,52 @@ class MileageController extends Controller
             'id_pencatat' => $request->user()?->id,
         ]);
 
-        $kendaraan->update(['kilometer_terakhir' => $validated['kilometer_akhir']]);
-
         return redirect()
             ->route('mileage.index', ['kendaraan' => $kendaraan->id])
-            ->with('success', 'Perjalanan berhasil dicatat.');
+            ->with('success', 'Perjalanan dan foto bukti berhasil dicatat.');
+    }
+
+    /**
+     * Simpan bukti dan catatan mileage secara atomik.
+     *
+     * @param array{
+     *     tanggal_perjalanan: string,
+     *     kilometer_awal: int|string,
+     *     kilometer_akhir: int|string,
+     *     status_perjalanan: string,
+     *     keterangan: ?string,
+     *     id_pencatat: ?int
+     * } $attributes
+     */
+    private function simpanMileage(Request $request, Kendaraan $kendaraan, array $attributes): Mileage
+    {
+        $fotoPath = null;
+
+        try {
+            return DB::transaction(function () use ($request, $kendaraan, $attributes, &$fotoPath): Mileage {
+                $fotoPath = $request->file('foto_bukti')->store('mileage', 'public');
+
+                if (! is_string($fotoPath)) {
+                    throw new RuntimeException('Foto bukti mileage gagal disimpan.');
+                }
+
+                $mileage = Mileage::create([
+                    'id_kendaraan' => $kendaraan->id,
+                    ...$attributes,
+                    'foto_bukti' => $fotoPath,
+                ]);
+
+                $kendaraan->update(['kilometer_terakhir' => $mileage->kilometer_akhir]);
+
+                return $mileage;
+            });
+        } catch (Throwable $exception) {
+            if (is_string($fotoPath)) {
+                Storage::disk('public')->delete($fotoPath);
+            }
+
+            throw $exception;
+        }
     }
 
     /**

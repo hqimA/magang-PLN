@@ -32,7 +32,7 @@
                                 <h3 class="text-sm font-semibold text-gray-800 uppercase tracking-wider">Form Odometer</h3>
                             </div>
                             <div class="p-6 text-gray-900">
-                                <form method="POST" action="{{ route('mileage.odometer.store') }}">
+                                <form method="POST" action="{{ route('mileage.odometer.store') }}" enctype="multipart/form-data">
                                     @csrf
 
                                     @if ($errors->any())
@@ -74,6 +74,14 @@
                                             <x-input-label for="tanggal_perjalanan" :value="__('Tanggal Pencatatan')" />
                                             <x-text-input id="tanggal_perjalanan" class="block mt-1 w-full" type="date" name="tanggal_perjalanan" :value="old('tanggal_perjalanan', now()->toDateString())" required />
                                             <x-input-error :messages="$errors->get('tanggal_perjalanan')" class="mt-2" />
+                                        </div>
+
+                                        <div class="md:col-span-2">
+                                            <x-input-label for="foto_bukti" :value="__('Foto Bukti Odometer')" />
+                                            <input id="foto_bukti" name="foto_bukti" type="file" accept="image/jpeg,image/png,image/webp" required
+                                                   class="block mt-1 w-full text-sm text-gray-700 border border-gray-300 rounded-md shadow-sm file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200" />
+                                            <p class="mt-1 text-xs text-gray-500">Unggah foto angka odometer yang terlihat jelas (JPG, PNG, atau WEBP; maksimal 5 MB).</p>
+                                            <x-input-error :messages="$errors->get('foto_bukti')" class="mt-2" />
                                         </div>
 
                                         <div>
@@ -118,6 +126,7 @@
                                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Km Awal</th>
                                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Km Akhir</th>
                                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Jarak</th>
+                                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bukti Odometer</th>
                                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keterangan</th>
                                                 </tr>
                                             </thead>
@@ -128,6 +137,13 @@
                                                         <td class="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{{ number_format($m->kilometer_awal) }} km</td>
                                                         <td class="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{{ number_format($m->kilometer_akhir) }} km</td>
                                                         <td class="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{{ number_format($m->total_jarak) }} km</td>
+                                                        <td class="px-4 py-3 text-sm whitespace-nowrap">
+                                                            @if ($m->foto_bukti)
+                                                                <a href="{{ asset('storage/' . $m->foto_bukti) }}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:underline">Lihat foto</a>
+                                                            @else
+                                                                <span class="text-gray-500">Belum ada</span>
+                                                            @endif
+                                                        </td>
                                                         <td class="px-4 py-3 text-sm text-gray-600">{{ $m->keterangan ?? '-' }}</td>
                                                     </tr>
                                                 @endforeach

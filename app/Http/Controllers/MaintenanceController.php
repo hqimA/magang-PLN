@@ -11,7 +11,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use RuntimeException;
+use Throwable;
 
 class MaintenanceController extends Controller
 {
@@ -107,10 +110,13 @@ class MaintenanceController extends Controller
             'jenis_pengajuan' => ['required', 'in:RUTIN,DARURAT'],
             'deskripsi_keluhan' => ['required', 'string', 'max:2000'],
             'estimasi_biaya' => ['nullable', 'numeric', 'min:0'],
+            'foto_bukti_odometer' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'komponen' => ['nullable', 'array'],
             'komponen.*.id_komponen_kendaraan' => ['required_with:komponen', 'exists:komponen_kendaraan,id'],
             'komponen.*.jenis_aksi' => ['required_with:komponen', 'in:P,G'],
             'komponen.*.catatan' => ['nullable', 'string', 'max:500'],
+        ], [], [
+            'foto_bukti_odometer' => 'foto bukti odometer',
         ]);
 
         // Pastikan kendaraan milik Pengelola yang login
@@ -124,31 +130,48 @@ class MaintenanceController extends Controller
             ->orderByDesc('id')
             ->first();
 
-        DB::transaction(function () use ($kendaraan, $validated, $latestMileage, $request) {
-            $pengajuan = PengajuanServis::create([
-                'id_kendaraan' => $kendaraan->id,
-                'id_pengaju' => $request->user()->id,
-                'jenis_pengajuan' => $validated['jenis_pengajuan'],
-                'deskripsi_keluhan' => $validated['deskripsi_keluhan'],
-                'estimasi_biaya' => $validated['estimasi_biaya'] ?? null,
-                'kilometer_pengajuan' => $latestMileage?->kilometer_akhir ?? $kendaraan->kilometer_terakhir,
-                'status_persetujuan' => 'MENUNGGU',
-            ]);
+        $fotoPath = null;
 
-            if (! empty($validated['komponen'])) {
-                foreach ($validated['komponen'] as $item) {
-                    PengajuanKomponen::create([
-                        'id_pengajuan' => $pengajuan->id,
-                        'id_komponen_kendaraan' => $item['id_komponen_kendaraan'],
-                        'jenis_aksi' => $item['jenis_aksi'],
-                        'catatan' => $item['catatan'] ?? null,
-                    ]);
+        try {
+            DB::transaction(function () use ($kendaraan, $validated, $latestMileage, $request, &$fotoPath): void {
+                $fotoPath = $request->file('foto_bukti_odometer')->store('maintenance', 'public');
+
+                if (! is_string($fotoPath)) {
+                    throw new RuntimeException('Foto bukti odometer gagal disimpan.');
                 }
+
+                $pengajuan = PengajuanServis::create([
+                    'id_kendaraan' => $kendaraan->id,
+                    'id_pengaju' => $request->user()->id,
+                    'jenis_pengajuan' => $validated['jenis_pengajuan'],
+                    'deskripsi_keluhan' => $validated['deskripsi_keluhan'],
+                    'estimasi_biaya' => $validated['estimasi_biaya'] ?? null,
+                    'kilometer_pengajuan' => $latestMileage?->kilometer_akhir ?? $kendaraan->kilometer_terakhir,
+                    'foto_bukti_odometer' => $fotoPath,
+                    'status_persetujuan' => 'MENUNGGU',
+                ]);
+
+                if (! empty($validated['komponen'])) {
+                    foreach ($validated['komponen'] as $item) {
+                        PengajuanKomponen::create([
+                            'id_pengajuan' => $pengajuan->id,
+                            'id_komponen_kendaraan' => $item['id_komponen_kendaraan'],
+                            'jenis_aksi' => $item['jenis_aksi'],
+                            'catatan' => $item['catatan'] ?? null,
+                        ]);
+                    }
+                }
+            });
+        } catch (Throwable $exception) {
+            if (is_string($fotoPath)) {
+                Storage::disk('public')->delete($fotoPath);
             }
-        });
+
+            throw $exception;
+        }
 
         return redirect()->route('maintenance.index', ['tab' => 'pengajuan'])
-            ->with('success', 'Pengajuan maintenance berhasil diajukan dan sedang menunggu persetujuan Admin.');
+            ->with('success', 'Pengajuan maintenance beserta foto bukti odometer berhasil diajukan dan sedang menunggu persetujuan Admin.');
     }
 
     public function show(Request $request, PengajuanServis $pengajuan): View
