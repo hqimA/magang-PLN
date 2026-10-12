@@ -16,7 +16,6 @@ class RiwayatServis extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'id',
         'id_pengajuan',
         'id_kendaraan',
         'tanggal_servis',
@@ -38,14 +37,11 @@ class RiwayatServis extends Model
         ];
     }
 
+    // ── Relasi ───────────────────────────────────────────────────────────────
+
     public function kendaraan(): BelongsTo
     {
         return $this->belongsTo(Kendaraan::class, 'id_kendaraan');
-    }
-
-    public function pembuat(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'id_pembuat');
     }
 
     public function pengajuan(): BelongsTo
@@ -53,8 +49,18 @@ class RiwayatServis extends Model
         return $this->belongsTo(PengajuanServis::class, 'id_pengajuan');
     }
 
+    public function pembuat(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'id_pembuat');
+    }
+
     public function rincianSparepart(): HasMany
     {
         return $this->hasMany(RincianSparepart::class, 'id_riwayat_servis');
+    }
+
+    public function detailKomponen(): HasMany
+    {
+        return $this->hasMany(DetailKomponenServis::class, 'id_riwayat_servis');
     }
 }

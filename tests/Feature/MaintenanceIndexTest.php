@@ -195,4 +195,35 @@ class MaintenanceIndexTest extends TestCase
         $aktifResponse = $this->actingAs($admin)->get(route('maintenance.index', ['tab' => 'aktif']));
         $aktifResponse->assertDontSee('Bengkel Resmi PLN');
     }
+
+    public function test_form_create_dan_ajax_menggunakan_kilometer_terakhir_jika_belum_ada_mileage(): void
+    {
+        $pengelola = User::factory()->pengelola()->create();
+        $kendaraan = Kendaraan::factory()->for($pengelola, 'pengelola')->create([
+            'kilometer_terakhir' => 8500,
+        ]);
+
+        // Cek halaman create menampilkan kilometer_terakhir di json map
+        $createResponse = $this->actingAs($pengelola)->get(route('maintenance.create'));
+        $createResponse->assertOk();
+        $createResponse->assertSee('"'.$kendaraan->id.'":8500', false);
+
+        // Cek endpoint AJAX mileage-kendaraan
+        $ajaxResponse = $this->actingAs($pengelola)->getJson(route('maintenance.mileage-kendaraan', $kendaraan));
+        $ajaxResponse->assertOk();
+        $ajaxResponse->assertJson(['kilometer_akhir' => 8500]);
+
+        // Cek store menggunakan fallback kilometer_terakhir
+        $storeResponse = $this->actingAs($pengelola)->post(route('maintenance.store'), [
+            'id_kendaraan' => $kendaraan->id,
+            'jenis_pengajuan' => 'DARURAT',
+            'deskripsi_keluhan' => 'Ban bocor',
+        ]);
+
+        $storeResponse->assertRedirect(route('maintenance.index', ['tab' => 'pengajuan']));
+        $this->assertDatabaseHas('pengajuan_servis', [
+            'id_kendaraan' => $kendaraan->id,
+            'kilometer_pengajuan' => 8500,
+        ]);
+    }
 }

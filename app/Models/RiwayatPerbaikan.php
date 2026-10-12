@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RiwayatPerbaikan extends Model
 {
+    use HasFactory;
+
     protected $table = 'riwayat_perbaikan';
 
     public $timestamps = false;
@@ -27,12 +31,14 @@ class RiwayatPerbaikan extends Model
         ];
     }
 
-    public function laporanKerusakan()
+    // ── Relasi ───────────────────────────────────────────────────────────────
+
+    public function laporanKerusakan(): BelongsTo
     {
         return $this->belongsTo(LaporanKerusakan::class, 'id_laporan_kerusakan');
     }
 
-    public function pembuat()
+    public function pembuat(): BelongsTo
     {
         return $this->belongsTo(User::class, 'id_pembuat');
     }

@@ -24,6 +24,18 @@ class Mileage extends Model
 
     public $timestamps = false;
 
+    protected function casts(): array
+    {
+        return [
+            'tanggal_perjalanan' => 'date',
+            'kilometer_awal' => 'integer',
+            'kilometer_akhir' => 'integer',
+            'dibuat_pada' => 'datetime',
+        ];
+    }
+
+    // ── Relasi ───────────────────────────────────────────────────────────────
+
     public function kendaraan(): BelongsTo
     {
         return $this->belongsTo(Kendaraan::class, 'id_kendaraan');
@@ -34,21 +46,13 @@ class Mileage extends Model
         return $this->belongsTo(User::class, 'id_pencatat');
     }
 
+    // ── Accessor ─────────────────────────────────────────────────────────────
+
     /**
      * Jarak tempuh perhitungan, sama dengan kolom virtual total_jarak.
      */
     public function getTotalJarakAttribute(): int
     {
         return (int) $this->kilometer_akhir - (int) $this->kilometer_awal;
-    }
-
-    protected function casts(): array
-    {
-        return [
-            'tanggal_perjalanan' => 'date',
-            'kilometer_awal' => 'integer',
-            'kilometer_akhir' => 'integer',
-            'dibuat_pada' => 'datetime',
-        ];
     }
 }
