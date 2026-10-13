@@ -15,7 +15,7 @@ use Throwable;
 class MileageController extends Controller
 {
     /**
-     * Halaman Mileage Tracker: daftar kendaraan, detail kendaraan terpilih, dan trip history.
+     * Halaman Mileage Tracker: daftar kendaraan, detail kendaraan terpilih, dan form pencatatan.
      */
     public function index(Request $request)
     {
@@ -25,16 +25,7 @@ class MileageController extends Controller
         $selectedId = (int) $request->query('kendaraan', 0);
         $selected = $kendaraans->firstWhere('id', $selectedId) ?? $kendaraans->first();
 
-        $riwayat = collect();
-        if ($selected) {
-            $riwayat = $selected->mileages()
-                ->with('pencatat')
-                ->orderByDesc('tanggal_perjalanan')
-                ->orderByDesc('id')
-                ->get();
-        }
-
-        return view('mileage.index', compact('kendaraans', 'selected', 'riwayat'));
+        return view('mileage.index', compact('kendaraans', 'selected'));
     }
 
     /**
@@ -87,7 +78,7 @@ class MileageController extends Controller
             'id_kendaraan' => 'required|exists:kendaraan,id',
             'odometer_baru' => 'required|integer|min:0',
             'tanggal_perjalanan' => 'required|date',
-            'status_perjalanan' => 'required|in:SELESAI,BERJALAN,TERBATAS',
+            'status_perjalanan' => 'sometimes|in:SELESAI,BERJALAN,TERBATAS',
             'keterangan' => 'nullable|string|max:1000',
             'foto_bukti' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
         ], [], [
@@ -114,7 +105,7 @@ class MileageController extends Controller
             'tanggal_perjalanan' => $validated['tanggal_perjalanan'],
             'kilometer_awal' => $odometerSebelumnya,
             'kilometer_akhir' => $validated['odometer_baru'],
-            'status_perjalanan' => $validated['status_perjalanan'],
+            'status_perjalanan' => $validated['status_perjalanan'] ?? 'SELESAI',
             'keterangan' => $validated['keterangan'] ?? null,
             'id_pencatat' => $request->user()?->id,
         ]);
@@ -134,7 +125,7 @@ class MileageController extends Controller
             'tanggal_perjalanan' => 'required|date',
             'kilometer_awal' => 'required|integer|min:0',
             'kilometer_akhir' => 'required|integer|min:0',
-            'status_perjalanan' => 'required|in:SELESAI,BERJALAN,TERBATAS',
+            'status_perjalanan' => 'sometimes|in:SELESAI,BERJALAN,TERBATAS',
             'keterangan' => 'nullable|string|max:1000',
             'foto_bukti' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
         ], [], [
@@ -158,7 +149,7 @@ class MileageController extends Controller
             'tanggal_perjalanan' => $validated['tanggal_perjalanan'],
             'kilometer_awal' => $validated['kilometer_awal'],
             'kilometer_akhir' => $validated['kilometer_akhir'],
-            'status_perjalanan' => $validated['status_perjalanan'],
+            'status_perjalanan' => $validated['status_perjalanan'] ?? 'SELESAI',
             'keterangan' => $validated['keterangan'] ?? null,
             'id_pencatat' => $request->user()?->id,
         ]);

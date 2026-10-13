@@ -1,3 +1,19 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    body {
+        @apply bg-slate-100 text-slate-900 antialiased;
+    }
+}
+
+@layer components {
+    .gacor-glass {
+        @apply border border-white/15 bg-white/10 shadow-[0_20px_45px_rgba(15,23,42,0.12)] backdrop-blur-xl;
+    }
+
+    .gacor-card {
+        @apply rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_12px_28px_rgba(15,23,42,0.08)];
+    }
+}

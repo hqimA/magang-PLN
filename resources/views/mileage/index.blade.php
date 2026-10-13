@@ -1,10 +1,4 @@
 @php
-    $statusMap = [
-        'SELESAI'  => ['label' => 'Selesai',   'class' => 'bg-green-100 text-green-800'],
-        'BERJALAN' => ['label' => 'Berjalan',  'class' => 'bg-blue-100 text-blue-800'],
-        'TERBATAS' => ['label' => 'Terbatas',  'class' => 'bg-yellow-100 text-yellow-800'],
-    ];
-
     $statusKendaraan = [
         'BAIK'          => ['label' => 'Aktif',         'class' => 'bg-green-100 text-green-800'],
         'PERLU_SERVIS'  => ['label' => 'Perlu Servis',  'class' => 'bg-yellow-100 text-yellow-800'],
@@ -40,21 +34,23 @@
             @else
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {{-- Daftar kendaraan --}}
-                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                        <div class="px-6 py-4 border-b border-gray-100">
-                            <h3 class="text-sm font-semibold text-gray-800 uppercase tracking-wider">Daftar Kendaraan</h3>
+                    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                        <div class="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5">
+                            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600">Armada</p>
+                            <h3 class="mt-1 text-lg font-semibold text-slate-900">Daftar Kendaraan</h3>
+                            <p class="mt-1 text-sm text-slate-500">Pilih kendaraan untuk mencatat perjalanan.</p>
                         </div>
                         <ul class="divide-y divide-gray-100 max-h-[32rem] overflow-y-auto">
                             @foreach ($kendaraans as $k)
                                 @php $isActive = $selected && $k->id === $selected->id; @endphp
                                 <li>
                                     <a href="{{ route('mileage.index', ['kendaraan' => $k->id]) }}"
-                                       class="block px-6 py-4 hover:bg-gray-50 {{ $isActive ? 'bg-indigo-50 border-l-4 border-indigo-500' : '' }}">
+                                       class="block border-l-4 px-5 py-4 transition {{ $isActive ? 'border-indigo-500 bg-indigo-50/70' : 'border-transparent hover:bg-slate-50' }}">
                                         <div class="flex items-center justify-between gap-2">
-                                            <span class="text-sm font-medium text-gray-900">{{ $k->plat_nomor }}</span>
-                                            <span class="text-xs text-gray-600">{{ number_format($k->kilometer_terakhir) }} km</span>
+                                            <span class="text-sm font-semibold text-slate-900">{{ $k->plat_nomor }}</span>
+                                            <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{{ number_format($k->kilometer_terakhir) }} km</span>
                                         </div>
-                                        <div class="text-xs text-gray-500 mt-1">{{ $k->merk_tipe }} &middot; {{ $k->tahun_pembuatan }}</div>
+                                        <div class="mt-1 text-xs text-slate-500">{{ $k->merk_tipe }} &middot; {{ $k->tahun_pembuatan }}</div>
                                     </a>
                                 </li>
                             @endforeach
@@ -63,13 +59,12 @@
 
                     {{-- Detail + form perjalanan --}}
                     <div class="lg:col-span-2 space-y-6">
-                        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                            <div class="px-6 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
-                                <h3 class="text-sm font-semibold text-gray-800 uppercase tracking-wider">Informasi Kendaraan</h3>
-                                <a href="{{ route('mileage.history', ['kendaraan' => $selected->id]) }}"
-                                   class="inline-flex items-center px-3 py-1 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                                    Semua Riwayat
-                                </a>
+                        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                            <div class="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5">
+                                <div>
+                                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600">Kendaraan Terpilih</p>
+                                    <h3 class="mt-1 text-lg font-semibold text-slate-900">Informasi Kendaraan</h3>
+                                </div>
                             </div>
                             <div class="p-6 text-gray-900">
                                 <div class="flex flex-col sm:flex-row gap-6">
@@ -77,41 +72,41 @@
                                         @if ($selected->foto_kendaraan)
                                             <img src="{{ asset('storage/' . $selected->foto_kendaraan) }}"
                                                  alt="Foto {{ $selected->merk_tipe }}"
-                                                 class="h-32 w-full object-cover rounded-md border border-gray-200" />
+                                                 class="h-36 w-full rounded-xl border border-slate-200 object-cover shadow-sm" />
                                         @else
-                                            <div class="h-32 w-full flex items-center justify-center rounded-md border border-dashed border-gray-300 bg-gray-50">
-                                                <svg class="h-10 w-10 text-gray-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                            <div class="flex h-36 w-full items-center justify-center rounded-xl border border-dashed border-slate-300 bg-gradient-to-br from-slate-50 to-indigo-50/60">
+                                                <svg class="h-10 w-10 text-indigo-200" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
                                                 </svg>
                                             </div>
                                         @endif
                                     </div>
 
-                                    <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <p class="text-xs uppercase tracking-wider text-gray-500">Plat Nomor</p>
-                                            <p class="text-sm font-medium text-gray-900">{{ $selected->plat_nomor }}</p>
+                                    <div class="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2">
+                                        <div class="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
+                                            <p class="text-xs font-medium uppercase tracking-wider text-slate-500">Plat Nomor</p>
+                                            <p class="mt-1 text-sm font-semibold text-slate-900">{{ $selected->plat_nomor }}</p>
                                         </div>
-                                        <div>
-                                            <p class="text-xs uppercase tracking-wider text-gray-500">Merk / Tipe</p>
-                                            <p class="text-sm text-gray-700">{{ $selected->merk_tipe }}</p>
+                                        <div class="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
+                                            <p class="text-xs font-medium uppercase tracking-wider text-slate-500">Merk / Tipe</p>
+                                            <p class="mt-1 text-sm text-slate-700">{{ $selected->merk_tipe }}</p>
                                         </div>
-                                        <div>
-                                            <p class="text-xs uppercase tracking-wider text-gray-500">Kilometer Terakhir</p>
-                                            <p class="text-sm font-semibold text-gray-900">{{ number_format($selected->kilometer_terakhir) }} km</p>
+                                        <div class="rounded-xl border border-indigo-100 bg-indigo-50/70 p-4">
+                                            <p class="text-xs font-medium uppercase tracking-wider text-indigo-600">Kilometer Terakhir</p>
+                                            <p class="mt-1 text-lg font-bold text-indigo-950">{{ number_format($selected->kilometer_terakhir) }} <span class="text-sm font-semibold">km</span></p>
                                         </div>
-                                        <div>
-                                            <p class="text-xs uppercase tracking-wider text-gray-500">Status</p>
+                                        <div class="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
+                                            <p class="text-xs font-medium uppercase tracking-wider text-slate-500">Status Kendaraan</p>
                                             @php $sk = $statusKendaraan[$selected->status_perawatan] ?? ['label' => $selected->status_perawatan, 'class' => 'bg-gray-100 text-gray-800']; @endphp
-                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ $sk['class'] }}">{{ $sk['label'] }}</span>
+                                            <span class="mt-1 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $sk['class'] }}">{{ $sk['label'] }}</span>
                                         </div>
-                                        <div>
-                                            <p class="text-xs uppercase tracking-wider text-gray-500">Transmisi</p>
-                                            <p class="text-sm text-gray-700">{{ $selected->transmisi }}</p>
+                                        <div class="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
+                                            <p class="text-xs font-medium uppercase tracking-wider text-slate-500">Transmisi</p>
+                                            <p class="mt-1 text-sm text-slate-700">{{ $selected->transmisi }}</p>
                                         </div>
-                                        <div>
-                                            <p class="text-xs uppercase tracking-wider text-gray-500">Pengelola</p>
-                                            <p class="text-sm text-gray-700">{{ $selected->pengelola?->name ?? '-' }}</p>
+                                        <div class="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
+                                            <p class="text-xs font-medium uppercase tracking-wider text-slate-500">Pengelola</p>
+                                            <p class="mt-1 text-sm text-slate-700">{{ $selected->pengelola?->name ?? '-' }}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -119,9 +114,18 @@
                         </div>
 
                         {{-- Form catat perjalanan --}}
-                        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                            <div class="px-6 py-4 border-b border-gray-100">
-                                <h3 class="text-sm font-semibold text-gray-800 uppercase tracking-wider">Catat Perjalanan</h3>
+                        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                            <div class="flex items-center gap-4 border-b border-indigo-100 bg-gradient-to-r from-indigo-600 via-indigo-600 to-sky-600 px-6 py-5">
+                                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white ring-1 ring-white/20">
+                                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-100">Pencatatan Baru</p>
+                                    <h3 class="mt-1 text-lg font-semibold text-white">Catat Perjalanan</h3>
+                                    <p class="mt-1 text-sm text-indigo-100">Isi informasi odometer dan unggah foto sebagai bukti.</p>
+                                </div>
                             </div>
                             <div class="p-6 text-gray-900">
                                 <form method="POST" action="{{ route('mileage.trip.store') }}" enctype="multipart/form-data">
@@ -129,12 +133,12 @@
                                     <input type="hidden" name="id_kendaraan" value="{{ $selected->id }}">
 
                                     @if ($errors->any())
-                                        <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-md">
+                                        <div class="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
                                             Periksa kembali data yang Anda masukkan.
                                         </div>
                                     @endif
 
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div class="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
                                         <div>
                                             <x-input-label for="tanggal_perjalanan" :value="__('Tanggal Perjalanan')" />
                                             <x-text-input id="tanggal_perjalanan" class="block mt-1 w-full" type="date" name="tanggal_perjalanan" :value="old('tanggal_perjalanan', now()->toDateString())" required />
@@ -153,82 +157,24 @@
                                         <div class="md:col-span-2">
                                             <x-input-label for="foto_bukti" :value="__('Foto Bukti Odometer')" />
                                             <input id="foto_bukti" name="foto_bukti" type="file" accept="image/jpeg,image/png,image/webp" required
-                                                   class="block mt-1 w-full text-sm text-gray-700 border border-gray-300 rounded-md shadow-sm file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200" />
-                                            <p class="mt-1 text-xs text-gray-500">Unggah foto angka odometer yang terlihat jelas (JPG, PNG, atau WEBP; maksimal 5 MB).</p>
+                                                   class="mt-1 block w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-600 shadow-sm transition file:mr-4 file:border-0 file:bg-indigo-50 file:px-4 file:py-3 file:text-sm file:font-semibold file:text-indigo-700 hover:border-indigo-300 hover:file:bg-indigo-100" />
+                                            <p class="mt-2 text-xs text-slate-500">Format JPG, PNG, atau WEBP. Ukuran maksimal 5 MB.</p>
                                             <x-input-error :messages="$errors->get('foto_bukti')" class="mt-2" />
-                                        </div>
-                                        <div>
-                                            <x-input-label for="status_perjalanan" :value="__('Status Perjalanan')" />
-                                            <select id="status_perjalanan" name="status_perjalanan" class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm block mt-1 w-full" required>
-                                                <option value="SELESAI" @selected(old('status_perjalanan', 'SELESAI') === 'SELESAI')>Selesai</option>
-                                                <option value="BERJALAN" @selected(old('status_perjalanan') === 'BERJALAN')>Berjalan</option>
-                                                <option value="TERBATAS" @selected(old('status_perjalanan') === 'TERBATAS')>Terbatas</option>
-                                            </select>
-                                            <x-input-error :messages="$errors->get('status_perjalanan')" class="mt-2" />
                                         </div>
                                         <div class="md:col-span-2">
                                             <x-input-label for="keterangan" :value="__('Keterangan')" />
                                             <textarea id="keterangan" name="keterangan" rows="3"
-                                                      class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                                                      class="mt-1 block w-full rounded-xl border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                                       placeholder="Tujuan, petugas, atau keterangan perjalanan (opsional)">{{ old('keterangan') }}</textarea>
                                             <x-input-error :messages="$errors->get('keterangan')" class="mt-2" />
                                         </div>
                                     </div>
 
-                                    <div class="flex items-center justify-end mt-6">
+                                    <div class="mt-6 flex flex-col-reverse justify-between gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center">
+                                        <p class="text-xs text-slate-500">Pastikan angka odometer sesuai dengan foto bukti.</p>
                                         <x-primary-button>{{ __('Simpan Perjalanan') }}</x-primary-button>
                                     </div>
                                 </form>
-                            </div>
-                        </div>
-
-                        {{-- Trip history kendaraan terpilih --}}
-                        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                            <div class="px-6 py-4 border-b border-gray-100">
-                                <h3 class="text-sm font-semibold text-gray-800 uppercase tracking-wider">Histori Perjalanan</h3>
-                            </div>
-                            <div class="p-6 text-gray-900">
-                                @if ($riwayat->isEmpty())
-                                    <p class="text-gray-500 text-center py-8">Belum ada histori perjalanan untuk kendaraan ini.</p>
-                                @else
-                                    <div class="overflow-x-auto">
-                                        <table class="min-w-full divide-y divide-gray-200">
-                                            <thead class="bg-gray-50">
-                                                <tr>
-                                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
-                                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Km Awal</th>
-                                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Km Akhir</th>
-                                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Jarak</th>
-                                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bukti Odometer</th>
-                                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keterangan</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody class="bg-white divide-y divide-gray-200">
-                                                @foreach ($riwayat as $m)
-                                                    @php $st = $statusMap[$m->status_perjalanan] ?? ['label' => $m->status_perjalanan, 'class' => 'bg-gray-100 text-gray-800']; @endphp
-                                                    <tr class="hover:bg-gray-50">
-                                                        <td class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{{ $m->tanggal_perjalanan->format('d M Y') }}</td>
-                                                        <td class="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{{ number_format($m->kilometer_awal) }} km</td>
-                                                        <td class="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{{ number_format($m->kilometer_akhir) }} km</td>
-                                                        <td class="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{{ number_format($m->total_jarak) }} km</td>
-                                                        <td class="px-4 py-3 text-sm">
-                                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ $st['class'] }}">{{ $st['label'] }}</span>
-                                                        </td>
-                                                        <td class="px-4 py-3 text-sm whitespace-nowrap">
-                                                            @if ($m->foto_bukti)
-                                                                <a href="{{ asset('storage/' . $m->foto_bukti) }}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:underline">Lihat foto</a>
-                                                            @else
-                                                                <span class="text-gray-500">Belum ada</span>
-                                                            @endif
-                                                        </td>
-                                                        <td class="px-4 py-3 text-sm text-gray-600">{{ $m->keterangan ?? '-' }}</td>
-                                                    </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                @endif
                             </div>
                         </div>
                     </div>
