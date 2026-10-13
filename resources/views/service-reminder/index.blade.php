@@ -26,11 +26,7 @@
                             <input type="checkbox" name="is_active" value="1" {{ $setting->is_active ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500 h-5 w-5">
                             <span class="ml-2 text-sm font-medium text-gray-700">Aktifkan Notifikasi Reminder</span>
                         </label>
-                        <div class="flex items-center gap-2">
-                            <span class="text-sm text-gray-700">Munculkan reminder</span>
-                            <x-text-input name="reminder_days_before" type="number" min="1" max="365" value="{{ $setting->reminder_days_before }}" class="w-20 text-center" />
-                            <span class="text-sm text-gray-700">hari sebelum jatuh tempo.</span>
-                        </div>
+                        <p class="text-sm text-gray-700">Peringatan servis ditentukan berdasarkan ambang kilometer setiap kendaraan.</p>
                         <x-primary-button>Simpan Pengaturan</x-primary-button>
                     </form>
                     @else
@@ -50,7 +46,6 @@
                         <div class="flex flex-wrap gap-2">
                             <button @click="filter = 'all'" :class="{'bg-gray-800 text-white': filter === 'all', 'bg-gray-200 text-gray-700': filter !== 'all'}" class="px-4 py-2 text-sm font-medium rounded-md transition-colors">Semua</button>
                             <button @click="filter = 'akan_servis'" :class="{'bg-yellow-500 text-white': filter === 'akan_servis', 'bg-yellow-100 text-yellow-800': filter !== 'akan_servis'}" class="px-4 py-2 text-sm font-medium rounded-md transition-colors">Akan Servis</button>
-                            <button @click="filter = 'jatuh_tempo'" :class="{'bg-orange-500 text-white': filter === 'jatuh_tempo', 'bg-orange-100 text-orange-800': filter !== 'jatuh_tempo'}" class="px-4 py-2 text-sm font-medium rounded-md transition-colors">Jatuh Tempo</button>
                             <button @click="filter = 'terlambat'" :class="{'bg-red-600 text-white': filter === 'terlambat', 'bg-red-100 text-red-800': filter !== 'terlambat'}" class="px-4 py-2 text-sm font-medium rounded-md transition-colors">Terlambat</button>
                         </div>
                     </div>
@@ -71,9 +66,9 @@
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kendaraan</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plat Nomor</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jadwal Servis Berikutnya</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Target KM Servis</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Odometer</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sisa Hari</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jarak ke Servis</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keterangan</th>
                                     </tr>
@@ -81,12 +76,9 @@
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     @foreach($vehicles as $index => $vehicle)
                                         @php
-                                            $statusLabelForFilter = 'akan_servis';
-                                            if ($vehicle['reminder']['status'] === 'MENDEKATI_SERVIS' && $vehicle['reminder']['sisa_hari'] == 0) {
-                                                $statusLabelForFilter = 'jatuh_tempo';
-                                            } elseif ($vehicle['reminder']['status'] === 'TERLAMBAT_SERVIS') {
-                                                $statusLabelForFilter = 'terlambat';
-                                            }
+                                            $statusLabelForFilter = $vehicle['reminder']['status'] === 'TERLAMBAT_SERVIS'
+                                                ? 'terlambat'
+                                                : 'akan_servis';
                                         @endphp
                                         <tr class="hover:bg-gray-50" x-show="filter === 'all' || filter === '{{ $statusLabelForFilter }}'" style="display: none;" x-transition>
                                             <td class="px-4 py-3 text-sm text-gray-900">{{ $index + 1 }}</td>
@@ -106,16 +98,16 @@
                                             </td>
                                             <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $vehicle['plat_nomor'] }}</td>
                                             <td class="px-4 py-3 text-sm text-gray-700">
-                                                {{ \Carbon\Carbon::parse($vehicle['reminder']['tanggal_target'])->translatedFormat('d M Y') }}
+                                                {{ number_format($vehicle['reminder']['target_kilometer']) }} km
                                             </td>
                                             <td class="px-4 py-3 text-sm text-gray-700">{{ number_format($vehicle['kilometer_terakhir']) }} km</td>
                                             <td class="px-4 py-3 text-sm text-gray-700">
-                                                @if($vehicle['reminder']['sisa_hari'] < 0)
-                                                    <span class="text-red-600 font-semibold">{{ abs($vehicle['reminder']['sisa_hari']) }} hari lewat</span>
-                                                @elseif($vehicle['reminder']['sisa_hari'] == 0)
-                                                    <span class="text-orange-600 font-semibold">Hari ini</span>
+                                                @if($vehicle['reminder']['sisa_kilometer'] < 0)
+                                                    <span class="text-red-600 font-semibold">{{ number_format(abs($vehicle['reminder']['sisa_kilometer'])) }} km terlewat</span>
+                                                @elseif($vehicle['reminder']['sisa_kilometer'] == 0)
+                                                    <span class="text-red-600 font-semibold">Batas servis tercapai</span>
                                                 @else
-                                                    {{ $vehicle['reminder']['sisa_hari'] }} hari
+                                                    {{ number_format($vehicle['reminder']['sisa_kilometer']) }} km lagi
                                                 @endif
                                             </td>
                                             <td class="px-4 py-3 text-sm">
@@ -125,15 +117,8 @@
                                                         'TERLAMBAT_SERVIS' => ['label' => 'Terlambat', 'class' => 'bg-red-100 text-red-800'],
                                                     ];
                                                     
-                                                    // Handle "Jatuh Tempo" manually if exactly 0 days. Wait, MENDEKATI_SERVIS applies even if 0 days. 
-                                                    // I will override the label for Jatuh Tempo.
                                                     $statusLabel = $statusData[$vehicle['reminder']['status']]['label'] ?? $vehicle['reminder']['status'];
                                                     $statusClass = $statusData[$vehicle['reminder']['status']]['class'] ?? 'bg-gray-100 text-gray-800';
-                                                    
-                                                    if ($vehicle['reminder']['status'] === 'MENDEKATI_SERVIS' && $vehicle['reminder']['sisa_hari'] == 0) {
-                                                        $statusLabel = 'Jatuh Tempo';
-                                                        $statusClass = 'bg-orange-100 text-orange-800';
-                                                    }
                                                 @endphp
                                                 <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ $statusClass }}">
                                                     {{ $statusLabel }}

@@ -33,11 +33,7 @@ class ServiceReminderBadge extends Component
             ->with(['riwayatServisTerbaru'])
             ->when($user->peran !== 'ADMIN', fn ($query) => $query->whereBelongsTo($user, 'pengelola'))
             ->get()
-            ->map(function ($vehicle) use ($setting) {
-                if ($setting) {
-                    $vehicle->threshold_servis_hari = $setting->reminder_days_before;
-                }
-
+            ->map(function ($vehicle) {
                 return $vehicle->serviceReminder();
             })
             ->filter(fn ($reminder) => $reminder['status'] !== 'TERJADWAL')

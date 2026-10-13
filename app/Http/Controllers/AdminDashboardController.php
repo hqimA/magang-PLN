@@ -7,7 +7,6 @@ use App\Models\LaporanKerusakan;
 use App\Models\PengajuanServis;
 use App\Models\RiwayatPerbaikan;
 use App\Models\RiwayatServis;
-use App\Models\ServiceReminderSetting;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -78,12 +77,6 @@ class AdminDashboardController extends Controller
 
         // LOGIC FOR ALERTS
         $vehicles = Kendaraan::with(['riwayatServisTerbaru'])->get();
-        $setting = ServiceReminderSetting::first();
-        if ($setting) {
-            foreach ($vehicles as $v) {
-                $v->threshold_servis_hari = $setting->reminder_days_before;
-            }
-        }
 
         $terlambatServisCount = 0;
         $mendekatiServisCount = 0;

@@ -87,7 +87,6 @@ class MileageController extends Controller
             'id_kendaraan' => 'required|exists:kendaraan,id',
             'odometer_baru' => 'required|integer|min:0',
             'tanggal_perjalanan' => 'required|date',
-            'status_perjalanan' => 'required|in:SELESAI,BERJALAN,TERBATAS',
             'keterangan' => 'nullable|string|max:1000',
             'foto_bukti' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
         ], [], [
@@ -114,7 +113,6 @@ class MileageController extends Controller
             'tanggal_perjalanan' => $validated['tanggal_perjalanan'],
             'kilometer_awal' => $odometerSebelumnya,
             'kilometer_akhir' => $validated['odometer_baru'],
-            'status_perjalanan' => $validated['status_perjalanan'],
             'keterangan' => $validated['keterangan'] ?? null,
             'id_pencatat' => $request->user()?->id,
         ]);
@@ -134,7 +132,6 @@ class MileageController extends Controller
             'tanggal_perjalanan' => 'required|date',
             'kilometer_awal' => 'required|integer|min:0',
             'kilometer_akhir' => 'required|integer|min:0',
-            'status_perjalanan' => 'required|in:SELESAI,BERJALAN,TERBATAS',
             'keterangan' => 'nullable|string|max:1000',
             'foto_bukti' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
         ], [], [
@@ -158,7 +155,6 @@ class MileageController extends Controller
             'tanggal_perjalanan' => $validated['tanggal_perjalanan'],
             'kilometer_awal' => $validated['kilometer_awal'],
             'kilometer_akhir' => $validated['kilometer_akhir'],
-            'status_perjalanan' => $validated['status_perjalanan'],
             'keterangan' => $validated['keterangan'] ?? null,
             'id_pencatat' => $request->user()?->id,
         ]);
@@ -175,7 +171,6 @@ class MileageController extends Controller
      *     tanggal_perjalanan: string,
      *     kilometer_awal: int|string,
      *     kilometer_akhir: int|string,
-     *     status_perjalanan: string,
      *     keterangan: ?string,
      *     id_pencatat: ?int
      * } $attributes
@@ -194,6 +189,7 @@ class MileageController extends Controller
 
                 $mileage = Mileage::create([
                     'id_kendaraan' => $kendaraan->id,
+                    'status_perjalanan' => 'SELESAI',
                     ...$attributes,
                     'foto_bukti' => $fotoPath,
                 ]);

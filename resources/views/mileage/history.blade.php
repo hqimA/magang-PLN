@@ -1,11 +1,3 @@
-@php
-    $statusMap = [
-        'SELESAI'  => ['label' => 'Selesai',  'class' => 'bg-green-100 text-green-800'],
-        'BERJALAN' => ['label' => 'Berjalan', 'class' => 'bg-blue-100 text-blue-800'],
-        'TERBATAS' => ['label' => 'Terbatas', 'class' => 'bg-yellow-100 text-yellow-800'],
-    ];
-@endphp
-
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between">
@@ -68,14 +60,12 @@
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Km Awal</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Km Akhir</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Jarak</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bukti Odometer</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keterangan</th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     @foreach ($riwayat as $i => $m)
-                                        @php $st = $statusMap[$m->status_perjalanan] ?? ['label' => $m->status_perjalanan, 'class' => 'bg-gray-100 text-gray-800']; @endphp
                                         <tr class="hover:bg-gray-50">
                                             <td class="px-4 py-3 text-sm text-gray-900">{{ $i + 1 }}</td>
                                             <td class="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{{ $m->kendaraan?->plat_nomor ?? '-' }}</td>
@@ -83,9 +73,6 @@
                                             <td class="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{{ number_format($m->kilometer_awal) }} km</td>
                                             <td class="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{{ number_format($m->kilometer_akhir) }} km</td>
                                             <td class="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{{ number_format($m->total_jarak) }} km</td>
-                                            <td class="px-4 py-3 text-sm">
-                                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ $st['class'] }}">{{ $st['label'] }}</span>
-                                            </td>
                                             <td class="px-4 py-3 text-sm whitespace-nowrap">
                                                 @if ($m->foto_bukti)
                                                     <a href="{{ asset('storage/' . $m->foto_bukti) }}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:underline">Lihat foto</a>

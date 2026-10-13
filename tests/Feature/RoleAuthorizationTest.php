@@ -234,7 +234,7 @@ class RoleAuthorizationTest extends TestCase
         $pengelola = User::factory()->pengelola()->create();
 
         $this->actingAs($pengelola)->post(route('service-reminder.settings'), [
-            'reminder_days_before' => 30,
+            'is_active' => 1,
         ])->assertForbidden();
     }
 
@@ -244,10 +244,10 @@ class RoleAuthorizationTest extends TestCase
 
         $this->actingAs($admin)
             ->from(route('service-reminder.index'))
-            ->post(route('service-reminder.settings'), ['reminder_days_before' => 30])
+            ->post(route('service-reminder.settings'), [])
             ->assertRedirect(route('service-reminder.index'));
 
-        $this->assertDatabaseHas('service_reminder_settings', ['reminder_days_before' => 30]);
+        $this->assertDatabaseHas('service_reminder_settings', ['is_active' => false]);
     }
 
     public function test_pengelola_dapat_mengajukan_maintenance(): void

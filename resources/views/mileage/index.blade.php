@@ -1,10 +1,4 @@
 @php
-    $statusMap = [
-        'SELESAI'  => ['label' => 'Selesai',   'class' => 'bg-green-100 text-green-800'],
-        'BERJALAN' => ['label' => 'Berjalan',  'class' => 'bg-blue-100 text-blue-800'],
-        'TERBATAS' => ['label' => 'Terbatas',  'class' => 'bg-yellow-100 text-yellow-800'],
-    ];
-
     $statusKendaraan = [
         'BAIK'          => ['label' => 'Aktif',         'class' => 'bg-green-100 text-green-800'],
         'PERLU_SERVIS'  => ['label' => 'Perlu Servis',  'class' => 'bg-yellow-100 text-yellow-800'],
@@ -157,15 +151,6 @@
                                             <p class="mt-1 text-xs text-gray-500">Unggah foto angka odometer yang terlihat jelas (JPG, PNG, atau WEBP; maksimal 5 MB).</p>
                                             <x-input-error :messages="$errors->get('foto_bukti')" class="mt-2" />
                                         </div>
-                                        <div>
-                                            <x-input-label for="status_perjalanan" :value="__('Status Perjalanan')" />
-                                            <select id="status_perjalanan" name="status_perjalanan" class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm block mt-1 w-full" required>
-                                                <option value="SELESAI" @selected(old('status_perjalanan', 'SELESAI') === 'SELESAI')>Selesai</option>
-                                                <option value="BERJALAN" @selected(old('status_perjalanan') === 'BERJALAN')>Berjalan</option>
-                                                <option value="TERBATAS" @selected(old('status_perjalanan') === 'TERBATAS')>Terbatas</option>
-                                            </select>
-                                            <x-input-error :messages="$errors->get('status_perjalanan')" class="mt-2" />
-                                        </div>
                                         <div class="md:col-span-2">
                                             <x-input-label for="keterangan" :value="__('Keterangan')" />
                                             <textarea id="keterangan" name="keterangan" rows="3"
@@ -199,22 +184,17 @@
                                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Km Awal</th>
                                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Km Akhir</th>
                                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Jarak</th>
-                                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bukti Odometer</th>
                                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keterangan</th>
                                                 </tr>
                                             </thead>
                                             <tbody class="bg-white divide-y divide-gray-200">
                                                 @foreach ($riwayat as $m)
-                                                    @php $st = $statusMap[$m->status_perjalanan] ?? ['label' => $m->status_perjalanan, 'class' => 'bg-gray-100 text-gray-800']; @endphp
                                                     <tr class="hover:bg-gray-50">
                                                         <td class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{{ $m->tanggal_perjalanan->format('d M Y') }}</td>
                                                         <td class="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{{ number_format($m->kilometer_awal) }} km</td>
                                                         <td class="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{{ number_format($m->kilometer_akhir) }} km</td>
                                                         <td class="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{{ number_format($m->total_jarak) }} km</td>
-                                                        <td class="px-4 py-3 text-sm">
-                                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ $st['class'] }}">{{ $st['label'] }}</span>
-                                                        </td>
                                                         <td class="px-4 py-3 text-sm whitespace-nowrap">
                                                             @if ($m->foto_bukti)
                                                                 <a href="{{ asset('storage/' . $m->foto_bukti) }}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:underline">Lihat foto</a>

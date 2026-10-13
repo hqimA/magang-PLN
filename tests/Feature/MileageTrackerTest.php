@@ -57,6 +57,8 @@ class MileageTrackerTest extends TestCase
         $response->assertSee('Perjalanan uji');
         $response->assertSee('1,150 km');
         $response->assertSee('storage/mileage/evidence.jpg');
+        $response->assertDontSee('Status Perjalanan');
+        $response->assertDontSee('Selesai');
     }
 
     public function test_halaman_odometer_menampilkan_odometer_terakhir_kendaraan(): void
@@ -67,7 +69,29 @@ class MileageTrackerTest extends TestCase
         $this->actingAs($user)
             ->get(route('mileage.odometer', ['kendaraan' => $kendaraan->id]))
             ->assertOk()
-            ->assertSee('5,000 km');
+            ->assertSee('5,000 km')
+            ->assertDontSee('Status Perjalanan');
+    }
+
+    public function test_riwayat_mileage_does_not_display_trip_status(): void
+    {
+        $user = $this->user();
+        $kendaraan = $this->kendaraan();
+        Mileage::create([
+            'id_kendaraan' => $kendaraan->id,
+            'tanggal_perjalanan' => now()->subDay()->toDateString(),
+            'kilometer_awal' => 1000,
+            'kilometer_akhir' => 1150,
+            'status_perjalanan' => 'SELESAI',
+            'foto_bukti' => 'mileage/evidence.jpg',
+            'id_pencatat' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('mileage.history'))
+            ->assertOk()
+            ->assertDontSee('Status Perjalanan')
+            ->assertDontSee('Selesai');
     }
 
     public function test_odometer_baru_kurang_dari_sebelumnya_ditolak(): void
@@ -140,7 +164,6 @@ class MileageTrackerTest extends TestCase
             'id_kendaraan' => $kendaraan->id,
             'odometer_baru' => 5320,
             'tanggal_perjalanan' => now()->toDateString(),
-            'status_perjalanan' => 'SELESAI',
             'keterangan' => 'Cek rutin',
             'foto_bukti' => UploadedFile::fake()->image('odometer.jpg'),
         ]);
@@ -152,6 +175,7 @@ class MileageTrackerTest extends TestCase
             'id_kendaraan' => $kendaraan->id,
             'kilometer_awal' => 5000,
             'kilometer_akhir' => 5320,
+            'status_perjalanan' => 'SELESAI',
         ]);
 
         $mileage = Mileage::query()->where('id_kendaraan', $kendaraan->id)->firstOrFail();
@@ -212,12 +236,16 @@ class MileageTrackerTest extends TestCase
             'tanggal_perjalanan' => now()->toDateString(),
             'kilometer_awal' => 1000,
             'kilometer_akhir' => 1150,
-            'status_perjalanan' => 'SELESAI',
             'foto_bukti' => $fotoBukti,
         ]);
 
         $response->assertRedirect(route('mileage.index', ['kendaraan' => $kendaraan->id]));
         $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('mileage', [
+            'id_kendaraan' => $kendaraan->id,
+            'status_perjalanan' => 'SELESAI',
+        ]);
 
         $mileage = Mileage::query()->where('id_kendaraan', $kendaraan->id)->firstOrFail();
 

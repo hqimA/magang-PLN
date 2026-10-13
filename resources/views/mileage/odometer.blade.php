@@ -84,16 +84,6 @@
                                             <x-input-error :messages="$errors->get('foto_bukti')" class="mt-2" />
                                         </div>
 
-                                        <div>
-                                            <x-input-label for="status_perjalanan" :value="__('Status Perjalanan')" />
-                                            <select id="status_perjalanan" name="status_perjalanan" class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm block mt-1 w-full" required>
-                                                <option value="SELESAI" @selected(old('status_perjalanan', 'SELESAI') === 'SELESAI')>Selesai</option>
-                                                <option value="BERJALAN" @selected(old('status_perjalanan') === 'BERJALAN')>Berjalan</option>
-                                                <option value="TERBATAS" @selected(old('status_perjalanan') === 'TERBATAS')>Terbatas</option>
-                                            </select>
-                                            <x-input-error :messages="$errors->get('status_perjalanan')" class="mt-2" />
-                                        </div>
-
                                         <div class="md:col-span-2">
                                             <x-input-label for="keterangan" :value="__('Keterangan')" />
                                             <textarea id="keterangan" name="keterangan" rows="3"

@@ -43,7 +43,7 @@ class MileagePredictionService
         } else {
             $sisaHariPrediksi = (int) ceil($sisaKm / max(1, $rataRataKmHarian));
             $tanggalPrediksiServis = $hariIni->copy()->addDays($sisaHariPrediksi);
-            $statusPrediksi = $sisaHariPrediksi <= $kendaraan->threshold_servis_hari
+            $statusPrediksi = $sisaKm <= $kendaraan->threshold_servis_km
                 ? 'WARNING'
                 : 'SAFE';
         }
