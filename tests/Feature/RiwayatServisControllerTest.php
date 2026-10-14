@@ -5,14 +5,22 @@ namespace Tests\Feature;
 use App\Models\Kendaraan;
 use App\Models\RiwayatServis;
 use App\Models\User;
+use App\Services\CloudinaryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
+use Tests\Support\Fakes\FakeCloudinaryService;
 use Tests\TestCase;
 
 class RiwayatServisControllerTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->app->instance(CloudinaryService::class, new FakeCloudinaryService);
+    }
 
     public function test_guest_is_redirected_to_login_when_creating_service_history(): void
     {
@@ -23,7 +31,6 @@ class RiwayatServisControllerTest extends TestCase
 
     public function test_valid_service_history_stores_receipt_parts_and_updates_vehicle(): void
     {
-        Storage::fake('public');
         $user = User::factory()->create(['peran' => 'PENGELOLA']);
         $kendaraan = Kendaraan::factory()->for($user, 'pengelola')->create([
             'kilometer_terakhir' => 1500,
@@ -62,8 +69,11 @@ class RiwayatServisControllerTest extends TestCase
             'target_kilometer_berikutnya' => 7200,
             'id_pembuat' => $user->id,
         ]);
-        $this->assertStringStartsWith('nota_servis/', $riwayatServis->foto_nota);
-        Storage::disk('public')->assertExists($riwayatServis->foto_nota);
+        $this->assertStringStartsWith(
+            'https://res.cloudinary.com/test/image/upload/v123/nota_servis/',
+            $riwayatServis->foto_nota,
+        );
+        $this->assertTrue(CloudinaryService::isPdf($riwayatServis->foto_nota));
 
         $this->assertDatabaseHas('rincian_sparepart', [
             'id_riwayat_servis' => $riwayatServis->id,

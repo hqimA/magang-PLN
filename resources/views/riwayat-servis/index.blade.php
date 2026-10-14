@@ -82,11 +82,11 @@
                                             {{-- Foto nota thumbnail --}}
                                             <td class="px-4 py-3">
                                                 @if($servis->foto_nota)
-                                                    <a href="{{ asset('storage/' . $servis->foto_nota) }}" target="_blank">
-                                                        @if(str_ends_with(strtolower($servis->foto_nota), '.pdf'))
+                                                    <a href="{{ \App\Services\CloudinaryService::url($servis->foto_nota) }}" target="_blank">
+                                                        @if(\App\Services\CloudinaryService::isPdf($servis->foto_nota))
                                                             <span class="inline-flex items-center px-2 py-1 text-xs rounded bg-red-100 text-red-700 font-medium">PDF</span>
                                                         @else
-                                                            <img src="{{ asset('storage/' . $servis->foto_nota) }}"
+                                                            <img src="{{ \App\Services\CloudinaryService::url($servis->foto_nota, 'w_150,h_150,c_fill,f_auto,q_auto') }}"
                                                                  alt="Foto Nota"
                                                                  class="h-12 w-16 object-cover rounded border border-gray-200" />
                                                         @endif

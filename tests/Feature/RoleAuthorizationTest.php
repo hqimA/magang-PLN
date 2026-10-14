@@ -5,9 +5,10 @@ namespace Tests\Feature;
 use App\Models\Kendaraan;
 use App\Models\RiwayatServis;
 use App\Models\User;
+use App\Services\CloudinaryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
+use Tests\Support\Fakes\FakeCloudinaryService;
 use Tests\TestCase;
 
 class RoleAuthorizationTest extends TestCase
@@ -19,6 +20,7 @@ class RoleAuthorizationTest extends TestCase
         parent::setUp();
 
         $this->withoutVite();
+        $this->app->instance(CloudinaryService::class, new FakeCloudinaryService);
     }
 
     public function test_admin_mengakses_seluruh_halaman(): void
@@ -210,8 +212,6 @@ class RoleAuthorizationTest extends TestCase
 
     public function test_pengelola_mencatat_mileage_kendaraan_miliknya(): void
     {
-        Storage::fake('public');
-
         $pengelola = User::factory()->pengelola()->create();
         $kendaraan = Kendaraan::factory()->for($pengelola, 'pengelola')->create([
             'kilometer_terakhir' => 1000,

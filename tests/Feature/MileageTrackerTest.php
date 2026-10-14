@@ -5,9 +5,10 @@ namespace Tests\Feature;
 use App\Models\Kendaraan;
 use App\Models\Mileage;
 use App\Models\User;
+use App\Services\CloudinaryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
+use Tests\Support\Fakes\FakeCloudinaryService;
 use Tests\TestCase;
 
 class MileageTrackerTest extends TestCase
@@ -20,6 +21,7 @@ class MileageTrackerTest extends TestCase
 
         // Manifest Vite tidak diperlukan untuk pengujian output Blade.
         $this->withoutVite();
+        $this->app->instance(CloudinaryService::class, new FakeCloudinaryService);
     }
 
     private ?User $user = null;
@@ -134,8 +136,6 @@ class MileageTrackerTest extends TestCase
 
     public function test_menyimpan_odometer_baru_memperbarui_kilometer_terakhir_kendaraan(): void
     {
-        Storage::fake('public');
-
         $user = $this->user();
         $kendaraan = $this->kendaraan(['kilometer_terakhir' => 5000]);
 
@@ -159,15 +159,16 @@ class MileageTrackerTest extends TestCase
 
         $mileage = Mileage::query()->where('id_kendaraan', $kendaraan->id)->firstOrFail();
 
-        $this->assertMatchesRegularExpression('/^mileage\/[^\/]+\.jpg$/', $mileage->foto_bukti);
-        Storage::disk('public')->assertExists($mileage->foto_bukti);
+        $this->assertStringStartsWith(
+            'https://res.cloudinary.com/test/image/upload/v123/mileage/',
+            $mileage->foto_bukti,
+        );
+        $this->assertStringEndsWith('.webp', $mileage->foto_bukti);
         $this->assertSame(5320, $kendaraan->fresh()->kilometer_terakhir);
     }
 
     public function test_mileage_tracker_membaca_odometer_terkini_dari_database(): void
     {
-        Storage::fake('public');
-
         $user = $this->user();
         $kendaraan = $this->kendaraan(['kilometer_terakhir' => 1000]);
 
@@ -204,8 +205,6 @@ class MileageTrackerTest extends TestCase
 
     public function test_trip_menyimpan_foto_bukti_dan_memperbarui_kilometer_terakhir(): void
     {
-        Storage::fake('public');
-
         $user = $this->user();
         $kendaraan = $this->kendaraan(['kilometer_terakhir' => 1000]);
         $fotoBukti = UploadedFile::fake()->image('odometer.jpg');
@@ -230,7 +229,10 @@ class MileageTrackerTest extends TestCase
 
         $this->assertSame('SELESAI', $mileage->status_perjalanan);
         $this->assertSame(1150, $kendaraan->fresh()->kilometer_terakhir);
-        Storage::disk('public')->assertExists($mileage->foto_bukti);
+        $this->assertStringStartsWith(
+            'https://res.cloudinary.com/test/image/upload/v123/mileage/',
+            $mileage->foto_bukti,
+        );
     }
 
     public function test_halaman_history_dapat_disaring(): void

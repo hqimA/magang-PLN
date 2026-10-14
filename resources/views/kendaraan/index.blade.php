@@ -17,12 +17,6 @@
         <div class="max-w-7xl mx-auto space-y-6 sm:px-6 lg:px-8">
 
             @if($isAdmin)
-                @if(session('success'))
-                    <div role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                        {{ session('success') }}
-                    </div>
-                @endif
-
                 @if($errors->get('file'))
                     <div role="alert" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
                         <p class="font-semibold">File belum dapat diimpor</p>
@@ -64,9 +58,9 @@
                                 <span class="text-slate-400 transition group-open:rotate-180">⌄</span>
                             </summary>
                             <div class="space-y-2 border-t border-slate-200 px-4 py-3 text-xs leading-5 text-slate-600">
-                                <p>Gunakan satu file Excel sesuai template. Sisipkan foto sebagai gambar mengambang di atas sel pada kolom Foto Kendaraan dan baris yang sesuai. Jangan gunakan gambar tertaut atau fitur gambar “di dalam sel”, karena datanya tidak tertanam sebagai gambar workbook.</p>
+                                <p>Gunakan satu file Excel sesuai template. Isi kolom Foto Kendaraan dengan URL HTTPS langsung menuju file gambar publik (bukan halaman preview atau tautan berbagi). Gambar yang ditempel atau ditautkan sebagai objek Excel tidak didukung.</p>
                                 <p>Jangan mengubah nama atau urutan 11 kolom template. Isi tanggal dengan format tanggal/bulan/tahun (DD/MM/YYYY), contoh 13/10/2026; tanggal STNK dan KIR boleh dikosongkan.</p>
-                                <p>Gunakan MANUAL/OTOMATIS, BENSIN/SOLAR/DIESEL/LISTRIK, dan kategori PEJABAT/TEKNISI/ANGKUT_BARANG/MOTOR_OPERASIONAL. Foto JPG, PNG, atau WebP maksimal 2 MB per foto. Pastikan gambar tertanam di workbook, bukan ditautkan dari lokasi lain.</p>
+                                <p>Gunakan MANUAL/OTOMATIS, BENSIN/SOLAR/DIESEL/LISTRIK, dan kategori PEJABAT/TEKNISI/ANGKUT_BARANG (atau Angkut Barang)/MOTOR_OPERASIONAL. Foto harus berupa JPG, PNG, atau WebP publik maksimal 10 MB dan 20 megapiksel per foto. Server akan mengunduh, mengompresi, mengubahnya ke WebP, dan mengunggahnya ke Cloudinary.</p>
                                 <p>Kendaraan hasil impor belum diberikan kepada Pengelola. Admin dapat menetapkan Pengelola melalui menu edit kendaraan.</p>
                                 <p class="font-semibold text-amber-800">Jika template, isi baris, gambar, atau plat nomor tidak valid/duplikat, seluruh file ditolak dan tidak ada kendaraan yang ditambahkan.</p>
                             </div>
@@ -134,7 +128,7 @@
                                             <td class="px-4 py-3 text-sm text-gray-900">{{ $index + 1 }}</td>
                                             <td class="px-4 py-3">
                                                 @if($kendaraan->foto_kendaraan)
-                                                    <img src="{{ asset('storage/' . $kendaraan->foto_kendaraan) }}"
+                                                    <img src="{{ \App\Services\CloudinaryService::url($kendaraan->foto_kendaraan, 'w_150,h_150,c_fill,f_auto,q_auto') }}"
                                                          alt="Foto {{ $kendaraan->merk_tipe }}"
                                                          class="h-14 w-20 object-cover rounded-md border border-gray-200" />
                                                 @else

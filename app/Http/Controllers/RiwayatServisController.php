@@ -4,13 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Kendaraan;
 use App\Models\RiwayatServis;
+use App\Services\CloudinaryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
-use RuntimeException;
 use Throwable;
 
 class RiwayatServisController extends Controller
@@ -81,7 +80,7 @@ class RiwayatServisController extends Controller
             'kilometer_servis' => ['required', 'numeric'],
             'nama_bengkel' => ['required', 'string', 'max:150'],
             'total_biaya' => ['required', 'numeric', 'min:0'],
-            'foto_nota' => ['nullable', 'file', 'mimes:jpeg,png,jpg,pdf', 'max:2048'],
+            'foto_nota' => ['nullable', 'file', 'mimes:jpeg,png,jpg,webp,pdf', 'max:10240'],
             'sparepart' => ['nullable', 'array'],
             'sparepart.*.nama_sparepart' => ['required', 'string', 'max:150'],
             'sparepart.*.jumlah' => ['required', 'integer', 'min:1'],
@@ -102,11 +101,7 @@ class RiwayatServisController extends Controller
                 }
 
                 if ($request->hasFile('foto_nota')) {
-                    $path = $request->file('foto_nota')->store('nota_servis', 'public');
-
-                    if ($path === false) {
-                        throw new RuntimeException('Nota servis gagal disimpan.');
-                    }
+                    $path = app(CloudinaryService::class)->upload($request->file('foto_nota'), 'nota_servis');
                 }
 
                 $riwayatServis = RiwayatServis::query()->create([
@@ -141,7 +136,7 @@ class RiwayatServisController extends Controller
             });
         } catch (Throwable $exception) {
             if (is_string($path)) {
-                Storage::disk('public')->delete($path);
+                app(CloudinaryService::class)->deleteSafely($path);
             }
 
             throw $exception;

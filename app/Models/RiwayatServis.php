@@ -9,7 +9,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class RiwayatServis extends Model
 {
+    use Concerns\HasCloudinaryImages;
     use HasFactory;
+
+    protected array $cloudinaryImages = ['foto_nota'];
 
     protected $table = 'riwayat_servis';
 

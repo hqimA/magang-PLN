@@ -141,7 +141,7 @@
                                 <div class="flex flex-col sm:flex-row gap-6">
                                     <div class="sm:w-48 flex-shrink-0">
                                         @if ($selected->foto_kendaraan)
-                                            <img src="{{ asset('storage/' . $selected->foto_kendaraan) }}"
+                                            <img src="{{ \App\Services\CloudinaryService::url($selected->foto_kendaraan, 'w_800,c_limit,f_auto,q_auto') }}"
                                                  alt="Foto {{ $selected->merk_tipe }}"
                                                  class="h-36 w-full object-cover rounded-lg border border-gray-200 shadow-sm" />
                                         @else

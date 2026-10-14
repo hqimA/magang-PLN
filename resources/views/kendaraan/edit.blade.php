@@ -132,7 +132,7 @@
                             @if($kendaraan->foto_kendaraan)
                                 <div class="mt-2 mb-3">
                                     <p class="text-xs text-gray-500 mb-1">Foto saat ini:</p>
-                                    <img src="{{ asset('storage/' . $kendaraan->foto_kendaraan) }}"
+                                    <img src="{{ \App\Services\CloudinaryService::url($kendaraan->foto_kendaraan, 'w_800,c_limit,f_auto,q_auto') }}"
                                          alt="Foto {{ $kendaraan->merk_tipe }}"
                                          class="h-40 w-auto rounded-md border border-gray-200 object-cover" />
                                 </div>
@@ -149,7 +149,7 @@
                                 />
                                 <x-input-error :messages="$errors->get('foto_kendaraan')" class="mt-2" />
                                 <p class="mt-1 text-xs text-gray-500">
-                                    {{ $kendaraan->foto_kendaraan ? 'Unggah foto baru untuk mengganti yang lama. ' : '' }}Format: JPG, PNG, WebP. Maksimal 2 MB. (Opsional)
+                                    {{ $kendaraan->foto_kendaraan ? 'Unggah foto baru untuk mengganti yang lama. ' : '' }}Format: JPG, PNG, WebP. Maksimal 10 MB. (Opsional)
                                 </p>
                             </div>
                             <div id="preview-container" class="mt-3 hidden">

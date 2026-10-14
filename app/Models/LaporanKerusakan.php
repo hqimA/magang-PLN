@@ -9,7 +9,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class LaporanKerusakan extends Model
 {
+    use Concerns\HasCloudinaryImages;
     use HasFactory;
+
+    protected array $cloudinaryImages = ['foto_bukti'];
 
     protected $table = 'laporan_kerusakan';
 

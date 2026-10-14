@@ -33,8 +33,19 @@ use Illuminate\Support\Carbon;
 ])]
 class Kendaraan extends Model
 {
+    use Concerns\HasCloudinaryImages;
+
     /** @use HasFactory<KendaraanFactory> */
     use HasFactory;
+
+    protected array $cloudinaryImages = ['foto_kendaraan'];
+
+    protected array $cloudinaryChildren = [
+        'laporan_kerusakan' => ['id_kendaraan', 'foto_bukti'],
+        'mileage' => ['id_kendaraan', 'foto_bukti'],
+        'pengajuan_servis' => ['id_kendaraan', 'foto_bukti_odometer'],
+        'riwayat_servis' => ['id_kendaraan', 'foto_nota'],
+    ];
 
     protected $table = 'kendaraan';
 

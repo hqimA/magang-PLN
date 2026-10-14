@@ -3,11 +3,12 @@
 namespace App\Imports;
 
 use App\Models\Kendaraan;
+use App\Services\CloudinaryService;
+use App\Services\RemoteImageDownloader;
 use DateTimeImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -17,14 +18,17 @@ use PhpOffice\PhpSpreadsheet\Exception as SpreadsheetException;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Reader\Exception;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
-use PhpOffice\PhpSpreadsheet\Worksheet\BaseDrawing;
-use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
-use PhpOffice\PhpSpreadsheet\Worksheet\MemoryDrawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use Throwable;
 
 class KendaraanImport
 {
     private int $importedCount = 0;
+
+    public function __construct(
+        private CloudinaryService $cloudinary,
+        private RemoteImageDownloader $imageDownloader,
+    ) {}
 
     public function import(UploadedFile $file): void
     {
@@ -42,7 +46,7 @@ class KendaraanImport
             $worksheet = $spreadsheet->getActiveSheet();
             $this->validateHeadings($worksheet);
 
-            $drawingsByRow = $this->drawingsByRow($worksheet);
+            $this->rejectEmbeddedImages($worksheet);
             $preparedRows = [];
             $errors = [];
             $lastRow = $worksheet->getHighestDataRow();
@@ -63,23 +67,12 @@ class KendaraanImport
                     continue;
                 }
 
-                if ($values[10] !== null && trim((string) $values[10]) !== '') {
-                    $errors[] = "Baris {$rowNumber}: Foto Kendaraan harus ditempel sebagai gambar di kolom ini, bukan diisi dengan teks atau nama file.";
-
-                    continue;
-                }
-
-                if (count(array_filter(array_slice($values, 0, 10), fn (mixed $value): bool => $value !== null && trim((string) $value) !== '')) === 0
-                    && ! isset($drawingsByRow[$rowNumber])) {
+                if (count(array_filter($values, fn (mixed $value): bool => $value !== null && trim((string) $value) !== '')) === 0) {
                     continue;
                 }
 
                 $data = $this->normalizeRow($worksheet, $rowNumber);
-                $drawing = $drawingsByRow[$rowNumber] ?? null;
-
-                if ($drawing !== null) {
-                    $data['foto_kendaraan'] = $this->imageData($drawing, $rowNumber, $errors);
-                }
+                $data['foto_kendaraan'] = is_string($values[10]) ? trim($values[10]) : $values[10];
 
                 $validator = Validator::make($data, [
                     'plat_nomor' => ['required', 'string', 'max:15'],
@@ -92,6 +85,7 @@ class KendaraanImport
                     'tanggal_pembelian' => ['required', 'date_format:Y-m-d'],
                     'tanggal_stnk_berlaku_sampai' => ['nullable', 'date_format:Y-m-d'],
                     'tanggal_kir_berlaku_sampai' => ['nullable', 'date_format:Y-m-d'],
+                    'foto_kendaraan' => ['nullable', 'string', 'max:2048'],
                 ], [], [
                     'plat_nomor' => 'Nomor Polisi',
                     'merk_tipe' => 'Nama Kendaraan',
@@ -103,6 +97,7 @@ class KendaraanImport
                     'tanggal_pembelian' => 'Tanggal Pembelian',
                     'tanggal_stnk_berlaku_sampai' => 'STNK Berlaku Sampai',
                     'tanggal_kir_berlaku_sampai' => 'KIR Berlaku Sampai',
+                    'foto_kendaraan' => 'URL Foto Kendaraan',
                 ]);
 
                 if ($validator->fails()) {
@@ -157,27 +152,52 @@ class KendaraanImport
                 throw ValidationException::withMessages(['file' => $errors]);
             }
 
-            $storedFiles = [];
-            $transactionSucceeded = false;
-
+            $uploadedUrls = [];
             try {
-                DB::transaction(function () use ($preparedRows, &$storedFiles): void {
-                    foreach ($preparedRows as $row) {
-                        $data = $row['data'];
-                        $image = $data['foto_kendaraan'] ?? null;
-                        unset($data['foto_kendaraan']);
+                foreach ($preparedRows as &$row) {
+                    $imageUrl = $row['data']['foto_kendaraan'];
 
-                        if ($image !== null) {
-                            $filename = 'kendaraan/'.Str::uuid().'.'.$image['extension'];
+                    if ($imageUrl !== null && $imageUrl !== '') {
+                        try {
+                            $localPath = $this->imageDownloader->download($imageUrl);
 
-                            if (! Storage::disk('public')->put($filename, $image['contents'])) {
-                                throw new \RuntimeException('Foto kendaraan tidak dapat disimpan ke penyimpanan public.');
+                            try {
+                                $uploadedUrl = $this->cloudinary->upload(
+                                    new UploadedFile(
+                                        $localPath,
+                                        'kendaraan.'.$this->imageExtension($localPath),
+                                        mime_content_type($localPath) ?: null,
+                                        UPLOAD_ERR_OK,
+                                        true,
+                                    ),
+                                    'kendaraan',
+                                );
+                            } finally {
+                                if (is_file($localPath)) {
+                                    unlink($localPath);
+                                }
                             }
 
-                            $storedFiles[] = $filename;
-                            $data['foto_kendaraan'] = $filename;
-                        }
+                            $uploadedUrls[] = $uploadedUrl;
+                            $row['data']['foto_kendaraan'] = $uploadedUrl;
+                        } catch (Throwable $exception) {
+                            report($exception);
 
+                            throw ValidationException::withMessages([
+                                'file' => [
+                                    "Baris {$row['baris']}: URL Foto Kendaraan tidak dapat diunduh sebagai gambar publik yang valid atau gagal diunggah ke Cloudinary.",
+                                ],
+                            ]);
+                        }
+                    } else {
+                        $row['data']['foto_kendaraan'] = null;
+                    }
+                }
+                unset($row);
+
+                DB::transaction(function () use ($preparedRows): void {
+                    foreach ($preparedRows as $row) {
+                        $data = $row['data'];
                         $data['id_pengelola'] = null;
                         $data['interval_servis_km'] = 5000;
                         $data['interval_servis_bulan'] = 3;
@@ -189,12 +209,12 @@ class KendaraanImport
                         $this->importedCount++;
                     }
                 });
-
-                $transactionSucceeded = true;
-            } finally {
-                if (! $transactionSucceeded && $storedFiles !== []) {
-                    Storage::disk('public')->delete($storedFiles);
+            } catch (Throwable $exception) {
+                foreach ($uploadedUrls as $uploadedUrl) {
+                    $this->cloudinary->deleteSafely($uploadedUrl);
                 }
+
+                throw $exception;
             }
 
         } finally {
@@ -235,87 +255,23 @@ class KendaraanImport
         }
     }
 
-    /**
-     * @param  array<int, string>  $errors
-     * @return array{contents: string, extension: string}|null
-     */
-    private function imageData(BaseDrawing $drawing, int $rowNumber, array &$errors): ?array
+    private function rejectEmbeddedImages(Worksheet $worksheet): void
     {
-        if ($drawing instanceof MemoryDrawing) {
-            $imageResource = $drawing->getImageResource();
-            ob_start();
-            $rendered = $imageResource !== null
-                && ($drawing->getRenderingFunction())($imageResource);
-            $contents = ob_get_clean();
-            $sourceMimeType = $drawing->getMimeType();
-        } elseif ($drawing instanceof Drawing && ! $drawing->getIsURL()) {
-            $path = $drawing->getPath();
-            $contents = str_starts_with($path, 'data:image/')
-                ? base64_decode(substr($path, strpos($path, ',') + 1), true)
-                : ($path !== '' ? file_get_contents($path) : false);
-            $sourceMimeType = null;
-            $rendered = true;
-        } else {
-            $contents = false;
-            $sourceMimeType = null;
-            $rendered = false;
+        if ($worksheet->getDrawingCollection()->count() > 0) {
+            throw ValidationException::withMessages([
+                'file' => 'Foto yang ditempel atau ditautkan sebagai objek Excel tidak didukung. Masukkan URL HTTPS langsung ke gambar pada kolom Foto Kendaraan.',
+            ]);
         }
+    }
 
-        $image = $contents === false ? false : getimagesizefromstring($contents);
-        $extensions = [
+    private function imageExtension(string $path): string
+    {
+        return match (mime_content_type($path)) {
             'image/jpeg' => 'jpg',
             'image/png' => 'png',
             'image/webp' => 'webp',
-        ];
-        $mimeType = is_array($image) ? ($image['mime'] ?? null) : null;
-
-        if (! $rendered || $contents === false || $image === false || ! isset($extensions[$mimeType])
-            || ($sourceMimeType !== null && $sourceMimeType !== $mimeType)) {
-            $errors[] = "Baris {$rowNumber}: Foto Kendaraan harus berupa gambar JPG, PNG, atau WebP yang valid dan tertanam di file Excel.";
-
-            return null;
-        }
-
-        if (strlen($contents) > 2 * 1024 * 1024) {
-            $errors[] = "Baris {$rowNumber}: Ukuran Foto Kendaraan maksimal 2 MB.";
-
-            return null;
-        }
-
-        return [
-            'contents' => $contents,
-            'extension' => $extensions[$mimeType],
-        ];
-    }
-
-    /**
-     * @return array<int, BaseDrawing>
-     */
-    private function drawingsByRow(Worksheet $worksheet): array
-    {
-        $drawingsByRow = [];
-        $lastRow = $worksheet->getHighestDataRow();
-
-        foreach ($worksheet->getDrawingCollection() as $drawing) {
-            [$column, $row] = Coordinate::coordinateFromString($drawing->getCoordinates());
-            $columnIndex = Coordinate::columnIndexFromString($column);
-
-            if ($columnIndex !== 11 || $row < 2 || $row > $lastRow || isset($drawingsByRow[$row])) {
-                throw ValidationException::withMessages([
-                    'file' => 'Gambar hanya boleh satu buah pada kolom Foto Kendaraan dan harus sejajar dengan baris data kendaraan.',
-                ]);
-            }
-
-            if (! $drawing instanceof Drawing && ! $drawing instanceof MemoryDrawing) {
-                throw ValidationException::withMessages([
-                    'file' => "Gambar pada baris {$row} menggunakan format yang tidak didukung. Sisipkan gambar JPG, PNG, atau WebP.",
-                ]);
-            }
-
-            $drawingsByRow[$row] = $drawing;
-        }
-
-        return $drawingsByRow;
+            default => throw new \RuntimeException('Format foto kendaraan tidak didukung.'),
+        };
     }
 
     /**
@@ -367,6 +323,10 @@ class KendaraanImport
             }
 
             if (in_array($field, ['transmisi', 'jenis_bbm', 'kategori_penggunaan'], true) && is_string($value)) {
+                if ($field === 'kategori_penggunaan') {
+                    $value = str_replace(' ', '_', $value);
+                }
+
                 $value = Str::upper($value);
             }
 

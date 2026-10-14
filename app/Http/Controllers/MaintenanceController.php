@@ -6,14 +6,13 @@ use App\Models\Kendaraan;
 use App\Models\Mileage;
 use App\Models\PengajuanKomponen;
 use App\Models\PengajuanServis;
+use App\Services\CloudinaryService;
 use App\Services\KomponenServisService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
-use RuntimeException;
 use Throwable;
 
 class MaintenanceController extends Controller
@@ -110,7 +109,7 @@ class MaintenanceController extends Controller
             'jenis_pengajuan' => ['required', 'in:RUTIN,DARURAT'],
             'deskripsi_keluhan' => ['required', 'string', 'max:2000'],
             'estimasi_biaya' => ['nullable', 'numeric', 'min:0'],
-            'foto_bukti_odometer' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'foto_bukti_odometer' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
             'komponen' => ['nullable', 'array'],
             'komponen.*.id_komponen_kendaraan' => ['required_with:komponen', 'exists:komponen_kendaraan,id'],
             'komponen.*.jenis_aksi' => ['required_with:komponen', 'in:P,G'],
@@ -134,11 +133,7 @@ class MaintenanceController extends Controller
 
         try {
             DB::transaction(function () use ($kendaraan, $validated, $latestMileage, $request, &$fotoPath): void {
-                $fotoPath = $request->file('foto_bukti_odometer')->store('maintenance', 'public');
-
-                if (! is_string($fotoPath)) {
-                    throw new RuntimeException('Foto bukti odometer gagal disimpan.');
-                }
+                $fotoPath = app(CloudinaryService::class)->upload($request->file('foto_bukti_odometer'), 'bukti_odometer');
 
                 $pengajuan = PengajuanServis::create([
                     'id_kendaraan' => $kendaraan->id,
@@ -164,7 +159,7 @@ class MaintenanceController extends Controller
             });
         } catch (Throwable $exception) {
             if (is_string($fotoPath)) {
-                Storage::disk('public')->delete($fotoPath);
+                app(CloudinaryService::class)->deleteSafely($fotoPath);
             }
 
             throw $exception;

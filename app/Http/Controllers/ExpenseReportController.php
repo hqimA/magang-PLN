@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Exports\ExpenseReportArchiveExport;
 use App\Exports\ExpenseReportExport;
+use App\Models\LaporanKerusakan;
+use App\Models\RiwayatServis;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -97,9 +99,13 @@ class ExpenseReportController extends Controller
                 ]);
             }
 
-            DB::table('riwayat_servis')->delete();
+            RiwayatServis::query()->orderBy('id')->chunkById(100, function ($riwayatServis): void {
+                $riwayatServis->each->delete();
+            });
             DB::table('riwayat_perbaikan')->delete();
-            DB::table('laporan_kerusakan')->delete();
+            LaporanKerusakan::query()->orderBy('id')->chunkById(100, function ($laporanKerusakan): void {
+                $laporanKerusakan->each->delete();
+            });
             DB::table('expense_report_export_receipts')
                 ->where('user_id', $request->user()->id)
                 ->delete();

@@ -6,9 +6,10 @@ use App\Enums\KategoriKomponen;
 use App\Models\Kendaraan;
 use App\Models\TemplateJadwalServis;
 use App\Models\User;
+use App\Services\CloudinaryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 class KendaraanController extends Controller
 {
@@ -70,7 +71,7 @@ class KendaraanController extends Controller
             ...$this->documentExpiryDateRules($request),
             'status_perawatan' => 'required|in:BAIK,PERLU_SERVIS,SEDANG_SERVIS,RUSAK',
             'id_pengelola' => 'required|exists:users,id,peran,PENGELOLA',
-            'foto_kendaraan' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'foto_kendaraan' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
         ]);
 
         // Pengelola hanya dapat membuat kendaraan atas namanya sendiri.
@@ -79,10 +80,16 @@ class KendaraanController extends Controller
         }
 
         if ($request->hasFile('foto_kendaraan')) {
-            $validated['foto_kendaraan'] = $request->file('foto_kendaraan')->store('kendaraan', 'public');
+            $validated['foto_kendaraan'] = app(CloudinaryService::class)->upload($request->file('foto_kendaraan'), 'kendaraan');
         }
 
-        Kendaraan::create($validated);
+        try {
+            Kendaraan::create($validated);
+        } catch (Throwable $exception) {
+            app(CloudinaryService::class)->deleteSafely($validated['foto_kendaraan'] ?? null);
+
+            throw $exception;
+        }
 
         return redirect()->route('kendaraan.index')->with('success', 'Kendaraan berhasil ditambahkan.');
     }
@@ -141,15 +148,14 @@ class KendaraanController extends Controller
             ...$this->documentExpiryDateRules($request),
             'status_perawatan' => 'required|in:BAIK,PERLU_SERVIS,SEDANG_SERVIS,RUSAK',
             'id_pengelola' => 'required|exists:users,id,peran,PENGELOLA',
-            'foto_kendaraan' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'foto_kendaraan' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
         ]);
 
+        $uploadedUrl = null;
+
         if ($request->hasFile('foto_kendaraan')) {
-            // Hapus foto lama jika ada
-            if ($kendaraan->foto_kendaraan) {
-                Storage::disk('public')->delete($kendaraan->foto_kendaraan);
-            }
-            $validated['foto_kendaraan'] = $request->file('foto_kendaraan')->store('kendaraan', 'public');
+            $uploadedUrl = app(CloudinaryService::class)->upload($request->file('foto_kendaraan'), 'kendaraan');
+            $validated['foto_kendaraan'] = $uploadedUrl;
         }
 
         // Pengelola tidak dapat memindahkan kendaraan ke pengelola lain.
@@ -157,7 +163,13 @@ class KendaraanController extends Controller
             $validated['id_pengelola'] = $kendaraan->id_pengelola;
         }
 
-        $kendaraan->update($validated);
+        try {
+            $kendaraan->update($validated);
+        } catch (Throwable $exception) {
+            app(CloudinaryService::class)->deleteSafely($uploadedUrl);
+
+            throw $exception;
+        }
 
         return redirect()->route('kendaraan.index')->with('success', 'Kendaraan berhasil diperbarui.');
     }
@@ -168,11 +180,6 @@ class KendaraanController extends Controller
         abort_unless($request->user()->isAdmin(), 403);
 
         $kendaraan = Kendaraan::findOrFail($id);
-
-        // Hapus foto jika ada
-        if ($kendaraan->foto_kendaraan) {
-            Storage::disk('public')->delete($kendaraan->foto_kendaraan);
-        }
 
         $kendaraan->delete();
 

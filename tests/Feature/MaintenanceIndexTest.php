@@ -6,9 +6,10 @@ use App\Models\Kendaraan;
 use App\Models\Mileage;
 use App\Models\PengajuanServis;
 use App\Models\User;
+use App\Services\CloudinaryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
+use Tests\Support\Fakes\FakeCloudinaryService;
 use Tests\TestCase;
 
 class MaintenanceIndexTest extends TestCase
@@ -19,6 +20,7 @@ class MaintenanceIndexTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
+        $this->app->instance(CloudinaryService::class, new FakeCloudinaryService);
     }
 
     public function test_tab_pengajuan_menampilkan_kilometer_akhir_dari_table_mileage(): void
@@ -114,8 +116,6 @@ class MaintenanceIndexTest extends TestCase
 
     public function test_pengelola_dapat_membuat_pengajuan_maintenance(): void
     {
-        Storage::fake('public');
-
         $pengelola = User::factory()->pengelola()->create();
         $kendaraan = Kendaraan::factory()->for($pengelola, 'pengelola')->create([
             'kilometer_terakhir' => 3000,
@@ -150,8 +150,10 @@ class MaintenanceIndexTest extends TestCase
 
         $pengajuan = PengajuanServis::query()->where('id_kendaraan', $kendaraan->id)->firstOrFail();
 
-        $this->assertStringStartsWith('maintenance/', $pengajuan->foto_bukti_odometer);
-        Storage::disk('public')->assertExists($pengajuan->foto_bukti_odometer);
+        $this->assertStringStartsWith(
+            'https://res.cloudinary.com/test/image/upload/v123/bukti_odometer/',
+            $pengajuan->foto_bukti_odometer,
+        );
 
         $this->actingAs($pengelola)
             ->get(route('maintenance.show', $pengajuan))
@@ -230,8 +232,6 @@ class MaintenanceIndexTest extends TestCase
 
     public function test_form_create_dan_ajax_menggunakan_kilometer_terakhir_jika_belum_ada_mileage(): void
     {
-        Storage::fake('public');
-
         $pengelola = User::factory()->pengelola()->create();
         $kendaraan = Kendaraan::factory()->for($pengelola, 'pengelola')->create([
             'kilometer_terakhir' => 8500,

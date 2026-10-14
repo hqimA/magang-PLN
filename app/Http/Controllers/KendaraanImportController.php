@@ -11,12 +11,11 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class KendaraanImportController extends Controller
 {
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, KendaraanImport $import): RedirectResponse
     {
         $validated = $request->validate([
             'file' => ['required', 'file', 'mimes:xlsx,xls', 'extensions:xlsx,xls', 'max:10240'],
         ]);
-        $import = new KendaraanImport;
         $import->import($validated['file']);
 
         return redirect()->route('kendaraan.index')->with(

@@ -5,11 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Kendaraan;
 use App\Models\Mileage;
 use App\Models\User;
+use App\Services\CloudinaryService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use RuntimeException;
 use Throwable;
 
 class MileageController extends Controller
@@ -80,7 +79,7 @@ class MileageController extends Controller
             'tanggal_perjalanan' => 'required|date',
             'status_perjalanan' => 'sometimes|in:SELESAI,BERJALAN,TERBATAS',
             'keterangan' => 'nullable|string|max:1000',
-            'foto_bukti' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'foto_bukti' => 'required|image|mimes:jpg,jpeg,png,webp|max:10240',
         ], [], [
             'id_kendaraan' => 'kendaraan',
             'odometer_baru' => 'odometer',
@@ -127,7 +126,7 @@ class MileageController extends Controller
             'kilometer_akhir' => 'required|integer|min:0',
             'status_perjalanan' => 'sometimes|in:SELESAI,BERJALAN,TERBATAS',
             'keterangan' => 'nullable|string|max:1000',
-            'foto_bukti' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'foto_bukti' => 'required|image|mimes:jpg,jpeg,png,webp|max:10240',
         ], [], [
             'kilometer_akhir' => 'kilometer akhir',
             'foto_bukti' => 'foto bukti odometer',
@@ -176,11 +175,7 @@ class MileageController extends Controller
 
         try {
             return DB::transaction(function () use ($request, $kendaraan, $attributes, &$fotoPath): Mileage {
-                $fotoPath = $request->file('foto_bukti')->store('mileage', 'public');
-
-                if (! is_string($fotoPath)) {
-                    throw new RuntimeException('Foto bukti mileage gagal disimpan.');
-                }
+                $fotoPath = app(CloudinaryService::class)->upload($request->file('foto_bukti'), 'mileage');
 
                 $mileage = Mileage::create([
                     'id_kendaraan' => $kendaraan->id,
@@ -195,7 +190,7 @@ class MileageController extends Controller
             });
         } catch (Throwable $exception) {
             if (is_string($fotoPath)) {
-                Storage::disk('public')->delete($fotoPath);
+                app(CloudinaryService::class)->deleteSafely($fotoPath);
             }
 
             throw $exception;

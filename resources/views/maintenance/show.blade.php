@@ -20,7 +20,7 @@
                     <h3 class="text-base font-semibold text-gray-700 mb-4">Informasi Kendaraan</h3>
                     <div class="flex items-start gap-5">
                         @if($pengajuan->kendaraan->foto_kendaraan)
-                            <img src="{{ asset('storage/' . $pengajuan->kendaraan->foto_kendaraan) }}"
+                            <img src="{{ \App\Services\CloudinaryService::url($pengajuan->kendaraan->foto_kendaraan, 'w_800,c_limit,f_auto,q_auto') }}"
                                  alt="Foto Kendaraan"
                                  class="h-24 w-36 object-cover rounded-lg border border-gray-200 shrink-0" />
                         @else
@@ -117,7 +117,7 @@
                             <dt class="text-gray-500">Bukti Odometer</dt>
                             <dd class="mt-1 font-medium text-gray-900">
                                 @if($pengajuan->foto_bukti_odometer)
-                                    <a href="{{ asset('storage/' . $pengajuan->foto_bukti_odometer) }}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:underline">Lihat foto bukti</a>
+                                    <a href="{{ \App\Services\CloudinaryService::url($pengajuan->foto_bukti_odometer) }}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:underline">Lihat foto bukti</a>
                                 @else
                                     -
                                 @endif

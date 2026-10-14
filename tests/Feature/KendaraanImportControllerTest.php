@@ -5,13 +5,19 @@ namespace Tests\Feature;
 use App\Exports\KendaraanImportTemplateExport;
 use App\Models\Kendaraan;
 use App\Models\User;
+use App\Services\CloudinaryService;
+use App\Services\RemoteImageDownloader;
+use GuzzleHttp\Client;
+use GuzzleHttp\Handler\MockHandler;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Psr7\Response;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Tests\Support\Fakes\FakeCloudinaryService;
 use Tests\TestCase;
 
 class KendaraanImportControllerTest extends TestCase
@@ -23,11 +29,11 @@ class KendaraanImportControllerTest extends TestCase
         parent::setUp();
 
         $this->withoutVite();
+        $this->app->instance(CloudinaryService::class, new FakeCloudinaryService);
     }
 
     public function test_admin_can_import_vehicles_without_assigning_a_manager(): void
     {
-        Storage::fake('public');
         $admin = User::factory()->admin()->create();
         $file = $this->createImportFile([
             $this->vehicleRow('B 1234 PLN'),
@@ -39,6 +45,13 @@ class KendaraanImportControllerTest extends TestCase
 
         $response->assertRedirect(route('kendaraan.index'))
             ->assertSessionHas('success', 'Import berhasil: 1 kendaraan ditambahkan.');
+
+        $indexResponse = $this->actingAs($admin)->get(route('kendaraan.index'));
+        $this->assertSame(
+            1,
+            substr_count($indexResponse->getContent(), 'Import berhasil: 1 kendaraan ditambahkan.'),
+        );
+
         $this->assertDatabaseHas('kendaraan', [
             'plat_nomor' => 'B 1234 PLN',
             'merk_tipe' => 'Toyota Avanza',
@@ -50,13 +63,30 @@ class KendaraanImportControllerTest extends TestCase
         ]);
     }
 
-    public function test_admin_can_import_and_store_an_embedded_vehicle_photo(): void
+    public function test_admin_can_import_angku_barang_category_written_with_spaces(): void
     {
-        Storage::fake('public');
         $admin = User::factory()->admin()->create();
-        $file = $this->createImportFile([
-            $this->vehicleRow('B 1235 PLN'),
-        ], includePhoto: true);
+        $row = $this->vehicleRow('B 1233 PLN');
+        $row[6] = 'Angkut Barang';
+        $file = $this->createImportFile([$row]);
+
+        $this->actingAs($admin)
+            ->post(route('kendaraan.import'), ['file' => $file])
+            ->assertRedirect(route('kendaraan.index'));
+
+        $this->assertDatabaseHas('kendaraan', [
+            'plat_nomor' => 'B 1233 PLN',
+            'kategori_penggunaan' => 'ANGKUT_BARANG',
+        ]);
+    }
+
+    public function test_admin_can_import_a_public_https_vehicle_photo_url(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $row = $this->vehicleRow('B 1235 PLN');
+        $row[10] = 'https://8.8.8.8/vehicle.png';
+        $this->useImageResponses([new Response(200, ['Content-Type' => 'image/png'], $this->validPng())]);
+        $file = $this->createImportFile([$row]);
 
         $this->actingAs($admin)
             ->post(route('kendaraan.import'), ['file' => $file])
@@ -64,7 +94,147 @@ class KendaraanImportControllerTest extends TestCase
 
         $kendaraan = Kendaraan::query()->where('plat_nomor', 'B 1235 PLN')->firstOrFail();
         $this->assertNotNull($kendaraan->foto_kendaraan);
-        Storage::disk('public')->assertExists($kendaraan->foto_kendaraan);
+        $this->assertStringStartsWith(
+            'https://res.cloudinary.com/test/image/upload/v123/kendaraan/',
+            $kendaraan->foto_kendaraan,
+        );
+        $this->assertCount(1, $this->cloudinaryFake()->uploadedUrls);
+    }
+
+    public function test_import_rejects_non_https_photo_urls_without_saving_vehicles(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $row = $this->vehicleRow('B 1236 PLN');
+        $row[10] = 'http://8.8.8.8/vehicle.png';
+        $file = $this->createImportFile([$row]);
+
+        $this->from(route('kendaraan.index'))
+            ->actingAs($admin)
+            ->post(route('kendaraan.import'), ['file' => $file])
+            ->assertRedirect(route('kendaraan.index'))
+            ->assertSessionHasErrors('file');
+
+        $this->assertDatabaseCount('kendaraan', 0);
+        $this->assertSame([], $this->cloudinaryFake()->uploadedUrls);
+    }
+
+    public function test_import_rejects_embedded_vehicle_photos(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $file = $this->createImportFile([
+            $this->vehicleRow('B 1239 PLN'),
+        ], includePhoto: true);
+
+        $this->from(route('kendaraan.index'))
+            ->actingAs($admin)
+            ->post(route('kendaraan.import'), ['file' => $file])
+            ->assertRedirect(route('kendaraan.index'))
+            ->assertSessionHasErrors('file');
+
+        $this->assertDatabaseCount('kendaraan', 0);
+    }
+
+    public function test_import_rejects_redirects_to_private_addresses(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $row = $this->vehicleRow('B 1240 PLN');
+        $row[10] = 'https://8.8.8.8/redirect.png';
+        $this->useImageResponses([
+            new Response(302, ['Location' => 'https://127.0.0.1/private.png']),
+        ]);
+        $file = $this->createImportFile([$row]);
+
+        $this->from(route('kendaraan.index'))
+            ->actingAs($admin)
+            ->post(route('kendaraan.import'), ['file' => $file])
+            ->assertRedirect(route('kendaraan.index'))
+            ->assertSessionHasErrors('file');
+
+        $this->assertDatabaseCount('kendaraan', 0);
+    }
+
+    public function test_import_rejects_photo_hosts_that_resolve_to_private_addresses(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $row = $this->vehicleRow('B 1243 PLN');
+        $row[10] = 'https://images.example.test/vehicle.png';
+        $this->useImageResponses(
+            [new Response(200, ['Content-Type' => 'image/png'], $this->validPng())],
+            '192.168.1.10',
+        );
+        $file = $this->createImportFile([$row]);
+
+        $this->from(route('kendaraan.index'))
+            ->actingAs($admin)
+            ->post(route('kendaraan.import'), ['file' => $file])
+            ->assertRedirect(route('kendaraan.index'))
+            ->assertSessionHasErrors('file');
+
+        $this->assertDatabaseCount('kendaraan', 0);
+        $this->assertSame([], $this->cloudinaryFake()->uploadedUrls);
+    }
+
+    public function test_import_rejects_remote_responses_that_are_not_images(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $row = $this->vehicleRow('B 1244 PLN');
+        $row[10] = 'https://8.8.8.8/vehicle.png';
+        $this->useImageResponses([new Response(200, ['Content-Type' => 'image/png'], '<html>not an image</html>')]);
+        $file = $this->createImportFile([$row]);
+
+        $this->from(route('kendaraan.index'))
+            ->actingAs($admin)
+            ->post(route('kendaraan.import'), ['file' => $file])
+            ->assertRedirect(route('kendaraan.index'))
+            ->assertSessionHasErrors('file');
+
+        $this->assertDatabaseCount('kendaraan', 0);
+        $this->assertSame([], $this->cloudinaryFake()->uploadedUrls);
+    }
+
+    public function test_import_rejects_remote_images_larger_than_ten_megabytes(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $row = $this->vehicleRow('B 1245 PLN');
+        $row[10] = 'https://8.8.8.8/vehicle.png';
+        $this->useImageResponses([
+            new Response(200, ['Content-Type' => 'image/png'], str_repeat('x', 10 * 1024 * 1024 + 1)),
+        ]);
+        $file = $this->createImportFile([$row]);
+
+        $this->from(route('kendaraan.index'))
+            ->actingAs($admin)
+            ->post(route('kendaraan.import'), ['file' => $file])
+            ->assertRedirect(route('kendaraan.index'))
+            ->assertSessionHasErrors('file');
+
+        $this->assertDatabaseCount('kendaraan', 0);
+        $this->assertSame([], $this->cloudinaryFake()->uploadedUrls);
+    }
+
+    public function test_import_deletes_uploaded_photos_when_a_later_photo_fails(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $firstRow = $this->vehicleRow('B 1241 PLN');
+        $firstRow[10] = 'https://8.8.8.8/first.png';
+        $secondRow = $this->vehicleRow('B 1242 PLN');
+        $secondRow[10] = 'https://8.8.8.8/missing.png';
+        $this->useImageResponses([
+            new Response(200, ['Content-Type' => 'image/png'], $this->validPng()),
+            new Response(404),
+        ]);
+        $file = $this->createImportFile([$firstRow, $secondRow]);
+
+        $this->from(route('kendaraan.index'))
+            ->actingAs($admin)
+            ->post(route('kendaraan.import'), ['file' => $file])
+            ->assertRedirect(route('kendaraan.index'))
+            ->assertSessionHasErrors('file');
+
+        $this->assertDatabaseCount('kendaraan', 0);
+        $cloudinary = $this->cloudinaryFake();
+        $this->assertCount(1, $cloudinary->uploadedUrls);
+        $this->assertSame($cloudinary->uploadedUrls, $cloudinary->deletedUrls);
     }
 
     public function test_import_accepts_excel_date_cells_and_converts_them_to_vehicle_dates(): void
@@ -237,7 +407,7 @@ class KendaraanImportControllerTest extends TestCase
         $this->assertDatabaseCount('kendaraan', 0);
     }
 
-    public function test_import_rejects_a_photo_reference_without_a_matching_file_in_the_zip(): void
+    public function test_import_rejects_a_photo_filename_instead_of_a_url(): void
     {
         $admin = User::factory()->admin()->create();
         $file = $this->createImportFile([
@@ -448,6 +618,34 @@ class KendaraanImportControllerTest extends TestCase
                 unlink($photoPath);
             }
         }
+    }
+
+    /**
+     * @param  array<int, Response>  $responses
+     */
+    private function useImageResponses(array $responses, string $resolvedAddress = '8.8.8.8'): void
+    {
+        $client = new Client([
+            'handler' => HandlerStack::create(new MockHandler($responses)),
+        ]);
+
+        $this->app->instance(
+            RemoteImageDownloader::class,
+            new RemoteImageDownloader($client, static fn (string $host): array => [$resolvedAddress]),
+        );
+    }
+
+    private function cloudinaryFake(): FakeCloudinaryService
+    {
+        return $this->app->make(CloudinaryService::class);
+    }
+
+    private function validPng(): string
+    {
+        return base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jN2sAAAAASUVORK5CYII=',
+            true,
+        );
     }
 
     /**

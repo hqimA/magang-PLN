@@ -20,7 +20,7 @@
                     <h3 class="text-base font-semibold text-gray-700 mb-4">Informasi Kendaraan</h3>
                     <div class="flex items-start gap-5">
                         @if($riwayatServis->kendaraan->foto_kendaraan)
-                            <img src="{{ asset('storage/' . $riwayatServis->kendaraan->foto_kendaraan) }}"
+                            <img src="{{ \App\Services\CloudinaryService::url($riwayatServis->kendaraan->foto_kendaraan, 'w_800,c_limit,f_auto,q_auto') }}"
                                  alt="Foto Kendaraan"
                                  class="h-24 w-36 object-cover rounded-lg border border-gray-200 shrink-0" />
                         @else
@@ -140,7 +140,7 @@
                     <h3 class="text-base font-semibold text-gray-700 mb-4">Foto / Nota Servis</h3>
                     @if($riwayatServis->foto_nota)
                         @if(str_ends_with(strtolower($riwayatServis->foto_nota), '.pdf'))
-                            <a href="{{ asset('storage/' . $riwayatServis->foto_nota) }}" target="_blank"
+                            <a href="{{ \App\Services\CloudinaryService::url($riwayatServis->foto_nota) }}" target="_blank"
                                class="inline-flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200 rounded-md text-sm font-medium text-red-700 hover:bg-red-100 transition">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
@@ -148,8 +148,8 @@
                                 Lihat Nota PDF
                             </a>
                         @else
-                            <a href="{{ asset('storage/' . $riwayatServis->foto_nota) }}" target="_blank">
-                                <img src="{{ asset('storage/' . $riwayatServis->foto_nota) }}"
+                            <a href="{{ \App\Services\CloudinaryService::url($riwayatServis->foto_nota) }}" target="_blank">
+                                <img src="{{ \App\Services\CloudinaryService::url($riwayatServis->foto_nota, 'w_800,c_limit,f_auto,q_auto') }}"
                                      alt="Foto Nota Servis"
                                      class="max-h-80 rounded-lg border border-gray-200 object-contain" />
                             </a>
