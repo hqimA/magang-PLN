@@ -166,7 +166,6 @@ class MileageController extends Controller
      *     tanggal_perjalanan: string,
      *     kilometer_awal: int|string,
      *     kilometer_akhir: int|string,
-     *     status_perjalanan: string,
      *     keterangan: ?string,
      *     id_pencatat: ?int
      * } $attributes
@@ -185,6 +184,7 @@ class MileageController extends Controller
 
                 $mileage = Mileage::create([
                     'id_kendaraan' => $kendaraan->id,
+                    'status_perjalanan' => 'SELESAI',
                     ...$attributes,
                     'foto_bukti' => $fotoPath,
                 ]);

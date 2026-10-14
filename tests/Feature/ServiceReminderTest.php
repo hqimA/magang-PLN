@@ -42,7 +42,7 @@ class ServiceReminderTest extends TestCase
             ->assertJsonPath('data.0.reminder.sisa_kilometer', 200);
     }
 
-    public function test_vehicle_is_marked_as_nearing_service_by_time_threshold(): void
+    public function test_vehicle_is_not_reminded_when_only_the_date_threshold_is_near(): void
     {
         $this->travelTo('2026-09-15 12:00:00');
         $user = User::factory()->create(['peran' => 'PENGELOLA']);
@@ -60,9 +60,53 @@ class ServiceReminderTest extends TestCase
 
         $response = $this->actingAs($user)->getJson(route('service-reminders.index'));
 
+        $response->assertOk()->assertJsonCount(0, 'data');
+    }
+
+    public function test_vehicle_is_not_overdue_when_only_the_service_date_has_passed(): void
+    {
+        $this->travelTo('2026-09-25 12:00:00');
+        $user = User::factory()->create(['peran' => 'PENGELOLA']);
+        $vehicle = Kendaraan::factory()->for($user, 'pengelola')->create([
+            'kilometer_terakhir' => 1000,
+            'tanggal_pembelian' => '2026-01-01',
+        ]);
+        RiwayatServis::create([
+            'id_kendaraan' => $vehicle->id,
+            'tanggal_servis' => '2026-01-01',
+            'kilometer_servis' => 0,
+            'nama_bengkel' => 'Bengkel PLN',
+            'id_pembuat' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->getJson(route('service-reminders.index'));
+
+        $response->assertOk()->assertJsonCount(0, 'data');
+    }
+
+    public function test_service_reminder_page_displays_distance_overdue_instead_of_days(): void
+    {
+        $this->travelTo('2026-09-25 12:00:00');
+        $user = User::factory()->create(['peran' => 'PENGELOLA']);
+        $vehicle = Kendaraan::factory()->for($user, 'pengelola')->create([
+            'kilometer_terakhir' => 5100,
+            'tanggal_pembelian' => '2026-01-01',
+        ]);
+        RiwayatServis::create([
+            'id_kendaraan' => $vehicle->id,
+            'tanggal_servis' => '2026-08-25',
+            'kilometer_servis' => 0,
+            'target_kilometer_berikutnya' => 5000,
+            'nama_bengkel' => 'Bengkel PLN',
+            'id_pembuat' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('service-reminder.index'));
+
         $response->assertOk()
-            ->assertJsonPath('data.0.reminder.status', 'MENDEKATI_SERVIS')
-            ->assertJsonPath('data.0.reminder.sisa_hari', 10);
+            ->assertSee('100 km terlewat')
+            ->assertSee('Target KM Servis')
+            ->assertDontSee('Sisa Hari');
     }
 
     public function test_service_reminder_response_includes_mileage_based_service_prediction(): void
@@ -73,6 +117,7 @@ class ServiceReminderTest extends TestCase
             'kilometer_terakhir' => 4500,
             'interval_servis_km' => 5000,
             'threshold_servis_hari' => 10,
+            'threshold_servis_km' => 500,
             'interval_servis_bulan' => 0,
         ]);
         RiwayatServis::create([
@@ -97,14 +142,14 @@ class ServiceReminderTest extends TestCase
             ->assertJsonPath('data.0.prediksi.status_prediksi', 'WARNING');
     }
 
-    public function test_service_prediction_uses_purchase_date_and_interval_without_service_history(): void
+    public function test_service_prediction_uses_kilometer_threshold_without_service_history(): void
     {
         $this->travelTo('2026-09-20 12:00:00');
         $user = User::factory()->create(['peran' => 'PENGELOLA']);
         $vehicle = Kendaraan::factory()->for($user, 'pengelola')->create([
             'kilometer_terakhir' => 300,
             'interval_servis_km' => 1000,
-            'threshold_servis_hari' => 10,
+            'threshold_servis_km' => 700,
             'interval_servis_bulan' => 0,
             'tanggal_pembelian' => '2026-09-10',
         ]);
@@ -117,7 +162,7 @@ class ServiceReminderTest extends TestCase
             ->assertJsonPath('data.0.prediksi.sisa_kilometer', 700)
             ->assertJsonPath('data.0.prediksi.sisa_hari_prediksi', 24)
             ->assertJsonPath('data.0.prediksi.tanggal_prediksi_servis', '2026-10-14')
-            ->assertJsonPath('data.0.prediksi.status_prediksi', 'SAFE');
+            ->assertJsonPath('data.0.prediksi.status_prediksi', 'WARNING');
     }
 
     public function test_service_prediction_marks_vehicle_overdue_when_target_mileage_is_reached(): void

@@ -4,16 +4,76 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 {{ __('Data Kendaraan') }}
             </h2>
-            <a href="{{ route('kendaraan.create') }}"
-               class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                + Tambah Kendaraan
-            </a>
+            @if($isAdmin)
+                <a href="{{ route('kendaraan.create') }}"
+                   class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                    + Tambah Kendaraan
+                </a>
+            @endif
         </div>
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto space-y-6 sm:px-6 lg:px-8">
 
+            @if($isAdmin)
+                @if(session('success'))
+                    <div role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                        {{ session('success') }}
+                    </div>
+                @endif
+
+                @if($errors->get('file'))
+                    <div role="alert" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                        <p class="font-semibold">File belum dapat diimpor</p>
+                        <ul class="mt-2 list-inside list-disc space-y-1">
+                            @foreach($errors->get('file') as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                <section aria-labelledby="kendaraan-import-heading" class="overflow-hidden rounded-2xl border border-indigo-100 bg-white shadow-sm">
+                    <div class="flex flex-col gap-4 border-b border-indigo-100 bg-gradient-to-r from-indigo-50 to-white px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                        <div>
+                            <h3 id="kendaraan-import-heading" class="font-semibold text-slate-900">Impor Kendaraan dari Excel</h3>
+                            <p class="mt-1 text-sm text-slate-600">Tambahkan data armada sesuai kolom pada tabel kendaraan.</p>
+                        </div>
+                        <a href="{{ route('kendaraan.import.template') }}" class="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-50">
+                            Unduh Template
+                        </a>
+                    </div>
+
+                    <div class="grid gap-5 px-5 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+                        <form method="POST" action="{{ route('kendaraan.import') }}" enctype="multipart/form-data" class="flex flex-col gap-3 sm:flex-row sm:items-end">
+                            @csrf
+                            <div class="grid min-w-0 flex-1 gap-1.5">
+                                <label for="kendaraan-import-file" class="text-xs font-semibold text-slate-700">Pilih file Excel</label>
+                                <input id="kendaraan-import-file" name="file" type="file" accept=".xlsx,.xls" required class="block w-full min-w-0 rounded-lg border border-slate-200 bg-white text-sm text-slate-600 shadow-sm file:me-3 file:border-0 file:bg-slate-100 file:px-3 file:py-2.5 file:text-xs file:font-semibold file:text-slate-700 hover:file:bg-slate-200 focus:border-indigo-600 focus:ring-indigo-600">
+                                <span class="text-xs text-slate-400">Format .xlsx atau .xls, maksimal 10 MB</span>
+                            </div>
+                            <button type="submit" class="inline-flex min-h-10 items-center justify-center rounded-lg bg-indigo-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2">
+                                Impor Kendaraan
+                            </button>
+                        </form>
+
+                        <details class="group rounded-xl border border-slate-200 bg-slate-50">
+                            <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-slate-700 marker:hidden">
+                                Petunjuk kolom dan pengisian
+                                <span class="text-slate-400 transition group-open:rotate-180">⌄</span>
+                            </summary>
+                            <div class="space-y-2 border-t border-slate-200 px-4 py-3 text-xs leading-5 text-slate-600">
+                                <p>Gunakan satu file Excel sesuai template. Sisipkan foto sebagai gambar mengambang di atas sel pada kolom Foto Kendaraan dan baris yang sesuai. Jangan gunakan gambar tertaut atau fitur gambar “di dalam sel”, karena datanya tidak tertanam sebagai gambar workbook.</p>
+                                <p>Jangan mengubah nama atau urutan 11 kolom template. Isi tanggal dengan format tanggal/bulan/tahun (DD/MM/YYYY), contoh 13/10/2026; tanggal STNK dan KIR boleh dikosongkan.</p>
+                                <p>Gunakan MANUAL/OTOMATIS, BENSIN/SOLAR/DIESEL/LISTRIK, dan kategori PEJABAT/TEKNISI/ANGKUT_BARANG/MOTOR_OPERASIONAL. Foto JPG, PNG, atau WebP maksimal 2 MB per foto. Pastikan gambar tertanam di workbook, bukan ditautkan dari lokasi lain.</p>
+                                <p>Kendaraan hasil impor belum diberikan kepada Pengelola. Admin dapat menetapkan Pengelola melalui menu edit kendaraan.</p>
+                                <p class="font-semibold text-amber-800">Jika template, isi baris, gambar, atau plat nomor tidak valid/duplikat, seluruh file ditolak dan tidak ada kendaraan yang ditambahkan.</p>
+                            </div>
+                        </details>
+                    </div>
+                </section>
+            @endif
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
@@ -46,8 +106,12 @@
                             @if(($search ?? '') !== '' || ($status ?? '') !== '')
                                 Data tidak ditemukan.
                             @else
-                                Belum ada data kendaraan.
-                            @endif <a href="{{ route('kendaraan.create') }}" class="text-indigo-600 hover:underline">Tambah sekarang</a>.</p>
+                                Belum ada kendaraan yang ditetapkan untuk akun ini.
+                            @endif
+                            @if($isAdmin)
+                                <a href="{{ route('kendaraan.create') }}" class="text-indigo-600 hover:underline">Tambah sekarang</a>.
+                            @endif
+                        </p>
                     @else
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
@@ -104,13 +168,13 @@
                                                 <div class="flex items-center gap-2">
                                                     <a href="{{ route('kendaraan.show', $kendaraan->id) }}"
                                                        class="inline-flex items-center px-3 py-1 bg-indigo-50 border border-indigo-200 rounded-md font-semibold text-xs text-indigo-700 uppercase tracking-widest shadow-sm hover:bg-indigo-100 transition ease-in-out duration-150">
-                                                        Komponen
+                                                        {{ $isAdmin ? 'Komponen' : 'Detail' }}
                                                     </a>
-                                                    <a href="{{ route('kendaraan.edit', $kendaraan->id) }}"
-                                                       class="inline-flex items-center px-3 py-1 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                                                        Edit
-                                                    </a>
-                                                    @if(auth()->user()->isAdmin())
+                                                    @if($isAdmin)
+                                                        <a href="{{ route('kendaraan.edit', $kendaraan->id) }}"
+                                                           class="inline-flex items-center px-3 py-1 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                                                            Edit
+                                                        </a>
                                                         <form method="POST" action="{{ route('kendaraan.destroy', $kendaraan->id) }}"
                                                               onsubmit="return confirm('Yakin ingin menghapus kendaraan ini?')">
                                                             @csrf

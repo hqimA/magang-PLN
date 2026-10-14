@@ -60,7 +60,7 @@ class RoleAuthorizationTest extends TestCase
         $this->assertDatabaseHas('kendaraan', ['id' => $kendaraan->id]);
     }
 
-    public function test_pengelola_tidak_bisa_mengakses_halaman_laporan(): void
+    public function test_pengelola_cannot_access_expense_report(): void
     {
         $pengelola = User::factory()->pengelola()->create();
 
@@ -142,7 +142,8 @@ class RoleAuthorizationTest extends TestCase
             ->get(route('dashboard'))
             ->assertOk()
             ->assertSee(route('laporan-pengeluaran.index'))
-            ->assertSee(route('user.index'));
+            ->assertSee(route('user.index'))
+            ->assertSee('Admin');
     }
 
     public function test_sidebar_pengelola_tidak_menampilkan_laporan_dan_manajemen_user(): void
@@ -150,9 +151,11 @@ class RoleAuthorizationTest extends TestCase
         $pengelola = User::factory()->pengelola()->create();
 
         $this->actingAs($pengelola)
-            ->get(route('dashboard'))
+            ->get(route('pengelola.kendaraan'))
             ->assertOk()
-            ->assertDontSee(route('user.index'));
+            ->assertDontSee(route('laporan-pengeluaran.index'))
+            ->assertDontSee(route('user.index'))
+            ->assertSee('Pengelola Kendaraan');
     }
 
     public function test_pengelola_hanya_melihat_kendaraan_miliknya(): void
@@ -234,7 +237,7 @@ class RoleAuthorizationTest extends TestCase
         $pengelola = User::factory()->pengelola()->create();
 
         $this->actingAs($pengelola)->post(route('service-reminder.settings'), [
-            'reminder_days_before' => 30,
+            'is_active' => 1,
         ])->assertForbidden();
     }
 
@@ -244,10 +247,10 @@ class RoleAuthorizationTest extends TestCase
 
         $this->actingAs($admin)
             ->from(route('service-reminder.index'))
-            ->post(route('service-reminder.settings'), ['reminder_days_before' => 30])
+            ->post(route('service-reminder.settings'), [])
             ->assertRedirect(route('service-reminder.index'));
 
-        $this->assertDatabaseHas('service_reminder_settings', ['reminder_days_before' => 30]);
+        $this->assertDatabaseHas('service_reminder_settings', ['is_active' => false]);
     }
 
     public function test_pengelola_dapat_mengajukan_maintenance(): void

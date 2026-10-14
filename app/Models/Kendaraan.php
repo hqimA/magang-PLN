@@ -137,25 +137,17 @@ class Kendaraan extends Model
             ?? $referenceKilometer + $this->interval_servis_km;
         $targetDate = $referenceDate->copy()->addMonths($this->interval_servis_bulan);
         $remainingKilometers = $targetKilometer - $this->kilometer_terakhir;
-        $remainingDays = $today->startOfDay()->diffInDays($targetDate->startOfDay(), false);
+        $remainingDays = $today->copy()->startOfDay()->diffInDays($targetDate->startOfDay(), false);
 
-        if ($remainingKilometers <= 0 || $remainingDays <= 0) {
+        if ($remainingKilometers <= 0) {
             $status = 'TERLAMBAT_SERVIS';
-            $reason = $remainingKilometers <= 0 && $remainingDays <= 0
-                ? 'Batas kilometer dan waktu servis telah terlewati.'
-                : ($remainingKilometers <= 0
-                    ? 'Batas kilometer servis telah terlewati.'
-                    : 'Jadwal servis berdasarkan waktu telah terlewati.');
-        } elseif ($remainingKilometers <= $this->threshold_servis_km || $remainingDays <= $this->threshold_servis_hari) {
+            $reason = 'Jadwal servis terlewati sebanyak '.number_format(abs($remainingKilometers)).' km.';
+        } elseif ($remainingKilometers <= $this->threshold_servis_km) {
             $status = 'MENDEKATI_SERVIS';
-            $reason = $remainingKilometers <= $this->threshold_servis_km && $remainingDays <= $this->threshold_servis_hari
-                ? 'Batas kilometer dan waktu servis sudah mendekati.'
-                : ($remainingKilometers <= $this->threshold_servis_km
-                    ? 'Sisa kilometer servis sudah mendekati batas.'
-                    : 'Sisa waktu servis sudah mendekati batas.');
+            $reason = 'Sisa jarak servis tinggal '.number_format($remainingKilometers).' km.';
         } else {
             $status = 'TERJADWAL';
-            $reason = 'Kendaraan belum mendekati jadwal servis.';
+            $reason = 'Kendaraan belum mendekati batas kilometer servis.';
         }
 
         return [

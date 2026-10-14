@@ -48,11 +48,7 @@ class ServiceReminderController extends Controller
                 ->when($user->peran !== 'ADMIN', fn ($query) => $query->whereBelongsTo($user, 'pengelola'))
                 ->orderBy('plat_nomor')
                 ->get()
-                ->map(function (Kendaraan $vehicle) use ($setting) {
-                    if ($setting) {
-                        $vehicle->threshold_servis_hari = $setting->reminder_days_before;
-                    }
-
+                ->map(function (Kendaraan $vehicle) {
                     return [
                         'id' => $vehicle->id,
                         'plat_nomor' => $vehicle->plat_nomor,
@@ -69,7 +65,7 @@ class ServiceReminderController extends Controller
 
         return view('service-reminder.index', [
             'vehicles' => $vehicles,
-            'setting' => $setting ?? new ServiceReminderSetting(['is_active' => true, 'reminder_days_before' => 7]),
+            'setting' => $setting ?? new ServiceReminderSetting(['is_active' => true]),
         ]);
     }
 
@@ -78,14 +74,12 @@ class ServiceReminderController extends Controller
         // Pengaturan global service reminder hanya dapat diubah Admin.
         abort_unless($request->user()->isAdmin(), 403);
 
-        $validated = $request->validate([
-            'is_active' => 'boolean',
-            'reminder_days_before' => 'required|integer|min:1|max:365',
+        $request->validate([
+            'is_active' => 'sometimes|boolean',
         ]);
 
         $setting = ServiceReminderSetting::first() ?? new ServiceReminderSetting;
         $setting->is_active = $request->has('is_active');
-        $setting->reminder_days_before = $validated['reminder_days_before'];
         $setting->save();
 
         return back()->with('success', 'Pengaturan notifikasi berhasil disimpan.');

@@ -90,6 +90,15 @@
             <span>{{ __('Mileage') }}</span>
         </a>
 
+        @if($isAdmin)
+            <a href="{{ route('laporan-pengeluaran.index') }}" class="mt-1 flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium transition duration-150 ease-in-out {{ request()->routeIs('laporan-pengeluaran.*') ? 'border-amber-400/40 bg-gradient-to-r from-amber-300/10 to-sky-500/10 text-amber-200' : 'border-transparent text-slate-300 hover:border-white/10 hover:bg-white/5 hover:text-white' }}">
+                <svg class="h-5 w-5 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                </svg>
+                <span>{{ __('Laporan') }}</span>
+            </a>
+        @endif
+
         <div class="flex-1"></div>
 
         @if($isAdmin)
@@ -98,13 +107,6 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
                 </svg>
                 <span>{{ __('Template Komponen') }}</span>
-            </a>
-
-            <a href="{{ route('laporan-pengeluaran.index') }}" class="mt-1 flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium transition duration-150 ease-in-out {{ request()->routeIs('laporan-pengeluaran.*') ? 'border-amber-400/40 bg-gradient-to-r from-amber-300/10 to-sky-500/10 text-amber-200' : 'border-transparent text-slate-300 hover:border-white/10 hover:bg-white/5 hover:text-white' }}">
-                <svg class="h-5 w-5 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                </svg>
-                <span>{{ __('Laporan') }}</span>
             </a>
 
             <a href="{{ route('user.index') }}" class="mt-1 flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium transition duration-150 ease-in-out {{ request()->routeIs('user.*') ? 'border-amber-400/40 bg-gradient-to-r from-amber-300/10 to-sky-500/10 text-amber-200' : 'border-transparent text-slate-300 hover:border-white/10 hover:bg-white/5 hover:text-white' }}">
@@ -119,7 +121,7 @@
             <x-slot name="trigger">
                 <button type="button" class="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-200 transition duration-150 ease-in-out hover:bg-white/5 hover:text-white">
                     <i class="hgi hgi-stroke hgi-user-circle-02 h-5 w-5 shrink-0"></i>
-                    <span class="flex-1 text-start">{{ __('Administrator Fleet') }}</span>
+                    <span class="flex-1 text-start">{{ auth()->user()?->isAdmin() ? __('Admin') : __('Pengelola Kendaraan') }}</span>
                     <i class="hgi hgi-stroke hgi-arrow-down-01 h-4 w-4 shrink-0"></i>
                 </button>
             </x-slot>

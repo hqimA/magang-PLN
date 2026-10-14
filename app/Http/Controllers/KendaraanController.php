@@ -7,8 +7,8 @@ use App\Models\Kendaraan;
 use App\Models\TemplateJadwalServis;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 class KendaraanController extends Controller
 {
@@ -38,7 +38,9 @@ class KendaraanController extends Controller
             ->orderBy('plat_nomor')
             ->get();
 
-        return view('kendaraan.index', compact('kendaraans', 'search', 'status'));
+        $isAdmin = $user->isAdmin();
+
+        return view('kendaraan.index', compact('kendaraans', 'isAdmin', 'search', 'status'));
     }
 
     public function create(Request $request)
@@ -46,7 +48,7 @@ class KendaraanController extends Controller
         $user = $request->user();
 
         $pengelolas = $user->isAdmin()
-            ? User::orderBy('name')->get()
+            ? User::where('peran', 'PENGELOLA')->orderBy('name')->get()
             : User::whereKey($user->id)->get();
 
         return view('kendaraan.create', compact('pengelolas'));
@@ -67,7 +69,7 @@ class KendaraanController extends Controller
             'tanggal_pembelian' => 'required|date',
             ...$this->documentExpiryDateRules($request),
             'status_perawatan' => 'required|in:BAIK,PERLU_SERVIS,SEDANG_SERVIS,RUSAK',
-            'id_pengelola' => 'required|exists:users,id',
+            'id_pengelola' => 'required|exists:users,id,peran,PENGELOLA',
             'foto_kendaraan' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
@@ -101,7 +103,9 @@ class KendaraanController extends Controller
         $allTemplates = TemplateJadwalServis::where('is_aktif', true)->orderBy('nama')->get();
         $kategoriList = KategoriKomponen::cases();
 
-        return view('kendaraan.show', compact('kendaraan', 'rekomendasiTemplate', 'allTemplates', 'kategoriList'));
+        $isAdmin = $user->isAdmin();
+
+        return view('kendaraan.show', compact('kendaraan', 'rekomendasiTemplate', 'allTemplates', 'kategoriList', 'isAdmin'));
     }
 
     public function edit(Request $request, string $id)
@@ -112,7 +116,7 @@ class KendaraanController extends Controller
         $this->authorizeKendaraan($user, $kendaraan);
 
         $pengelolas = $user->isAdmin()
-            ? User::orderBy('name')->get()
+            ? User::where('peran', 'PENGELOLA')->orderBy('name')->get()
             : User::whereKey($user->id)->get();
 
         return view('kendaraan.edit', compact('kendaraan', 'pengelolas'));
@@ -136,7 +140,7 @@ class KendaraanController extends Controller
             'tanggal_pembelian' => 'required|date',
             ...$this->documentExpiryDateRules($request),
             'status_perawatan' => 'required|in:BAIK,PERLU_SERVIS,SEDANG_SERVIS,RUSAK',
-            'id_pengelola' => 'required|exists:users,id',
+            'id_pengelola' => 'required|exists:users,id,peran,PENGELOLA',
             'foto_kendaraan' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 

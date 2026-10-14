@@ -5,16 +5,20 @@
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                     {{ $kendaraan->merk_tipe }} — <span class="font-mono text-indigo-600">{{ $kendaraan->plat_nomor }}</span>
                 </h2>
-                <p class="text-xs text-gray-500 mt-0.5">Detail kendaraan dan manajemen suku cadang & komponen servis mandiri.</p>
+                <p class="text-xs text-gray-500 mt-0.5">
+                    {{ $isAdmin ? 'Detail kendaraan dan manajemen suku cadang & komponen servis mandiri.' : 'Detail kendaraan dan komponen servis.' }}
+                </p>
             </div>
             <div class="flex items-center gap-2">
-                <a href="{{ route('kendaraan.edit', $kendaraan->id) }}"
-                   class="inline-flex items-center px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-md transition border border-slate-300">
-                    <svg class="h-4 w-4 me-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    Edit Kendaraan
-                </a>
+                @if($isAdmin)
+                    <a href="{{ route('kendaraan.edit', $kendaraan->id) }}"
+                       class="inline-flex items-center px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-md transition border border-slate-300">
+                        <svg class="h-4 w-4 me-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Edit Kendaraan
+                    </a>
+                @endif
                 <a href="{{ route('kendaraan.index') }}"
                    class="inline-flex items-center px-4 py-2 bg-gray-200 border border-transparent rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest hover:bg-gray-300 transition">
                     &larr; Kembali
@@ -98,13 +102,17 @@
                             <p class="text-xs text-gray-600">
                                 Berdasarkan spesifikasi mesin <strong>{{ $kendaraan->jenis_bbm }}</strong> dan transmisi <strong>{{ $kendaraan->transmisi }}</strong>, template ini menyediakan rekomendasi jadwal dan komponen standar pabrikan.
                             </p>
-                        @else
+                        @elseif($isAdmin)
                             <h4 class="text-base font-bold text-gray-900">Pilih Template Servis</h4>
                             <p class="text-xs text-gray-600">Pilih salah satu template master untuk menyalin seluruh daftar suku cadang standar ke kendaraan ini.</p>
+                        @else
+                            <h4 class="text-base font-bold text-gray-900">Rekomendasi Template Servis</h4>
+                            <p class="text-xs text-gray-600">Belum ada template rekomendasi untuk spesifikasi kendaraan ini.</p>
                         @endif
                     </div>
 
                     {{-- Form Terapkan Template --}}
+                    @if($isAdmin)
                     <div class="flex flex-wrap items-center gap-2 shrink-0">
                         <form method="POST" action="{{ route('kendaraan.apply-template', $kendaraan->id) }}"
                               onsubmit="return confirm('Terapkan template ini ke {{ $kendaraan->plat_nomor }}? Seluruh komponen dari template akan disalin menjadi data mandiri mobil ini.')"
@@ -130,6 +138,7 @@
                             </button>
                         </form>
                     </div>
+                    @endif
                 </div>
             </div>
 
@@ -147,13 +156,15 @@
                             <p class="text-xs text-gray-500 mt-0.5">Daftar komponen ini bersifat mandiri dan eksklusif untuk <strong>{{ $kendaraan->plat_nomor }}</strong>.</p>
                         </div>
 
-                        <button type="button" onclick="document.getElementById('modal-tambah-komponen').classList.remove('hidden')"
-                                class="inline-flex items-center px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-md transition shadow-sm">
-                            <svg class="h-4 w-4 me-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                            </svg>
-                            + Tambah Suku Cadang Khusus
-                        </button>
+                        @if($isAdmin)
+                            <button type="button" onclick="document.getElementById('modal-tambah-komponen').classList.remove('hidden')"
+                                    class="inline-flex items-center px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-md transition shadow-sm">
+                                <svg class="h-4 w-4 me-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                </svg>
+                                + Tambah Suku Cadang Khusus
+                            </button>
+                        @endif
                     </div>
 
                     @if($kendaraan->komponen->isEmpty())
@@ -163,7 +174,11 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
                             <p class="font-medium text-gray-700">Kendaraan ini belum memiliki daftar suku cadang</p>
-                            <p class="text-xs text-gray-500 mt-1">Gunakan tombol <strong>"Terapkan Template"</strong> di atas untuk menyalin komponen standar, atau tambah suku cadang kustom.</p>
+                            @if($isAdmin)
+                                <p class="text-xs text-gray-500 mt-1">Gunakan tombol <strong>"Terapkan Template"</strong> di atas untuk menyalin komponen standar, atau tambah suku cadang kustom.</p>
+                            @else
+                                <p class="text-xs text-gray-500 mt-1">Komponen kendaraan akan ditampilkan setelah ditetapkan oleh Admin.</p>
+                            @endif
                         </div>
                     @else
                         <div class="overflow-x-auto border border-gray-200 rounded-xl">
@@ -177,7 +192,9 @@
                                         <th class="px-4 py-3 text-center">Aksi Default</th>
                                         <th class="px-4 py-3 text-center">Target Jatuh Tempo</th>
                                         <th class="px-4 py-3 text-center">Status</th>
-                                        <th class="px-4 py-3 text-center w-28">Aksi</th>
+                                        @if($isAdmin)
+                                            <th class="px-4 py-3 text-center w-28">Aksi</th>
+                                        @endif
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-100 bg-white">
@@ -241,6 +258,7 @@
                                                     {{ str_replace('_', ' ', $status) }}
                                                 </span>
                                             </td>
+                                            @if($isAdmin)
                                             <td class="px-4 py-3 text-center">
                                                 <div class="flex items-center justify-center gap-1.5">
                                                     {{-- Tombol Edit Komponen Modal --}}
@@ -265,6 +283,7 @@
                                                     </form>
                                                 </div>
                                             </td>
+                                            @endif
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -277,6 +296,7 @@
         </div>
     </div>
 
+    @if($isAdmin)
     {{-- Modal Tambah Komponen Khusus --}}
     <div id="modal-tambah-komponen" class="hidden fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
@@ -438,4 +458,5 @@
             document.getElementById('modal-edit-komponen').classList.remove('hidden');
         }
     </script>
+    @endif
 </x-app-layout>

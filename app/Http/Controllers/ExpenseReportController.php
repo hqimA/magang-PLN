@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\ExpenseReportArchiveExport;
 use App\Exports\ExpenseReportExport;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -47,11 +50,172 @@ class ExpenseReportController extends Controller
             ->download(sprintf('laporan-pengeluaran-%04d-%02d.pdf', $report['tahun'], $report['bulan']));
     }
 
+    public function exportArchive(Request $request): BinaryFileResponse
+    {
+        $archiveData = $this->getReportArchiveData();
+        $response = Excel::download(
+            new ExpenseReportArchiveExport($archiveData),
+            'arsip-seluruh-data-laporan.xlsx',
+        );
+
+        DB::table('expense_report_export_receipts')->updateOrInsert(
+            ['user_id' => $request->user()->id],
+            [
+                'snapshot_hash' => $this->archiveSnapshotHash($archiveData),
+                'exported_at' => now(),
+            ],
+        );
+
+        return $response;
+    }
+
+    public function destroyAll(Request $request): RedirectResponse
+    {
+        DB::transaction(function () use ($request): void {
+            $receipt = DB::table('expense_report_export_receipts')
+                ->where('user_id', $request->user()->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($receipt === null) {
+                throw ValidationException::withMessages([
+                    'export' => 'Unduh arsip lengkap seluruh data laporan sebelum menghapus data.',
+                ]);
+            }
+
+            $archiveData = $this->getReportArchiveData();
+
+            if (! hash_equals($receipt->snapshot_hash, $this->archiveSnapshotHash($archiveData))) {
+                throw ValidationException::withMessages([
+                    'export' => 'Data laporan berubah sejak arsip terakhir dibuat. Unduh arsip terbaru sebelum menghapus data.',
+                ]);
+            }
+
+            if (! $this->archiveHasRows($archiveData)) {
+                throw ValidationException::withMessages([
+                    'export' => 'Tidak ada data riwayat laporan yang dapat dihapus.',
+                ]);
+            }
+
+            DB::table('riwayat_servis')->delete();
+            DB::table('riwayat_perbaikan')->delete();
+            DB::table('laporan_kerusakan')->delete();
+            DB::table('expense_report_export_receipts')
+                ->where('user_id', $request->user()->id)
+                ->delete();
+        });
+
+        return redirect()->route('laporan-pengeluaran.index')
+            ->with('success', 'Semua data riwayat servis, perbaikan, dan laporan kerusakan berhasil dihapus.');
+    }
+
+    /**
+     * @return array<string, array{headings: array<int, string>, rows: array<int, array<int, mixed>>}>
+     */
+    private function getReportArchiveData(): array
+    {
+        $columnsByTable = [
+            'laporan_kerusakan' => [
+                'id',
+                'id_kendaraan',
+                'id_pelapor',
+                'tanggal_kejadian',
+                'lokasi_kejadian',
+                'deskripsi_kerusakan',
+                'foto_bukti',
+                'tingkat_kerusakan',
+                'status_penanganan',
+            ],
+            'riwayat_servis' => [
+                'id',
+                'id_pengajuan',
+                'id_kendaraan',
+                'tanggal_servis',
+                'kilometer_servis',
+                'nama_bengkel',
+                'total_biaya',
+                'foto_nota',
+                'target_kilometer_berikutnya',
+                'id_pembuat',
+            ],
+            'riwayat_perbaikan' => [
+                'id',
+                'id_laporan_kerusakan',
+                'tanggal_perbaikan',
+                'nama_bengkel',
+                'ringkasan_perbaikan',
+                'total_biaya_perbaikan',
+                'id_pembuat',
+            ],
+            'rincian_sparepart' => [
+                'id',
+                'id_riwayat_servis',
+                'nama_sparepart',
+                'jumlah',
+                'harga_satuan',
+                'subtotal',
+            ],
+            'detail_komponen_servis' => [
+                'id',
+                'id_riwayat_servis',
+                'id_komponen_kendaraan',
+                'jenis_aksi_dilakukan',
+                'catatan',
+                'dibuat_pada',
+            ],
+        ];
+        $sheetTitles = [
+            'laporan_kerusakan' => 'Laporan Kerusakan',
+            'riwayat_servis' => 'Riwayat Servis',
+            'riwayat_perbaikan' => 'Riwayat Perbaikan',
+            'rincian_sparepart' => 'Rincian Sparepart',
+            'detail_komponen_servis' => 'Detail Komponen Servis',
+        ];
+        $archiveData = [];
+
+        foreach ($columnsByTable as $table => $columns) {
+            $archiveData[$sheetTitles[$table]] = [
+                'headings' => $columns,
+                'rows' => DB::table($table)
+                    ->select($columns)
+                    ->orderBy('id')
+                    ->get()
+                    ->map(fn (object $row): array => array_values((array) $row))
+                    ->all(),
+            ];
+        }
+
+        return $archiveData;
+    }
+
+    /**
+     * @param  array<string, array{headings: array<int, string>, rows: array<int, array<int, mixed>>}>  $archiveData
+     */
+    private function archiveSnapshotHash(array $archiveData): string
+    {
+        return hash('sha256', json_encode($archiveData, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
+    }
+
+    /**
+     * @param  array<string, array{headings: array<int, string>, rows: array<int, array<int, mixed>>}>  $archiveData
+     */
+    private function archiveHasRows(array $archiveData): bool
+    {
+        foreach ($archiveData as $sheet) {
+            if ($sheet['rows'] !== []) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * @return array{rekap: array<int, array{plat_nomor: string, merk_tipe: string, pengelola: string, total_biaya_servis: float, total_biaya_perbaikan: float, grand_total_pengeluaran: float}>, bulan: int, tahun: int}
      */
     private function getReportData(Request $request): array
     {
+        $user = $request->user();
         $filters = $request->validate([
             'bulan' => ['sometimes', 'integer', 'between:1,12'],
             'tahun' => ['sometimes', 'integer', 'between:1000,9999'],
@@ -81,7 +245,11 @@ class ExpenseReportController extends Controller
             ->groupBy('laporan_kerusakan.id_kendaraan');
 
         $rekap = DB::table('kendaraan')
-            ->join('users', 'kendaraan.id_pengelola', '=', 'users.id')
+            ->leftJoin('users', 'kendaraan.id_pengelola', '=', 'users.id')
+            ->when(
+                ! $user->isAdmin(),
+                fn ($query) => $query->where('kendaraan.id_pengelola', $user->id),
+            )
             ->leftJoinSub($biayaServis, 'biaya_servis', 'biaya_servis.id_kendaraan', '=', 'kendaraan.id')
             ->leftJoinSub(
                 $biayaPerbaikan,
@@ -93,7 +261,7 @@ class ExpenseReportController extends Controller
             ->select([
                 'kendaraan.plat_nomor',
                 'kendaraan.merk_tipe',
-                'users.name AS pengelola',
+                DB::raw("COALESCE(users.name, '-') AS pengelola"),
             ])
             ->selectRaw('COALESCE(biaya_servis.total_biaya_servis, 0) AS total_biaya_servis')
             ->selectRaw('COALESCE(biaya_perbaikan.total_biaya_perbaikan, 0) AS total_biaya_perbaikan')

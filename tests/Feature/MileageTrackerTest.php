@@ -221,6 +221,11 @@ class MileageTrackerTest extends TestCase
         $response->assertRedirect(route('mileage.index', ['kendaraan' => $kendaraan->id]));
         $response->assertSessionHas('success');
 
+        $this->assertDatabaseHas('mileage', [
+            'id_kendaraan' => $kendaraan->id,
+            'status_perjalanan' => 'SELESAI',
+        ]);
+
         $mileage = Mileage::query()->where('id_kendaraan', $kendaraan->id)->firstOrFail();
 
         $this->assertSame('SELESAI', $mileage->status_perjalanan);

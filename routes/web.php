@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\ExpenseReportController;
 use App\Http\Controllers\KendaraanController;
+use App\Http\Controllers\KendaraanImportController;
 use App\Http\Controllers\KendaraanKomponenController;
 use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\MileageController;
@@ -30,19 +31,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return view('home');
     })->name('home');
 
+    Route::middleware('role:ADMIN')->group(function () {
+        Route::resource('kendaraan', KendaraanController::class)
+            ->except(['index', 'show']);
+
+        Route::get('/kendaraan/import/template', [KendaraanImportController::class, 'template'])
+            ->name('kendaraan.import.template');
+        Route::post('/kendaraan/import', [KendaraanImportController::class, 'store'])
+            ->name('kendaraan.import');
+
+        Route::post('/kendaraan/{kendaraan}/apply-template', [KendaraanKomponenController::class, 'applyTemplate'])->name('kendaraan.apply-template');
+        Route::post('/kendaraan/{kendaraan}/komponen', [KendaraanKomponenController::class, 'store'])->name('kendaraan.komponen.store');
+        Route::put('/kendaraan/{kendaraan}/komponen/{komponen}', [KendaraanKomponenController::class, 'update'])->name('kendaraan.komponen.update');
+        Route::delete('/kendaraan/{kendaraan}/komponen/{komponen}', [KendaraanKomponenController::class, 'destroy'])->name('kendaraan.komponen.destroy');
+    });
+
     Route::resource('kendaraan', KendaraanController::class)
-        ->except(['destroy']);
-
-    // Penghapusan kendaraan hanya untuk Admin.
-    Route::delete('/kendaraan/{kendaraan}', [KendaraanController::class, 'destroy'])
-        ->middleware('role:ADMIN')
-        ->name('kendaraan.destroy');
-
-    // Manajemen Komponen Spesifik Kendaraan & Penerapan Template
-    Route::post('/kendaraan/{kendaraan}/apply-template', [KendaraanKomponenController::class, 'applyTemplate'])->name('kendaraan.apply-template');
-    Route::post('/kendaraan/{kendaraan}/komponen', [KendaraanKomponenController::class, 'store'])->name('kendaraan.komponen.store');
-    Route::put('/kendaraan/{kendaraan}/komponen/{komponen}', [KendaraanKomponenController::class, 'update'])->name('kendaraan.komponen.update');
-    Route::delete('/kendaraan/{kendaraan}/komponen/{komponen}', [KendaraanKomponenController::class, 'destroy'])->name('kendaraan.komponen.destroy');
+        ->only(['index', 'show']);
 
     Route::get('/pengelola/kendaraan', [PengelolaKendaraanController::class, 'index'])->name('pengelola.kendaraan');
 
@@ -71,15 +76,18 @@ Route::middleware('auth')->group(function () {
     Route::post('/pengajuan-servis/{id}/reject', [ServiceApprovalController::class, 'reject'])
         ->middleware('role:admin')
         ->name('pengajuan-servis.reject');
-    Route::get('/laporan-pengeluaran', [ExpenseReportController::class, 'index'])
-        ->middleware('role:ADMIN')
-        ->name('laporan-pengeluaran.index');
-    Route::get('/laporan-pengeluaran/excel', [ExpenseReportController::class, 'exportExcel'])
-        ->middleware('role:admin')
-        ->name('laporan-pengeluaran.excel');
-    Route::get('/laporan-pengeluaran/pdf', [ExpenseReportController::class, 'exportPdf'])
-        ->middleware('role:admin')
-        ->name('laporan-pengeluaran.pdf');
+    Route::middleware('role:ADMIN')->group(function () {
+        Route::get('/laporan-pengeluaran', [ExpenseReportController::class, 'index'])
+            ->name('laporan-pengeluaran.index');
+        Route::get('/laporan-pengeluaran/excel', [ExpenseReportController::class, 'exportExcel'])
+            ->name('laporan-pengeluaran.excel');
+        Route::get('/laporan-pengeluaran/pdf', [ExpenseReportController::class, 'exportPdf'])
+            ->name('laporan-pengeluaran.pdf');
+        Route::get('/laporan-pengeluaran/arsip', [ExpenseReportController::class, 'exportArchive'])
+            ->name('laporan-pengeluaran.archive');
+        Route::delete('/laporan-pengeluaran', [ExpenseReportController::class, 'destroyAll'])
+            ->name('laporan-pengeluaran.destroy-all');
+    });
     Route::get('/service-reminders', [ServiceReminderController::class, 'index'])->name('service-reminders.index');
     Route::get('/service-reminder', [ServiceReminderController::class, 'viewIndex'])->name('service-reminder.index');
 

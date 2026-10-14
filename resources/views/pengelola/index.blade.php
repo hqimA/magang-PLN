@@ -212,7 +212,7 @@
                                     </span>
                                 </div>
                                 <div class="p-6">
-                                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                                    <div class="grid grid-cols-2 gap-4 text-center">
                                         <div class="p-3 bg-gray-50 rounded-lg">
                                             <p class="text-xs text-gray-500 uppercase">Target KM Servis</p>
                                             <p class="text-base font-bold text-gray-900 mt-1">{{ number_format($serviceReminder['target_kilometer']) }} km</p>
@@ -220,17 +220,13 @@
                                         <div class="p-3 bg-gray-50 rounded-lg">
                                             <p class="text-xs text-gray-500 uppercase">Sisa Jarak</p>
                                             <p class="text-base font-bold {{ $serviceReminder['sisa_kilometer'] <= 0 ? 'text-red-600' : 'text-gray-900' }} mt-1">
-                                                {{ number_format($serviceReminder['sisa_kilometer']) }} km
-                                            </p>
-                                        </div>
-                                        <div class="p-3 bg-gray-50 rounded-lg">
-                                            <p class="text-xs text-gray-500 uppercase">Target Tanggal</p>
-                                            <p class="text-base font-bold text-gray-900 mt-1">{{ \Illuminate\Support\Carbon::parse($serviceReminder['tanggal_target'])->format('d M Y') }}</p>
-                                        </div>
-                                        <div class="p-3 bg-gray-50 rounded-lg">
-                                            <p class="text-xs text-gray-500 uppercase">Sisa Waktu</p>
-                                            <p class="text-base font-bold {{ $serviceReminder['sisa_hari'] <= 0 ? 'text-red-600' : 'text-gray-900' }} mt-1">
-                                                {{ $serviceReminder['sisa_hari'] }} hari
+                                                @if ($serviceReminder['sisa_kilometer'] < 0)
+                                                    {{ number_format(abs($serviceReminder['sisa_kilometer'])) }} km terlewat
+                                                @elseif ($serviceReminder['sisa_kilometer'] === 0)
+                                                    Batas servis tercapai
+                                                @else
+                                                    {{ number_format($serviceReminder['sisa_kilometer']) }} km lagi
+                                                @endif
                                             </p>
                                         </div>
                                     </div>
