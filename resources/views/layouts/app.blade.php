@@ -17,28 +17,29 @@
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans antialiased bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.12),transparent_35%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)] text-slate-900">
+    <body class="app-shell font-sans antialiased text-slate-900">
         <div class="min-h-screen">
             @include('layouts.sidebar')
 
             <div class="lg:ps-64">
                 <!-- Mobile Top Bar -->
-                <div class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-slate-200/80 bg-white/80 px-4 backdrop-blur-md lg:hidden">
-                    <button type="button" @click="$store.sidebar.toggle()" class="inline-flex items-center justify-center rounded-md p-2 text-gray-500 transition duration-150 ease-in-out hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:bg-gray-100 focus:text-gray-500">
+                <div class="app-header sticky top-0 z-20 flex h-16 items-center gap-3 border-b px-4 backdrop-blur-md lg:hidden">
+                    <button type="button" @click="$store.sidebar.toggle()" class="inline-flex items-center justify-center rounded-xl p-2 text-sky-700 transition duration-150 ease-in-out hover:bg-sky-50 hover:text-sky-900 focus:outline-none focus:ring-2 focus:ring-sky-200">
                         <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                             <path x-show="! $store.sidebar.open" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                             <path x-show="$store.sidebar.open" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
 
-                    <a href="{{ route('dashboard') }}" class="flex items-center">
-                        <x-application-logo class="block h-8 w-auto fill-current text-gray-800" />
+                    <a href="{{ route('dashboard') }}" class="flex items-center gap-2 font-semibold tracking-tight text-sky-950">
+                        <x-application-logo class="block h-8 w-8 shrink-0 rounded-md shadow-sm shadow-yellow-500/20" />
+                        <span>PLN Fleet</span>
                     </a>
                 </div>
 
                 <!-- Page Heading -->
                 @isset($header)
-                    <header class="border-b border-slate-200/80 bg-white/75 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur-xl">
+                    <header class="app-header border-b backdrop-blur-xl">
                         <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
                             {{ $header }}
                         </div>
@@ -46,11 +47,11 @@
                 @endisset
 
                 <!-- Page Content -->
-                <main>
+                <main class="app-main">
                     {{-- Global Flash Messages --}}
                     @if (session('success'))
                         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 pt-4">
-                            <div class="p-4 bg-green-100 border border-green-400 text-green-700 rounded-md">
+                            <div class="rounded-xl border border-green-200 bg-green-50 p-4 text-green-800 shadow-sm">
                                 {{ session('success') }}
                             </div>
                         </div>
@@ -58,7 +59,7 @@
 
                     @if (session('error'))
                         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 pt-4">
-                            <div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-md">
+                            <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-red-800 shadow-sm">
                                 {{ session('error') }}
                             </div>
                         </div>

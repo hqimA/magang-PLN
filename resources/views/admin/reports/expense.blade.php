@@ -2,13 +2,13 @@
     <x-slot name="header">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-amber-600">{{ __('Fleet Management') }}</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">{{ __('Fleet Management') }}</p>
                 <h2 class="mt-1 text-xl font-semibold leading-tight text-slate-900">
                     {{ __('Laporan Pengeluaran') }}
                 </h2>
             </div>
-            <span class="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800">
-                <span class="h-2 w-2 rounded-full bg-amber-500"></span>
+            <span class="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-800">
+                <span class="h-2 w-2 rounded-full bg-sky-500"></span>
                 {{ auth()->user()?->isAdmin() ? __('Admin') : __('Pengelola Kendaraan') }}
             </span>
         </div>
@@ -23,12 +23,12 @@
 
     <main class="py-8 sm:py-10">
         <div class="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
-            <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-[#0b2638] p-6 text-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] sm:p-8">
-                <div class="pointer-events-none absolute -right-12 -top-24 h-72 w-72 rounded-full bg-amber-400/10 blur-3xl"></div>
+            <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#2196f3] via-[#1e88e5] to-[#1565c0] p-6 text-white shadow-[0_24px_60px_rgba(33,150,243,0.22)] sm:p-8">
+                <div class="pointer-events-none absolute -right-12 -top-24 h-72 w-72 rounded-full bg-white/15 blur-3xl"></div>
                 <div class="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                     <div class="max-w-2xl">
                         <span class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-300">
-                            <svg class="h-4 w-4 text-amber-300" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
+                            <svg class="h-4 w-4 text-sky-100" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7.5 15l4-4 3 3L21 7.5" />
                             </svg>
                             {{ __('Ringkasan pemeliharaan armada') }}
@@ -42,7 +42,7 @@
                     <form method="GET" action="{{ route('laporan-pengeluaran.index') }}" class="grid gap-3 rounded-2xl border border-white/10 bg-white/[0.06] p-4 backdrop-blur sm:grid-cols-[minmax(0,1fr)_9rem_auto] sm:items-end">
                         <div class="grid gap-1.5">
                             <label for="bulan" class="text-xs font-medium text-slate-300">{{ __('Periode Bulan') }}</label>
-                            <select id="bulan" name="bulan" class="min-w-36 rounded-lg border-white/10 bg-slate-900/80 text-sm text-white shadow-sm focus:border-amber-400 focus:ring-amber-400">
+                            <select id="bulan" name="bulan" class="min-w-36 rounded-lg border-white/30 bg-white/10 text-sm text-white shadow-sm focus:border-white focus:ring-white">
                                 @foreach ([1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'] as $nomorBulan => $namaBulan)
                                     <option value="{{ $nomorBulan }}" @selected($bulan === $nomorBulan)>{{ __($namaBulan) }}</option>
                                 @endforeach
@@ -50,9 +50,9 @@
                         </div>
                         <div class="grid gap-1.5">
                             <label for="tahun" class="text-xs font-medium text-slate-300">{{ __('Tahun') }}</label>
-                            <input id="tahun" name="tahun" type="number" min="1000" max="9999" value="{{ $tahun }}" class="rounded-lg border-white/10 bg-slate-900/80 text-sm text-white shadow-sm focus:border-amber-400 focus:ring-amber-400">
+                            <input id="tahun" name="tahun" type="number" min="1000" max="9999" value="{{ $tahun }}" class="rounded-lg border-white/30 bg-white/10 text-sm text-white shadow-sm focus:border-white focus:ring-white">
                         </div>
-                        <button type="submit" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-amber-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:ring-offset-2 focus:ring-offset-slate-900">
+                        <button type="submit" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-blue-800 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-700">
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 6.75h15m-12 5.25h9m-6 5.25h3" />
                             </svg>
@@ -86,7 +86,7 @@
                             <p class="text-sm font-medium text-slate-500">{{ __('Total Pengeluaran') }}</p>
                             <p class="mt-3 text-2xl font-bold tracking-tight text-slate-900">Rp {{ number_format($totalPengeluaran, 0, ',', '.') }}</p>
                         </div>
-                        <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
+                        <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m3-9.75c-.75-.75-1.75-1.125-3-1.125-1.657 0-3 .923-3 2.062S10.343 11.25 12 11.25s3 .923 3 2.063-1.343 2.062-3 2.062c-1.25 0-2.25-.375-3-1.125M19.5 12a7.5 7.5 0 11-15 0 7.5 7.5 0 0115 0z" />
                             </svg>
