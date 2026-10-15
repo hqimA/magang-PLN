@@ -35,7 +35,7 @@
 
                         @if($pengajuanMaintenance->isEmpty())
                             <div class="text-center py-8 text-gray-500">
-                                <p>Tidak ada pengajuan maintenance yang menunggu persetujuan.</p>
+                                <p>{{ auth()->user()->isAdmin() ? 'Tidak ada pengajuan maintenance yang menunggu persetujuan.' : 'Belum ada pengajuan maintenance.' }}</p>
                                 @if(!auth()->user()->isAdmin())
                                     <div class="mt-4">
                                         <a href="{{ route('maintenance.create') }}"
@@ -71,7 +71,7 @@
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                                                 @php
-                                                    $kmAkhir = $p->kendaraan->mileageTerbaru?->kilometer_akhir ?? $p->kilometer_pengajuan ?? $p->kendaraan->kilometer_terakhir;
+                                                    $kmAkhir = $p->kendaraan->kilometer_terakhir;
                                                 @endphp
                                                 {{ $kmAkhir !== null ? number_format($kmAkhir) . ' km' : '-' }}
                                             </td>
@@ -84,6 +84,7 @@
                                                         'MENUNGGU'  => ['label' => 'Menunggu',  'class' => 'bg-amber-50 text-amber-700 ring-amber-600/20'],
                                                         'DISETUJUI' => ['label' => 'Disetujui', 'class' => 'bg-emerald-50 text-emerald-700 ring-emerald-600/20'],
                                                         'DITOLAK'   => ['label' => 'Ditolak',   'class' => 'bg-red-50 text-red-700 ring-red-600/20'],
+                                                        'DIBATALKAN' => ['label' => 'Dibatalkan', 'class' => 'bg-gray-50 text-gray-700 ring-gray-600/20'],
                                                     ];
                                                     $st = $statusMap[$p->status_persetujuan] ?? ['label' => $p->status_persetujuan, 'class' => 'bg-gray-50 text-gray-700 ring-gray-600/20'];
                                                 @endphp
@@ -93,6 +94,17 @@
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <a href="{{ route('maintenance.show', $p->id) }}" class="text-indigo-600 hover:text-indigo-900">Detail</a>
+                                                @if(!auth()->user()->isAdmin() && in_array($p->status_persetujuan, ['MENUNGGU', 'DITOLAK'], true))
+                                                    <span class="mx-1 text-gray-300">|</span>
+                                                    <form method="POST" action="{{ route('maintenance.cancel', $p) }}" class="inline"
+                                                          onsubmit="return confirm('Yakin ingin membatalkan pengajuan maintenance ini?')">
+                                                        @csrf
+                                                        @method('PATCH')
+                                                        <button type="submit" class="text-red-600 hover:text-red-800">
+                                                            Batalkan
+                                                        </button>
+                                                    </form>
+                                                @endif
                                             </td>
                                         </tr>
                                     @endforeach
@@ -134,7 +146,7 @@
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                                                 @php
-                                                    $kmAkhir = $m->kendaraan->mileageTerbaru?->kilometer_akhir ?? $m->kilometer_pengajuan ?? $m->kendaraan->kilometer_terakhir;
+                                                    $kmAkhir = $m->kendaraan->kilometer_terakhir;
                                                 @endphp
                                                 {{ $kmAkhir !== null ? number_format($kmAkhir) . ' km' : '-' }}
                                             </td>
@@ -232,11 +244,10 @@
                         <x-input-error :messages="$errors->get('tanggal_servis')" class="mt-1" />
                     </div>
                     <div>
-                        <x-input-label for="kilometer_servis" value="Odometer Selesai (KM) *" />
-                        <x-text-input id="kilometer_servis" name="kilometer_servis" type="number" min="0"
-                                      class="mt-1 block w-full text-sm"
-                                      x-bind:value="maintenance.kilometer" required />
-                        <x-input-error :messages="$errors->get('kilometer_servis')" class="mt-1" />
+                        <x-input-label for="kilometer_servis" value="Odometer Selesai (KM)" />
+                        <p id="kilometer_servis" class="mt-1 block w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700"
+                           x-text="maintenance.kilometer ? Number(maintenance.kilometer).toLocaleString('id-ID') + ' km' : '-'"></p>
+                        <p class="mt-1 text-xs text-gray-500">Nilai diambil otomatis dari kilometer terakhir kendaraan.</p>
                     </div>
                 </div>
 

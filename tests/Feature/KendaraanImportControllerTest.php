@@ -4,6 +4,10 @@ namespace Tests\Feature;
 
 use App\Exports\KendaraanImportTemplateExport;
 use App\Models\Kendaraan;
+use App\Models\KomponenKendaraan;
+use App\Models\TemplateJadwalDetail;
+use App\Models\TemplateJadwalServis;
+use App\Models\TemplateKomponen;
 use App\Models\User;
 use App\Services\CloudinaryService;
 use App\Services\RemoteImageDownloader;
@@ -61,6 +65,55 @@ class KendaraanImportControllerTest extends TestCase
             'interval_servis_bulan' => 3,
             'status_perawatan' => 'BAIK',
         ]);
+    }
+
+    public function test_imported_vehicle_receives_components_and_actions_from_its_matching_template(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $template = TemplateJadwalServis::create([
+            'nama' => 'Bensin Manual',
+            'jenis_bbm' => 'BENSIN',
+            'transmisi' => 'MANUAL',
+            'is_aktif' => true,
+        ]);
+        $templateComponent = TemplateKomponen::create([
+            'id_template' => $template->id,
+            'nomor_urut' => 1,
+            'nama_komponen' => 'Oli mesin',
+            'kategori' => 'KOMPONEN_DASAR_MESIN',
+            'is_aktif' => true,
+        ]);
+        TemplateJadwalDetail::create([
+            'id_template_komponen' => $templateComponent->id,
+            'interval_km' => 10000,
+            'interval_bulan' => 6,
+            'jenis_aksi' => 'G',
+        ]);
+        TemplateJadwalDetail::create([
+            'id_template_komponen' => $templateComponent->id,
+            'interval_km' => 20000,
+            'interval_bulan' => 6,
+            'jenis_aksi' => 'P',
+        ]);
+        $file = $this->createImportFile([
+            $this->vehicleRow('B 1234 PLN'),
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('kendaraan.import'), ['file' => $file])
+            ->assertRedirect(route('kendaraan.index'));
+
+        $kendaraan = Kendaraan::query()->where('plat_nomor', 'B 1234 PLN')->firstOrFail();
+        $this->assertSame($template->id, $kendaraan->id_template);
+        $this->assertDatabaseHas('komponen_kendaraan', [
+            'id_kendaraan' => $kendaraan->id,
+            'id_template_komponen' => $templateComponent->id,
+            'nama_komponen' => 'Oli mesin',
+            'jenis_aksi_default' => 'G',
+            'km_jatuh_tempo' => 10000,
+            'status' => 'JATUH_TEMPO',
+        ]);
+        $this->assertSame(1, KomponenKendaraan::query()->where('id_kendaraan', $kendaraan->id)->count());
     }
 
     public function test_admin_can_import_angku_barang_category_written_with_spaces(): void
@@ -303,10 +356,12 @@ class KendaraanImportControllerTest extends TestCase
         ]);
     }
 
-    public function test_pengelola_sees_an_imported_vehicle_only_after_admin_assigns_it(): void
+    public function test_imported_vehicle_is_assigned_to_the_manager_with_a_matching_category(): void
     {
         $admin = User::factory()->admin()->create();
-        $manager = User::factory()->pengelola()->create();
+        $manager = User::factory()->pengelola()->create([
+            'kategori_kendaraan' => 'TEKNISI',
+        ]);
         $file = $this->createImportFile([
             $this->vehicleRow('B 1236 PLN'),
         ]);
@@ -317,29 +372,78 @@ class KendaraanImportControllerTest extends TestCase
 
         $kendaraan = Kendaraan::query()->where('plat_nomor', 'B 1236 PLN')->firstOrFail();
 
+        $this->assertSame($manager->id, $kendaraan->id_pengelola);
+
         $this->actingAs($admin)
             ->get(route('kendaraan.edit', $kendaraan->id))
             ->assertOk()
-            ->assertSee($manager->name)
-            ->assertDontSee($admin->name);
-
-        $this->actingAs($manager)
-            ->get(route('kendaraan.index'))
-            ->assertOk()
-            ->assertDontSee($kendaraan->plat_nomor);
-
-        $this->actingAs($admin)
-            ->put(route('kendaraan.update', $kendaraan->id), $this->vehicleUpdateData($kendaraan, $admin->id))
-            ->assertSessionHasErrors('id_pengelola');
-
-        $this->actingAs($admin)
-            ->put(route('kendaraan.update', $kendaraan->id), $this->vehicleUpdateData($kendaraan, $manager->id))
-            ->assertRedirect(route('kendaraan.index'));
+            ->assertSee($manager->name);
 
         $this->actingAs($manager)
             ->get(route('kendaraan.index'))
             ->assertOk()
             ->assertSee($kendaraan->plat_nomor);
+    }
+
+    public function test_each_imported_category_is_assigned_to_its_configured_manager(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $managers = [
+            'PEJABAT' => User::factory()->pengelola()->create([
+                'email' => 'bahar@example.test',
+                'kategori_kendaraan' => 'PEJABAT',
+            ]),
+            'MOTOR_OPERASIONAL' => User::factory()->pengelola()->create([
+                'email' => 'motor@example.test',
+                'kategori_kendaraan' => 'MOTOR_OPERASIONAL',
+            ]),
+            'ANGKUT_BARANG' => User::factory()->pengelola()->create([
+                'email' => 'angkut@example.test',
+                'kategori_kendaraan' => 'ANGKUT_BARANG',
+            ]),
+            'TEKNISI' => User::factory()->pengelola()->create([
+                'email' => 'teknisi@example.test',
+                'kategori_kendaraan' => 'TEKNISI',
+            ]),
+        ];
+        $rows = [];
+
+        foreach (array_keys($managers) as $index => $category) {
+            $row = $this->vehicleRow('B 130'.$index.' PLN');
+            $row[6] = $category;
+            $rows[] = $row;
+        }
+
+        $this->actingAs($admin)
+            ->post(route('kendaraan.import'), ['file' => $this->createImportFile($rows)])
+            ->assertRedirect(route('kendaraan.index'));
+
+        foreach (array_values($managers) as $index => $manager) {
+            $this->assertDatabaseHas('kendaraan', [
+                'plat_nomor' => 'B 130'.$index.' PLN',
+                'id_pengelola' => $manager->id,
+            ]);
+        }
+    }
+
+    public function test_imported_vehicle_stays_unassigned_when_no_manager_matches_its_category(): void
+    {
+        $admin = User::factory()->admin()->create();
+        User::factory()->pengelola()->create([
+            'kategori_kendaraan' => 'PEJABAT',
+        ]);
+        $file = $this->createImportFile([
+            $this->vehicleRow('B 1237 PLN'),
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('kendaraan.import'), ['file' => $file])
+            ->assertRedirect(route('kendaraan.index'));
+
+        $this->assertDatabaseHas('kendaraan', [
+            'plat_nomor' => 'B 1237 PLN',
+            'id_pengelola' => null,
+        ]);
     }
 
     public function test_import_rejects_existing_plate_without_partially_creating_vehicles(): void
@@ -565,25 +669,6 @@ class KendaraanImportControllerTest extends TestCase
             '2022-01-01',
             null,
             null,
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function vehicleUpdateData(Kendaraan $kendaraan, int $managerId): array
-    {
-        return [
-            'plat_nomor' => $kendaraan->plat_nomor,
-            'merk_tipe' => $kendaraan->merk_tipe,
-            'tahun_pembuatan' => $kendaraan->tahun_pembuatan,
-            'transmisi' => $kendaraan->transmisi,
-            'jenis_bbm' => $kendaraan->jenis_bbm,
-            'kategori_penggunaan' => $kendaraan->kategori_penggunaan,
-            'kilometer_terakhir' => $kendaraan->kilometer_terakhir,
-            'tanggal_pembelian' => '2022-01-01',
-            'status_perawatan' => $kendaraan->status_perawatan,
-            'id_pengelola' => $managerId,
         ];
     }
 

@@ -9,6 +9,7 @@ use App\Services\CloudinaryService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class MileageController extends Controller
@@ -68,18 +69,15 @@ class MileageController extends Controller
         return view('mileage.odometer', compact('kendaraans', 'selected', 'riwayatTerbaru'));
     }
 
-    /**
-     * Simpan pencatatan odometer manual (juga menjadi trip baru).
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'id_kendaraan' => 'required|exists:kendaraan,id',
-            'odometer_baru' => 'required|integer|min:0',
-            'tanggal_perjalanan' => 'required|date',
-            'status_perjalanan' => 'sometimes|in:SELESAI,BERJALAN,TERBATAS',
-            'keterangan' => 'nullable|string|max:1000',
-            'foto_bukti' => 'required|image|mimes:jpg,jpeg,png,webp|max:10240',
+            'id_kendaraan' => ['required', 'exists:kendaraan,id'],
+            'odometer_baru' => ['required', 'integer', 'min:0'],
+            'tanggal_perjalanan' => ['required', 'date'],
+            'status_perjalanan' => ['sometimes', 'in:SELESAI,BERJALAN,TERBATAS'],
+            'keterangan' => ['nullable', 'string', 'max:1000'],
+            'foto_bukti' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
         ], [], [
             'id_kendaraan' => 'kendaraan',
             'odometer_baru' => 'odometer',
@@ -87,67 +85,39 @@ class MileageController extends Controller
         ]);
 
         $kendaraan = Kendaraan::findOrFail($validated['id_kendaraan']);
-
         $this->authorizeKendaraan($request->user(), $kendaraan);
 
-        $odometerSebelumnya = $kendaraan->kilometer_terakhir ?? 0;
-
-        if ((int) $validated['odometer_baru'] < (int) $odometerSebelumnya) {
-            return back()
-                ->withInput()
-                ->withErrors([
-                    'odometer_baru' => "Odometer baru tidak boleh lebih kecil dari odometer sebelumnya ({$odometerSebelumnya} km).",
-                ]);
-        }
-
-        $this->simpanMileage($request, $kendaraan, [
+        $this->simpanMileage($request, $kendaraan, (int) $validated['odometer_baru'], [
             'tanggal_perjalanan' => $validated['tanggal_perjalanan'],
-            'kilometer_awal' => $odometerSebelumnya,
-            'kilometer_akhir' => $validated['odometer_baru'],
             'status_perjalanan' => $validated['status_perjalanan'] ?? 'SELESAI',
             'keterangan' => $validated['keterangan'] ?? null,
             'id_pencatat' => $request->user()?->id,
-        ]);
+        ], 'odometer_baru');
 
         return redirect()
             ->route('mileage.odometer', ['kendaraan' => $kendaraan->id])
-            ->with('success', 'Odometer dan foto bukti berhasil disimpan. Kilometer terakhir kendaraan kini '.number_format($validated['odometer_baru']).' km.');
+            ->with('success', 'Odometer dan foto bukti berhasil disimpan.');
     }
 
-    /**
-     * Simpan perjalanan/trip baru dari halaman Mileage Tracker.
-     */
     public function storeTrip(Request $request)
     {
         $validated = $request->validate([
-            'id_kendaraan' => 'required|exists:kendaraan,id',
-            'tanggal_perjalanan' => 'required|date',
-            'kilometer_awal' => 'required|integer|min:0',
-            'kilometer_akhir' => 'required|integer|min:0',
-            'status_perjalanan' => 'sometimes|in:SELESAI,BERJALAN,TERBATAS',
-            'keterangan' => 'nullable|string|max:1000',
-            'foto_bukti' => 'required|image|mimes:jpg,jpeg,png,webp|max:10240',
+            'id_kendaraan' => ['required', 'exists:kendaraan,id'],
+            'tanggal_perjalanan' => ['required', 'date'],
+            'kilometer_akhir' => ['required', 'integer', 'min:0'],
+            'status_perjalanan' => ['sometimes', 'in:SELESAI,BERJALAN,TERBATAS'],
+            'keterangan' => ['nullable', 'string', 'max:1000'],
+            'foto_bukti' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
         ], [], [
             'kilometer_akhir' => 'kilometer akhir',
             'foto_bukti' => 'foto bukti odometer',
         ]);
 
-        if ((int) $validated['kilometer_akhir'] < (int) $validated['kilometer_awal']) {
-            return back()
-                ->withInput()
-                ->withErrors([
-                    'kilometer_akhir' => 'Kilometer akhir tidak boleh lebih kecil dari kilometer awal.',
-                ]);
-        }
-
         $kendaraan = Kendaraan::findOrFail($validated['id_kendaraan']);
-
         $this->authorizeKendaraan($request->user(), $kendaraan);
 
-        $this->simpanMileage($request, $kendaraan, [
+        $this->simpanMileage($request, $kendaraan, (int) $validated['kilometer_akhir'], [
             'tanggal_perjalanan' => $validated['tanggal_perjalanan'],
-            'kilometer_awal' => $validated['kilometer_awal'],
-            'kilometer_akhir' => $validated['kilometer_akhir'],
             'status_perjalanan' => $validated['status_perjalanan'] ?? 'SELESAI',
             'keterangan' => $validated['keterangan'] ?? null,
             'id_pencatat' => $request->user()?->id,
@@ -156,45 +126,6 @@ class MileageController extends Controller
         return redirect()
             ->route('mileage.index', ['kendaraan' => $kendaraan->id])
             ->with('success', 'Perjalanan dan foto bukti berhasil dicatat.');
-    }
-
-    /**
-     * Simpan bukti dan catatan mileage secara atomik.
-     *
-     * @param array{
-     *     tanggal_perjalanan: string,
-     *     kilometer_awal: int|string,
-     *     kilometer_akhir: int|string,
-     *     keterangan: ?string,
-     *     id_pencatat: ?int
-     * } $attributes
-     */
-    private function simpanMileage(Request $request, Kendaraan $kendaraan, array $attributes): Mileage
-    {
-        $fotoPath = null;
-
-        try {
-            return DB::transaction(function () use ($request, $kendaraan, $attributes, &$fotoPath): Mileage {
-                $fotoPath = app(CloudinaryService::class)->upload($request->file('foto_bukti'), 'mileage');
-
-                $mileage = Mileage::create([
-                    'id_kendaraan' => $kendaraan->id,
-                    'status_perjalanan' => 'SELESAI',
-                    ...$attributes,
-                    'foto_bukti' => $fotoPath,
-                ]);
-
-                $kendaraan->update(['kilometer_terakhir' => $mileage->kilometer_akhir]);
-
-                return $mileage;
-            });
-        } catch (Throwable $exception) {
-            if (is_string($fotoPath)) {
-                app(CloudinaryService::class)->deleteSafely($fotoPath);
-            }
-
-            throw $exception;
-        }
     }
 
     /**
@@ -219,8 +150,62 @@ class MileageController extends Controller
     }
 
     /**
-     * Pengelola hanya boleh mencatat mileage kendaraan tanggung jawabnya.
+     * Save a mileage record using the vehicle's current kilometer as the start value.
+     *
+     * @param  array{tanggal_perjalanan: string, status_perjalanan: string, keterangan: ?string, id_pencatat: ?int}  $attributes
      */
+    private function simpanMileage(
+        Request $request,
+        Kendaraan $kendaraan,
+        int $kilometerAkhir,
+        array $attributes,
+        string $kilometerAkhirField = 'kilometer_akhir',
+    ): Mileage {
+        $fotoPath = null;
+
+        try {
+            return DB::transaction(function () use (
+                $request,
+                $kendaraan,
+                $kilometerAkhir,
+                $attributes,
+                $kilometerAkhirField,
+                &$fotoPath,
+            ): Mileage {
+                $kendaraan = Kendaraan::query()
+                    ->lockForUpdate()
+                    ->findOrFail($kendaraan->id);
+                $this->authorizeKendaraan($request->user(), $kendaraan);
+
+                $kilometerAwal = (int) ($kendaraan->kilometer_terakhir ?? 0);
+                if ($kilometerAkhir < $kilometerAwal) {
+                    throw ValidationException::withMessages([
+                        $kilometerAkhirField => "Kilometer akhir tidak boleh lebih kecil dari kilometer awal ({$kilometerAwal} km).",
+                    ]);
+                }
+
+                $fotoPath = app(CloudinaryService::class)->upload($request->file('foto_bukti'), 'mileage');
+                $mileage = Mileage::query()->create([
+                    'id_kendaraan' => $kendaraan->id,
+                    'kilometer_awal' => $kilometerAwal,
+                    'kilometer_akhir' => $kilometerAkhir,
+                    ...$attributes,
+                    'foto_bukti' => $fotoPath,
+                ]);
+
+                $kendaraan->update(['kilometer_terakhir' => $kilometerAkhir]);
+
+                return $mileage;
+            });
+        } catch (Throwable $exception) {
+            if (is_string($fotoPath)) {
+                app(CloudinaryService::class)->deleteSafely($fotoPath);
+            }
+
+            throw $exception;
+        }
+    }
+
     private function authorizeKendaraan(User $user, Kendaraan $kendaraan): void
     {
         abort_unless(

@@ -78,6 +78,7 @@
                                         'MENUNGGU'  => ['label' => 'Menunggu',  'class' => 'bg-amber-100 text-amber-800'],
                                         'DISETUJUI' => ['label' => 'Disetujui', 'class' => 'bg-emerald-100 text-emerald-800'],
                                         'DITOLAK'   => ['label' => 'Ditolak',   'class' => 'bg-red-100 text-red-800'],
+                                        'DIBATALKAN' => ['label' => 'Dibatalkan', 'class' => 'bg-gray-100 text-gray-800'],
                                     ];
                                     $st = $statusMap[$pengajuan->status_persetujuan] ?? ['label' => $pengajuan->status_persetujuan, 'class' => 'bg-gray-100 text-gray-800'];
                                 @endphp
@@ -100,7 +101,7 @@
                             <dt class="text-gray-500">Kilometer Akhir</dt>
                             <dd class="mt-1 font-semibold text-gray-900">
                                 @php
-                                    $kmAkhir = $pengajuan->kendaraan->mileageTerbaru?->kilometer_akhir ?? $pengajuan->kilometer_pengajuan ?? $pengajuan->kendaraan->kilometer_terakhir;
+                                    $kmAkhir = $pengajuan->kendaraan->kilometer_terakhir;
                                 @endphp
                                 {{ $kmAkhir !== null ? number_format($kmAkhir) . ' km' : '-' }}
                             </dd>
@@ -114,7 +115,7 @@
                             </dd>
                         </div>
                         <div>
-                            <dt class="text-gray-500">Bukti Odometer</dt>
+                            <dt class="text-gray-500">{{ $pengajuan->jenis_pengajuan === 'RUTIN' ? 'Foto Bukti Odometer' : 'Foto Bukti Kerusakan' }}</dt>
                             <dd class="mt-1 font-medium text-gray-900">
                                 @if($pengajuan->foto_bukti_odometer)
                                     <a href="{{ \App\Services\CloudinaryService::url($pengajuan->foto_bukti_odometer) }}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:underline">Lihat foto bukti</a>
@@ -129,7 +130,7 @@
                         </div>
                         <div class="sm:col-span-2">
                             <dt class="text-gray-500">Deskripsi Keluhan</dt>
-                            <dd class="mt-1 text-gray-900 whitespace-pre-wrap">{{ $pengajuan->deskripsi_keluhan }}</dd>
+                            <dd class="mt-1 text-gray-900 whitespace-pre-wrap">{{ $pengajuan->deskripsi_keluhan ?: '-' }}</dd>
                         </div>
                         @if($pengajuan->status_persetujuan === 'DITOLAK' && $pengajuan->alasan_penolakan)
                             <div class="sm:col-span-2">
@@ -143,74 +144,76 @@
                 </div>
             </div>
 
-            {{-- Rincian Komponen yang Diajukan --}}
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-base font-semibold text-gray-700">Komponen & Suku Cadang yang Diajukan</h3>
-                        <span class="text-xs font-semibold px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
-                            {{ $pengajuan->komponen->count() }} Komponen
-                        </span>
-                    </div>
+            @if($pengajuan->jenis_pengajuan !== 'DARURAT')
+                {{-- Rincian Komponen yang Diajukan --}}
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-base font-semibold text-gray-700">Komponen & Suku Cadang yang Diajukan</h3>
+                            <span class="text-xs font-semibold px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                {{ $pengajuan->komponen->count() }} Komponen
+                            </span>
+                        </div>
 
-                    @if($pengajuan->komponen->isEmpty())
-                        <div class="text-center py-6 bg-gray-50 rounded-lg border border-dashed border-gray-200 text-gray-500 text-sm">
-                            Tidak ada rincian komponen spesifik (Pengajuan Servis Umum).
-                        </div>
-                    @else
-                        <div class="overflow-x-auto border border-gray-200 rounded-lg">
-                            <table class="min-w-full divide-y divide-gray-200 text-sm text-left">
-                                <thead class="bg-gray-50 text-gray-600 font-semibold text-xs uppercase tracking-wider">
-                                    <tr>
-                                        <th class="px-4 py-3">No</th>
-                                        <th class="px-4 py-3">Komponen</th>
-                                        <th class="px-4 py-3">Kategori</th>
-                                        <th class="px-4 py-3 text-center">Aksi yang Diajukan</th>
-                                        <th class="px-4 py-3">Catatan</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-100 bg-white">
-                                    @foreach($pengajuan->komponen as $index => $item)
-                                        <tr class="hover:bg-gray-50/70 transition">
-                                            <td class="px-4 py-3 font-medium text-gray-400 w-12">{{ $index + 1 }}</td>
-                                            <td class="px-4 py-3 font-semibold text-gray-900">
-                                                {{ $item->komponenKendaraan?->nama_komponen ?? 'Komponen #' . $item->id_komponen_kendaraan }}
-                                            </td>
-                                            <td class="px-4 py-3 text-gray-600 text-xs">
-                                                @php
-                                                    $kat = $item->komponenKendaraan?->kategori instanceof \BackedEnum
-                                                        ? $item->komponenKendaraan->kategori->value
-                                                        : (string) ($item->komponenKendaraan?->kategori ?? '-');
-                                                @endphp
-                                                <span class="px-2 py-0.5 rounded bg-gray-100 text-gray-700 font-medium">
-                                                    {{ str_replace('_', ' ', ucwords(strtolower($kat), '_')) }}
-                                                </span>
-                                            </td>
-                                            <td class="px-4 py-3 text-center">
-                                                @php
-                                                    $aksiVal = $item->jenis_aksi instanceof \BackedEnum ? $item->jenis_aksi->value : (string) $item->jenis_aksi;
-                                                @endphp
-                                                @if($aksiVal === 'G')
-                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
-                                                        Ganti (G)
-                                                    </span>
-                                                @else
-                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
-                                                        Periksa (P)
-                                                    </span>
-                                                @endif
-                                            </td>
-                                            <td class="px-4 py-3 text-gray-600 text-xs italic">
-                                                {{ $item->catatan ?? '—' }}
-                                            </td>
+                        @if($pengajuan->komponen->isEmpty())
+                            <div class="text-center py-6 bg-gray-50 rounded-lg border border-dashed border-gray-200 text-gray-500 text-sm">
+                                Tidak ada rincian komponen spesifik (Pengajuan Servis Umum).
+                            </div>
+                        @else
+                            <div class="overflow-x-auto border border-gray-200 rounded-lg">
+                                <table class="min-w-full divide-y divide-gray-200 text-sm text-left">
+                                    <thead class="bg-gray-50 text-gray-600 font-semibold text-xs uppercase tracking-wider">
+                                        <tr>
+                                            <th class="px-4 py-3">No</th>
+                                            <th class="px-4 py-3">Komponen</th>
+                                            <th class="px-4 py-3">Kategori</th>
+                                            <th class="px-4 py-3 text-center">Aksi yang Diajukan</th>
+                                            <th class="px-4 py-3">Catatan</th>
                                         </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @endif
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100 bg-white">
+                                        @foreach($pengajuan->komponen as $index => $item)
+                                            <tr class="hover:bg-gray-50/70 transition">
+                                                <td class="px-4 py-3 font-medium text-gray-400 w-12">{{ $index + 1 }}</td>
+                                                <td class="px-4 py-3 font-semibold text-gray-900">
+                                                    {{ $item->komponenKendaraan?->nama_komponen ?? 'Komponen #' . $item->id_komponen_kendaraan }}
+                                                </td>
+                                                <td class="px-4 py-3 text-gray-600 text-xs">
+                                                    @php
+                                                        $kat = $item->komponenKendaraan?->kategori instanceof \BackedEnum
+                                                            ? $item->komponenKendaraan->kategori->value
+                                                            : (string) ($item->komponenKendaraan?->kategori ?? '-');
+                                                    @endphp
+                                                    <span class="px-2 py-0.5 rounded bg-gray-100 text-gray-700 font-medium">
+                                                        {{ str_replace('_', ' ', ucwords(strtolower($kat), '_')) }}
+                                                    </span>
+                                                </td>
+                                                <td class="px-4 py-3 text-center">
+                                                    @php
+                                                        $aksiVal = $item->jenis_aksi instanceof \BackedEnum ? $item->jenis_aksi->value : (string) $item->jenis_aksi;
+                                                    @endphp
+                                                    @if($aksiVal === 'G')
+                                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+                                                            Ganti (G)
+                                                        </span>
+                                                    @else
+                                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
+                                                            Periksa (P)
+                                                        </span>
+                                                    @endif
+                                                </td>
+                                                <td class="px-4 py-3 text-gray-600 text-xs italic">
+                                                    {{ $item->catatan ?? '—' }}
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                    </div>
                 </div>
-            </div>
+            @endif
 
             {{-- Riwayat Servis jika sudah diselesaikan --}}
             @if($pengajuan->riwayatServis)
@@ -337,7 +340,7 @@
                             </div>
                             <div class="flex justify-between items-start gap-4">
                                 <span class="text-gray-500 text-xs uppercase tracking-wider font-medium">Keluhan</span>
-                                <span class="text-gray-700 text-right truncate max-w-xs">{{ $pengajuan->deskripsi_keluhan }}</span>
+                                <span class="text-gray-700 text-right truncate max-w-xs">{{ $pengajuan->deskripsi_keluhan ?: 'Pengajuan darurat' }}</span>
                             </div>
                         </div>
 
@@ -351,11 +354,11 @@
                                     <x-input-error :messages="$errors->get('tanggal_servis')" class="mt-1" />
                                 </div>
                                 <div>
-                                    <x-input-label for="kilometer_servis_show" value="Odometer Selesai (KM) *" />
-                                    <x-text-input id="kilometer_servis_show" name="kilometer_servis" type="number" min="0"
-                                                  class="mt-1 block w-full text-sm"
-                                                  value="{{ $kmAkhir ?? $pengajuan->kendaraan->kilometer_terakhir }}" required />
-                                    <x-input-error :messages="$errors->get('kilometer_servis')" class="mt-1" />
+                                    <x-input-label for="kilometer_servis_show" value="Odometer Selesai (KM)" />
+                                    <p id="kilometer_servis_show" class="mt-1 block w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                                        {{ number_format($kmAkhir ?? $pengajuan->kendaraan->kilometer_terakhir) }} km
+                                    </p>
+                                    <p class="mt-1 text-xs text-gray-500">Nilai diambil otomatis dari kilometer terakhir kendaraan.</p>
                                 </div>
                             </div>
 

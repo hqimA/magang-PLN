@@ -77,7 +77,6 @@ class RiwayatServisController extends Controller
             'id_pengajuan' => ['nullable', 'integer', 'exists:pengajuan_servis,id'],
             'id_kendaraan' => ['required', 'integer', 'exists:kendaraan,id'],
             'tanggal_servis' => ['required', 'date'],
-            'kilometer_servis' => ['required', 'numeric'],
             'nama_bengkel' => ['required', 'string', 'max:150'],
             'total_biaya' => ['required', 'numeric', 'min:0'],
             'foto_nota' => ['nullable', 'file', 'mimes:jpeg,png,jpg,webp,pdf', 'max:10240'],
@@ -100,6 +99,8 @@ class RiwayatServisController extends Controller
                     abort(403);
                 }
 
+                $kilometerServis = $kendaraan->kilometer_terakhir;
+
                 if ($request->hasFile('foto_nota')) {
                     $path = app(CloudinaryService::class)->upload($request->file('foto_nota'), 'nota_servis');
                 }
@@ -108,11 +109,11 @@ class RiwayatServisController extends Controller
                     'id_pengajuan' => $validated['id_pengajuan'] ?? null,
                     'id_kendaraan' => $kendaraan->id,
                     'tanggal_servis' => $validated['tanggal_servis'],
-                    'kilometer_servis' => $validated['kilometer_servis'],
+                    'kilometer_servis' => $kilometerServis,
                     'nama_bengkel' => $validated['nama_bengkel'],
                     'total_biaya' => $validated['total_biaya'],
                     'foto_nota' => $path,
-                    'target_kilometer_berikutnya' => $validated['kilometer_servis'] + $kendaraan->interval_servis_km,
+                    'target_kilometer_berikutnya' => $kilometerServis + $kendaraan->interval_servis_km,
                     'id_pembuat' => Auth::id(),
                 ]);
 
@@ -130,7 +131,6 @@ class RiwayatServisController extends Controller
                     ]);
                 }
 
-                $kendaraan->kilometer_terakhir = $validated['kilometer_servis'];
                 $kendaraan->status_perawatan = 'BAIK';
                 $kendaraan->save();
             });

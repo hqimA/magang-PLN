@@ -18,7 +18,7 @@
                     <div class="border-b border-gray-100 pb-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                         <div>
                             <h3 class="text-lg font-semibold text-gray-800">Form Pengajuan Maintenance</h3>
-                            <p class="text-sm text-gray-500">Isi rincian pengajuan dan pilih komponen yang perlu diperiksa atau diganti.</p>
+                            <p id="photo-help-text" class="text-sm text-gray-500">Isi rincian servis rutin dan unggah foto bukti odometer.</p>
                         </div>
                     </div>
 
@@ -62,7 +62,7 @@
                                 </div>
 
                                 {{-- Kilometer Saat Pengajuan --}}
-                                <div>
+                                <div id="kilometer-field">
                                     <x-input-label for="kilometer_display" :value="__('Kilometer Saat Pengajuan')" class="font-semibold text-gray-700" />
                                     <div id="kilometer_display"
                                          class="mt-1 flex items-center justify-between px-3 py-2 bg-white border border-gray-300 rounded-md text-sm text-gray-700 min-h-[38px] shadow-sm">
@@ -73,10 +73,10 @@
                                 </div>
 
                                 <div class="md:col-span-2">
-                                    <x-input-label for="foto_bukti_odometer" :value="__('Foto Bukti Odometer')" class="font-semibold text-gray-700" />
+                                    <x-input-label id="photo-label" for="foto_bukti_odometer" :value="__('Foto Bukti Odometer')" class="font-semibold text-gray-700" />
                                     <input id="foto_bukti_odometer" name="foto_bukti_odometer" type="file" accept="image/jpeg,image/png,image/webp" required
                                            class="mt-1 block w-full text-sm text-gray-700 border border-gray-300 rounded-md shadow-sm file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 @error('foto_bukti_odometer') border-red-500 @enderror" />
-                                    <p class="mt-1 text-xs text-gray-500">Foto harus memperlihatkan angka odometer dengan jelas (JPG, PNG, atau WEBP; maksimal 5 MB).</p>
+                                    <p id="photo-description" class="mt-1 text-xs text-gray-500">Unggah foto angka odometer yang terlihat jelas (JPG, PNG, atau WEBP; maksimal 10 MB).</p>
                                     <x-input-error :messages="$errors->get('foto_bukti_odometer')" class="mt-1" />
                                 </div>
 
@@ -95,7 +95,7 @@
 
                                 {{-- Estimasi Biaya --}}
                                 <div>
-                                    <x-input-label for="estimasi_biaya" :value="__('Estimasi Biaya (opsional)')" class="font-semibold text-gray-700" />
+                                    <x-input-label id="cost-label" for="estimasi_biaya" :value="__('Estimasi Biaya (opsional)')" class="font-semibold text-gray-700" />
                                     <div class="mt-1 relative rounded-md shadow-sm">
                                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 text-sm pointer-events-none">Rp</span>
                                         <x-text-input id="estimasi_biaya" name="estimasi_biaya" type="number" min="0" step="1000"
@@ -107,15 +107,15 @@
                                 </div>
                             </div>
 
-                            {{-- Bagian 2: Seleksi Komponen Servis (Struktur Baru) --}}
-                            <div class="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                            {{-- Bagian 2: Seleksi Komponen Servis --}}
+                            <div id="component-selection" class="{{ old('jenis_pengajuan', 'RUTIN') === 'DARURAT' ? 'hidden' : '' }} border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
                                 <div class="bg-gradient-to-r from-slate-50 to-indigo-50/40 p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
                                     <div>
                                         <h4 class="font-semibold text-gray-800 text-base flex items-center gap-2">
                                             <span>Rincian Komponen & Suku Cadang Servis</span>
                                             <span id="badge-template" class="hidden text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200"></span>
                                         </h4>
-                                        <p class="text-xs text-gray-500 mt-0.5">Tentukan suku cadang yang akan diperiksa (P) atau diganti (G) berdasarkan riwayat dan jadwal servis.</p>
+                                        <p class="text-xs text-gray-500 mt-0.5">Komponen dan aksi P/G akan terisi otomatis dari template yang sesuai dengan BBM, transmisi, dan kilometer kendaraan.</p>
                                     </div>
 
                                     <div class="flex items-center gap-2">
@@ -190,11 +190,11 @@
                             </div>
 
                             {{-- Bagian 3: Deskripsi Keluhan --}}
-                            <div>
+                            <div id="description-field">
                                 <x-input-label for="deskripsi_keluhan" :value="__('Deskripsi Keluhan / Keterangan Tambahan')" class="font-semibold text-gray-700" />
                                 <textarea id="deskripsi_keluhan" name="deskripsi_keluhan" rows="3"
                                           class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm @error('deskripsi_keluhan') border-red-500 @enderror"
-                                          placeholder="Jelaskan detail keluhan, indikasi kerusakan, atau catatan khusus untuk bengkel..." required>{{ old('deskripsi_keluhan') }}</textarea>
+                                          placeholder="Jelaskan detail servis rutin atau catatan khusus untuk bengkel..." required>{{ old('deskripsi_keluhan') }}</textarea>
                                 <x-input-error :messages="$errors->get('deskripsi_keluhan')" class="mt-1" />
                             </div>
 
@@ -214,6 +214,16 @@
     <script>
         (function () {
             const selectKendaraan = document.getElementById('id_kendaraan');
+            const selectJenisPengajuan = document.getElementById('jenis_pengajuan');
+            const photoLabel = document.getElementById('photo-label');
+            const photoHelpText = document.getElementById('photo-help-text');
+            const photoDescription = document.getElementById('photo-description');
+            const componentSelection = document.getElementById('component-selection');
+            const kilometerField = document.getElementById('kilometer-field');
+            const descriptionField = document.getElementById('description-field');
+            const descriptionInput = document.getElementById('deskripsi_keluhan');
+            const costLabel = document.getElementById('cost-label');
+            const costInput = document.getElementById('estimasi_biaya');
             const kmSpan = document.getElementById('km-value');
             const badgeTemplate = document.getElementById('badge-template');
             const selectedCounter = document.getElementById('selected-counter');
@@ -238,8 +248,25 @@
             const arrowOther = document.getElementById('arrow-other');
 
             let currentComponents = [];
+            let componentRequestId = 0;
             const km = {};
             Object.keys(mileageMap || {}).forEach(k => { km[String(k)] = mileageMap[k]; });
+
+            function updatePhotoCopy() {
+                const isEmergency = selectJenisPengajuan.value === 'DARURAT';
+                photoLabel.textContent = isEmergency ? 'Foto Bukti Kerusakan' : 'Foto Bukti Odometer';
+                photoHelpText.textContent = isEmergency
+                    ? 'Pilih kendaraan, unggah foto kerusakan, dan isi estimasi biaya.'
+                    : 'Isi rincian servis rutin dan unggah foto bukti odometer.';
+                photoDescription.textContent = isEmergency
+                    ? 'Unggah foto yang menunjukkan kerusakan kendaraan (JPG, PNG, atau WEBP; maksimal 10 MB).'
+                    : 'Unggah foto angka odometer yang terlihat jelas (JPG, PNG, atau WEBP; maksimal 10 MB).';
+                kilometerField.classList.toggle('hidden', isEmergency);
+                descriptionField.classList.toggle('hidden', isEmergency);
+                descriptionInput.required = !isEmergency;
+                costInput.required = isEmergency;
+                costLabel.textContent = isEmergency ? 'Estimasi Biaya (wajib)' : 'Estimasi Biaya (opsional)';
+            }
 
             function formatKm(val) {
                 if (val === null || val === undefined) {
@@ -281,6 +308,16 @@
                 }
             }
 
+            function escapeHtml(value) {
+                return String(value ?? '').replace(/[&<>"']/g, character => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;',
+                })[character]);
+            }
+
             function createComponentRow(item, index) {
                 const statusColor = {
                     'JATUH_TEMPO': 'bg-red-100 text-red-800 border-red-200',
@@ -295,56 +332,66 @@
 
                 const div = document.createElement('div');
                 div.className = `p-3.5 rounded-lg border transition ${cardBorder}`;
-                div.id = `komponen-card-${item.id_komponen_kendaraan}`;
+                div.id = `komponen-card-${item.form_key}`;
+
+                const isTemplateComponent = item.id_template_komponen !== null
+                    && item.id_template_komponen !== undefined;
+                const inputName = isTemplateComponent
+                    ? `komponen[${index}][id_template_komponen]`
+                    : `komponen[${index}][id_komponen_kendaraan]`;
+                const inputValue = isTemplateComponent
+                    ? item.id_template_komponen
+                    : item.id_komponen_kendaraan;
+                const isSelectable = !item.lock_action;
+                const actionControls = item.lock_action
+                    ? `<span class="text-xs font-semibold text-indigo-700">Aksi template: ${escapeHtml(item.aksi_label)} (${escapeHtml(item.aksi_rekomendasi)})</span>`
+                    : `<div class="flex items-center gap-2">
+                           <span class="text-xs font-semibold text-gray-600">Aksi:</span>
+                           <div class="inline-flex rounded-md shadow-sm p-0.5 bg-slate-100 border border-slate-200">
+                               <label class="cursor-pointer">
+                                   <input type="radio" name="komponen[${index}][jenis_aksi]" value="P" class="sr-only peer" ${item.aksi_rekomendasi === 'P' ? 'checked' : ''} ${item.is_rekomendasi ? '' : 'disabled'}>
+                                   <span class="inline-block px-2.5 py-1 text-xs font-semibold rounded peer-checked:bg-indigo-600 peer-checked:text-white text-gray-600 hover:text-gray-900 transition">Periksa (P)</span>
+                               </label>
+                               <label class="cursor-pointer">
+                                   <input type="radio" name="komponen[${index}][jenis_aksi]" value="G" class="sr-only peer" ${item.aksi_rekomendasi === 'G' ? 'checked' : ''} ${item.is_rekomendasi ? '' : 'disabled'}>
+                                   <span class="inline-block px-2.5 py-1 text-xs font-semibold rounded peer-checked:bg-indigo-600 peer-checked:text-white text-gray-600 hover:text-gray-900 transition">Ganti (G)</span>
+                               </label>
+                           </div>
+                       </div>`;
 
                 div.innerHTML = `
                     <div class="flex items-start gap-3">
                         <div class="pt-0.5">
                             <input type="checkbox"
-                                   id="chk-${item.id_komponen_kendaraan}"
+                                   id="chk-${item.form_key}"
                                    class="komponen-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                                   data-id="${item.id_komponen_kendaraan}"
+                                   data-id="${escapeHtml(inputValue)}"
                                    data-rekomendasi="${item.is_rekomendasi ? '1' : '0'}"
+                                   ${isSelectable ? '' : 'disabled'}
                                    ${item.is_rekomendasi ? 'checked' : ''}>
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex flex-wrap items-center justify-between gap-2">
-                                <label for="chk-${item.id_komponen_kendaraan}" class="font-semibold text-gray-900 text-sm cursor-pointer select-none">
-                                    ${item.nama_komponen}
+                                <label for="chk-${item.form_key}" class="font-semibold text-gray-900 text-sm cursor-pointer select-none">
+                                    ${escapeHtml(item.nama_komponen)}
                                 </label>
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-[11px] px-2 py-0.5 rounded border font-medium ${statusColor}">
-                                        ${item.status_label}
+                                        ${escapeHtml(item.status_label)}
                                     </span>
                                     <span class="text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">
-                                        ${item.kategori_label}
+                                        ${escapeHtml(item.kategori_label)}
                                     </span>
                                 </div>
                             </div>
-                            <p class="text-xs text-gray-500 mt-0.5">${item.keterangan}</p>
+                            <p class="text-xs text-gray-500 mt-0.5">${escapeHtml(item.keterangan)}</p>
 
                             {{-- Area Kontrol Aksi & Catatan jika dicentang --}}
-                            <div id="controls-${item.id_komponen_kendaraan}" class="${item.is_rekomendasi ? '' : 'hidden'} mt-3 pt-3 border-t border-slate-100">
-                                <input type="hidden" name="komponen[${index}][id_komponen_kendaraan]" value="${item.id_komponen_kendaraan}" id="input-id-${item.id_komponen_kendaraan}" ${item.is_rekomendasi ? '' : 'disabled'}>
+                            <div id="controls-${item.form_key}" class="${item.is_rekomendasi ? '' : 'hidden'} mt-3 pt-3 border-t border-slate-100">
+                                <input type="hidden" name="${inputName}" value="${escapeHtml(inputValue)}" id="input-id-${item.form_key}" ${item.is_rekomendasi ? '' : 'disabled'}>
 
                                 <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-xs font-semibold text-gray-600">Aksi:</span>
-                                        <div class="inline-flex rounded-md shadow-sm p-0.5 bg-slate-100 border border-slate-200">
-                                            <label class="cursor-pointer">
-                                                <input type="radio" name="komponen[${index}][jenis_aksi]" value="P" class="sr-only peer" ${item.aksi_rekomendasi === 'P' ? 'checked' : ''} ${item.is_rekomendasi ? '' : 'disabled'}>
-                                                <span class="inline-block px-2.5 py-1 text-xs font-semibold rounded peer-checked:bg-indigo-600 peer-checked:text-white text-gray-600 hover:text-gray-900 transition">
-                                                    Periksa (P)
-                                                </span>
-                                            </label>
-                                            <label class="cursor-pointer">
-                                                <input type="radio" name="komponen[${index}][jenis_aksi]" value="G" class="sr-only peer" ${item.aksi_rekomendasi === 'G' ? 'checked' : ''} ${item.is_rekomendasi ? '' : 'disabled'}>
-                                                <span class="inline-block px-2.5 py-1 text-xs font-semibold rounded peer-checked:bg-indigo-600 peer-checked:text-white text-gray-600 hover:text-gray-900 transition">
-                                                    Ganti (G)
-                                                </span>
-                                            </label>
-                                        </div>
-                                    </div>
+                                    ${actionControls}
 
                                     <div class="flex-1">
                                         <input type="text"
@@ -361,7 +408,7 @@
 
                 const chk = div.querySelector('.komponen-checkbox');
                 chk.addEventListener('change', function () {
-                    const controls = div.querySelector(`#controls-${item.id_komponen_kendaraan}`);
+                    const controls = div.querySelector(`#controls-${item.form_key}`);
                     const inputs = controls.querySelectorAll('input');
                     if (this.checked) {
                         controls.classList.remove('hidden');
@@ -376,7 +423,33 @@
                 return div;
             }
 
+            function updateComponentSelection() {
+                const isEmergency = selectJenisPengajuan.value === 'DARURAT';
+
+                componentSelection.classList.toggle('hidden', isEmergency);
+                componentSelection.querySelectorAll('input, button').forEach(element => {
+                    element.disabled = isEmergency;
+                });
+
+                if (isEmergency) {
+                    componentRequestId++;
+                    listRecommended.replaceChildren();
+                    listOther.replaceChildren();
+                    content.classList.add('hidden');
+                    loading.classList.add('hidden');
+                    placeholder.classList.remove('hidden');
+                    secRecommended.classList.add('hidden');
+                    btnSelectAllRecommended.classList.add('hidden');
+                    selectedCounter.textContent = '0 Komponen Dipilih';
+                    return;
+                }
+
+                loadKomponen(selectKendaraan.value);
+            }
+
             function loadKomponen(kendaraanId) {
+                const requestId = ++componentRequestId;
+
                 if (!kendaraanId) {
                     placeholder.classList.remove('hidden');
                     loading.classList.add('hidden');
@@ -393,10 +466,14 @@
                 content.classList.add('hidden');
                 loading.classList.remove('hidden');
 
-                const url = komponenRoute.replace('__ID__', kendaraanId);
+                const url = `${komponenRoute.replace('__ID__', kendaraanId)}?jenis_pengajuan=${encodeURIComponent(selectJenisPengajuan.value)}`;
                 fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                     .then(r => r.json())
                     .then(data => {
+                        if (requestId !== componentRequestId || selectJenisPengajuan.value === 'DARURAT') {
+                            return;
+                        }
+
                         loading.classList.add('hidden');
 
                         if (!data.has_komponen) {
@@ -437,7 +514,7 @@
 
                         if (recommended.length > 0) {
                             secRecommended.classList.remove('hidden');
-                            btnSelectAllRecommended.classList.remove('hidden');
+                            btnSelectAllRecommended.classList.toggle('hidden', Boolean(data.rekomendasi_template));
                             recommended.forEach((item, idx) => {
                                 listRecommended.appendChild(createComponentRow(item, idx));
                             });
@@ -454,8 +531,13 @@
                         updateCounter();
                     })
                     .catch(() => {
+                        if (requestId !== componentRequestId || selectJenisPengajuan.value === 'DARURAT') {
+                            return;
+                        }
+
                         loading.classList.add('hidden');
                         placeholder.classList.remove('hidden');
+                        placeholder.querySelector('p').textContent = 'Gagal memuat rekomendasi komponen. Muat ulang halaman atau coba lagi.';
                     });
             }
 
@@ -488,12 +570,20 @@
 
             if (selectKendaraan) {
                 updateKm(selectKendaraan.value);
-                loadKomponen(selectKendaraan.value);
+                updateComponentSelection();
 
                 selectKendaraan.addEventListener('change', function () {
                     updateKm(this.value);
-                    loadKomponen(this.value);
+                    if (selectJenisPengajuan.value !== 'DARURAT') {
+                        loadKomponen(this.value);
+                    }
                 });
+            }
+
+            if (selectJenisPengajuan) {
+                updatePhotoCopy();
+                selectJenisPengajuan.addEventListener('change', updatePhotoCopy);
+                selectJenisPengajuan.addEventListener('change', updateComponentSelection);
             }
         })();
     </script>

@@ -38,8 +38,8 @@
                             <!-- Kilometer Terakhir -->
                             <div>
                                 <x-input-label for="kilometer_terakhir" :value="__('Kilometer')" />
-                                <x-text-input id="kilometer_terakhir" class="block mt-1 w-full" type="number" name="kilometer_terakhir" :value="old('kilometer_terakhir', $kendaraan->kilometer_terakhir)" required />
-                                <x-input-error :messages="$errors->get('kilometer_terakhir')" class="mt-2" />
+                                <x-text-input id="kilometer_terakhir" class="block mt-1 w-full bg-gray-50" type="text" :value="number_format($kendaraan->kilometer_terakhir).' km'" readonly />
+                                <p class="mt-1 text-xs text-gray-500">Kilometer terakhir tidak dapat diubah dari form kendaraan.</p>
                             </div>
 
                             <!-- Transmisi -->

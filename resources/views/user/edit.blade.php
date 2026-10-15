@@ -36,6 +36,20 @@
                             </div>
 
                             <div>
+                                <x-input-label for="kategori_kendaraan" :value="__('Kategori Kendaraan Pengelola')" />
+                                <select id="kategori_kendaraan" name="kategori_kendaraan" class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm block mt-1 w-full">
+                                    <option value="">Pilih kategori kendaraan</option>
+                                    @foreach($kategoriKendaraan as $kategori)
+                                        <option value="{{ $kategori->value }}" @selected(old('kategori_kendaraan', $user->kategori_kendaraan?->value) === $kategori->value)>
+                                            {{ str_replace('_', ' ', ucfirst(strtolower($kategori->value))) }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <p class="mt-1 text-sm text-gray-500">Wajib untuk Pengelola. Setiap kategori hanya dapat ditugaskan ke satu Pengelola.</p>
+                                <x-input-error :messages="$errors->get('kategori_kendaraan')" class="mt-2" />
+                            </div>
+
+                            <div>
                                 <x-input-label for="password" :value="__('Password Baru (opsional)')" />
                                 <x-text-input id="password" class="block mt-1 w-full" type="password" name="password" />
                                 <x-input-error :messages="$errors->get('password')" class="mt-2" />

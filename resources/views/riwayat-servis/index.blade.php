@@ -181,8 +181,9 @@
                     </div>
                     <div>
                         <x-input-label for="kilometer_servis" value="{{ __('Odometer (KM)') }}" />
-                        <x-text-input id="kilometer_servis" name="kilometer_servis" type="number" class="mt-1 block w-full" :value="old('kilometer_servis')" required min="0" />
-                        <x-input-error :messages="$errors->get('kilometer_servis')" class="mt-2" />
+                        <p id="kilometer_servis" class="mt-1 block w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-gray-700">
+                            Diambil otomatis dari kilometer terakhir kendaraan
+                        </p>
                     </div>
                 </div>
 

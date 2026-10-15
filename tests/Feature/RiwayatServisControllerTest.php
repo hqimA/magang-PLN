@@ -29,7 +29,19 @@ class RiwayatServisControllerTest extends TestCase
         $response->assertRedirect(route('login'));
     }
 
-    public function test_valid_service_history_stores_receipt_parts_and_updates_vehicle(): void
+    public function test_service_history_form_does_not_allow_odometer_entry(): void
+    {
+        $user = User::factory()->create(['peran' => 'PENGELOLA']);
+        Kendaraan::factory()->for($user, 'pengelola')->create();
+        $this->withoutVite();
+
+        $this->actingAs($user)
+            ->get(route('service-history.index'))
+            ->assertOk()
+            ->assertDontSee('name="kilometer_servis"', false);
+    }
+
+    public function test_valid_service_history_uses_vehicle_mileage_not_submitted_mileage(): void
     {
         $user = User::factory()->create(['peran' => 'PENGELOLA']);
         $kendaraan = Kendaraan::factory()->for($user, 'pengelola')->create([
@@ -65,8 +77,8 @@ class RiwayatServisControllerTest extends TestCase
             'id' => $riwayatServis->id,
             'id_pengajuan' => null,
             'id_kendaraan' => $kendaraan->id,
-            'kilometer_servis' => 2200,
-            'target_kilometer_berikutnya' => 7200,
+            'kilometer_servis' => 1500,
+            'target_kilometer_berikutnya' => 6500,
             'id_pembuat' => $user->id,
         ]);
         $this->assertStringStartsWith(
@@ -84,7 +96,7 @@ class RiwayatServisControllerTest extends TestCase
         ]);
         $this->assertDatabaseHas('kendaraan', [
             'id' => $kendaraan->id,
-            'kilometer_terakhir' => 2200,
+            'kilometer_terakhir' => 1500,
             'status_perawatan' => 'BAIK',
         ]);
     }
@@ -124,7 +136,6 @@ class RiwayatServisControllerTest extends TestCase
             ->assertSessionHasErrors([
                 'id_kendaraan',
                 'tanggal_servis',
-                'kilometer_servis',
                 'nama_bengkel',
                 'total_biaya',
             ]);
