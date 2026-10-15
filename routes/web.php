@@ -32,6 +32,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('home');
 
     Route::middleware('role:ADMIN')->group(function () {
+        Route::delete('/kendaraan/hapus-terpilih', [KendaraanController::class, 'destroySelected'])
+            ->name('kendaraan.destroy-selected');
+
         Route::resource('kendaraan', KendaraanController::class)
             ->except(['index', 'show']);
 

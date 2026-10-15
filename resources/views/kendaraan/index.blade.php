@@ -5,10 +5,23 @@
                 {{ __('Data Kendaraan') }}
             </h2>
             @if($isAdmin)
-                <a href="{{ route('kendaraan.create') }}"
-                   class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                    + Tambah Kendaraan
-                </a>
+                <div class="flex flex-wrap items-center gap-2">
+                    <form id="bulk-delete-vehicles" method="POST" action="{{ route('kendaraan.destroy-selected') }}">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" data-delete-vehicles
+                                aria-describedby="selected-vehicle-count"
+                                class="inline-flex items-center rounded-md border border-red-300 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-widest text-red-700 transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                            Hapus Kendaraan Terpilih
+                            <span class="ml-2 rounded-full bg-red-100 px-2 py-0.5" data-selected-vehicle-count>0</span>
+                        </button>
+                        <span id="selected-vehicle-count" class="sr-only" aria-live="polite">0 kendaraan dipilih</span>
+                    </form>
+                    <a href="{{ route('kendaraan.create') }}"
+                       class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                        + Tambah Kendaraan
+                    </a>
+                </div>
             @endif
         </div>
     </x-slot>
@@ -111,6 +124,16 @@
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
+                                        @if($isAdmin)
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <label class="inline-flex items-center gap-2">
+                                                    <input type="checkbox" data-select-all-vehicles
+                                                           aria-label="Pilih semua kendaraan yang ditampilkan"
+                                                           class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                                    <span class="sr-only">Pilih semua kendaraan yang ditampilkan</span>
+                                                </label>
+                                            </th>
+                                        @endif
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Foto</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plat Nomor</th>
@@ -125,6 +148,16 @@
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     @foreach($kendaraans as $index => $kendaraan)
                                         <tr class="hover:bg-gray-50">
+                                            @if($isAdmin)
+                                                <td class="px-4 py-3">
+                                                    <input type="checkbox" name="kendaraan_ids[]"
+                                                           value="{{ $kendaraan->id }}"
+                                                           form="bulk-delete-vehicles"
+                                                           data-vehicle-checkbox
+                                                           aria-label="Pilih kendaraan {{ $kendaraan->plat_nomor }}"
+                                                           class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                                </td>
+                                            @endif
                                             <td class="px-4 py-3 text-sm text-gray-900">{{ $index + 1 }}</td>
                                             <td class="px-4 py-3">
                                                 @if($kendaraan->foto_kendaraan)
@@ -191,4 +224,49 @@
             </div>
         </div>
     </div>
+
+    @if($isAdmin)
+        <script>
+            const bulkDeleteForm = document.getElementById('bulk-delete-vehicles');
+            const vehicleCheckboxes = Array.from(document.querySelectorAll('[data-vehicle-checkbox]'));
+            const selectAllVehicles = document.querySelector('[data-select-all-vehicles]');
+            const deleteVehiclesButton = document.querySelector('[data-delete-vehicles]');
+            const selectedVehicleCount = document.querySelector('[data-selected-vehicle-count]');
+            const selectedVehicleAnnouncement = document.getElementById('selected-vehicle-count');
+
+            function updateSelectedVehicles() {
+                const checkedCount = vehicleCheckboxes.filter((checkbox) => checkbox.checked).length;
+
+                deleteVehiclesButton.disabled = checkedCount === 0;
+                selectedVehicleCount.textContent = checkedCount;
+                selectedVehicleAnnouncement.textContent = `${checkedCount} kendaraan dipilih`;
+
+                if (selectAllVehicles) {
+                    selectAllVehicles.checked = checkedCount > 0 && checkedCount === vehicleCheckboxes.length;
+                    selectAllVehicles.indeterminate = checkedCount > 0 && checkedCount < vehicleCheckboxes.length;
+                }
+            }
+
+            vehicleCheckboxes.forEach((checkbox) => {
+                checkbox.addEventListener('change', updateSelectedVehicles);
+            });
+
+            selectAllVehicles?.addEventListener('change', () => {
+                vehicleCheckboxes.forEach((checkbox) => {
+                    checkbox.checked = selectAllVehicles.checked;
+                });
+                updateSelectedVehicles();
+            });
+
+            bulkDeleteForm.addEventListener('submit', (event) => {
+                const checkedCount = vehicleCheckboxes.filter((checkbox) => checkbox.checked).length;
+
+                if (checkedCount === 0 || !window.confirm(`Yakin ingin menghapus ${checkedCount} kendaraan yang dipilih beserta data terkait? Tindakan ini tidak dapat dibatalkan.`)) {
+                    event.preventDefault();
+                }
+            });
+
+            updateSelectedVehicles();
+        </script>
+    @endif
 </x-app-layout>

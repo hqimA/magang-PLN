@@ -7,8 +7,11 @@ use App\Models\Kendaraan;
 use App\Models\TemplateJadwalServis;
 use App\Models\User;
 use App\Services\CloudinaryService;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Throwable;
 
 class KendaraanController extends Controller
@@ -184,6 +187,38 @@ class KendaraanController extends Controller
         $kendaraan->delete();
 
         return redirect()->route('kendaraan.index')->with('success', 'Kendaraan berhasil dihapus.');
+    }
+
+    public function destroySelected(Request $request): RedirectResponse
+    {
+        abort_unless($request->user()->isAdmin(), 403);
+
+        $validated = $request->validate([
+            'kendaraan_ids' => ['required', 'array', 'min:1'],
+            'kendaraan_ids.*' => ['required', 'integer', 'distinct', 'exists:kendaraan,id'],
+        ]);
+        $vehicleIds = array_map('intval', $validated['kendaraan_ids']);
+        $deletedCount = 0;
+
+        DB::transaction(function () use ($vehicleIds, &$deletedCount): void {
+            Kendaraan::query()
+                ->whereKey($vehicleIds)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->chunkById(100, function (Collection $kendaraans) use (&$deletedCount): void {
+                    foreach ($kendaraans as $kendaraan) {
+                        $kendaraan->delete();
+                        $deletedCount++;
+                    }
+                });
+        });
+
+        return redirect()->route('kendaraan.index')->with(
+            'success',
+            $deletedCount > 0
+                ? "{$deletedCount} kendaraan terpilih berhasil dihapus."
+                : 'Kendaraan yang dipilih tidak ditemukan.',
+        );
     }
 
     /**
