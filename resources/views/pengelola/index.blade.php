@@ -43,12 +43,6 @@
                     </form>
                 @endif
 
-                @if ($selected)
-                    <a href="{{ route('mileage.odometer', ['kendaraan' => $selected->id]) }}"
-                       class="inline-flex items-center px-3 py-1.5 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 transition">
-                        Input Odometer
-                    </a>
-                @endif
             </div>
         </div>
     </x-slot>

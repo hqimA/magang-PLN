@@ -4,7 +4,9 @@ namespace App\Imports;
 
 use App\Models\Kendaraan;
 use App\Services\CloudinaryService;
+use App\Services\KomponenServisService;
 use App\Services\RemoteImageDownloader;
+use App\Services\VehicleCategoryAssignmentService;
 use DateTimeImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -28,6 +30,8 @@ class KendaraanImport
     public function __construct(
         private CloudinaryService $cloudinary,
         private RemoteImageDownloader $imageDownloader,
+        private VehicleCategoryAssignmentService $vehicleAssignment,
+        private KomponenServisService $komponenService,
     ) {}
 
     public function import(UploadedFile $file): void
@@ -152,6 +156,7 @@ class KendaraanImport
                 throw ValidationException::withMessages(['file' => $errors]);
             }
 
+            $managerIdsByCategory = $this->vehicleAssignment->managerIdsByCategory();
             $uploadedUrls = [];
             try {
                 foreach ($preparedRows as &$row) {
@@ -195,17 +200,18 @@ class KendaraanImport
                 }
                 unset($row);
 
-                DB::transaction(function () use ($preparedRows): void {
+                DB::transaction(function () use ($preparedRows, $managerIdsByCategory): void {
                     foreach ($preparedRows as $row) {
                         $data = $row['data'];
-                        $data['id_pengelola'] = null;
+                        $data['id_pengelola'] = $managerIdsByCategory[$data['kategori_penggunaan']] ?? null;
                         $data['interval_servis_km'] = 5000;
                         $data['interval_servis_bulan'] = 3;
                         $data['threshold_servis_km'] = 200;
                         $data['threshold_servis_hari'] = 10;
                         $data['status_perawatan'] = 'BAIK';
 
-                        Kendaraan::query()->create($data);
+                        $kendaraan = Kendaraan::query()->create($data);
+                        $this->komponenService->applyRecommendedTemplateToKendaraan($kendaraan);
                         $this->importedCount++;
                     }
                 });

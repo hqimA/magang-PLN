@@ -23,9 +23,11 @@ class KomponenServisService
                 $kendaraan->komponen()->doesntHave('detailKomponenServis')->delete();
             }
 
-            $currentKm = $kendaraan->mileageTerbaru?->kilometer_akhir
-                ?? $kendaraan->kilometer_terakhir
-                ?? 0;
+            $currentKm = (int) ($kendaraan->kilometer_terakhir ?? 0);
+            $lastServiceKm = (int) ($kendaraan->riwayatServis()
+                ->orderByDesc('tanggal_servis')
+                ->orderByDesc('id')
+                ->value('kilometer_servis') ?? 0);
 
             $komponens = TemplateKomponen::where('id_template', $template->id)
                 ->where('is_aktif', true)
@@ -36,22 +38,42 @@ class KomponenServisService
             $insertedCount = 0;
 
             foreach ($komponens as $tk) {
+                $existingComponent = $kendaraan->komponen()
+                    ->where('id_template_komponen', $tk->id)
+                    ->first();
+
                 // Jika tidak overwrite, lewati jika nama komponen sudah ada pada kendaraan ini
-                if (! $overwrite && $kendaraan->komponen()->where('nama_komponen', $tk->nama_komponen)->exists()) {
+                if (! $overwrite
+                    && $existingComponent === null
+                    && $kendaraan->komponen()->where('nama_komponen', $tk->nama_komponen)->exists()) {
                     continue;
                 }
 
                 $firstJadwal = $tk->jadwalDetail->first();
-                $intervalKm = $firstJadwal?->interval_km ?? 10000;
-                $intervalBulan = $firstJadwal?->interval_bulan ?? 6;
-                $aksiDefault = $firstJadwal?->jenis_aksi instanceof JenisAksi
-                    ? $firstJadwal->jenis_aksi
-                    : ($firstJadwal?->jenis_aksi ?? JenisAksi::G);
-
-                $targetKm = $currentKm + $intervalKm;
+                $baselineKm = max(
+                    $lastServiceKm,
+                    (int) ($existingComponent?->km_terakhir_servis ?? 0),
+                );
+                $dueSchedule = $tk->jadwalDetail
+                    ->filter(fn ($schedule): bool => $schedule->interval_km > $baselineKm
+                        && $schedule->interval_km <= $currentKm)
+                    ->last();
+                $nextSchedule = $tk->jadwalDetail
+                    ->first(fn ($schedule): bool => $schedule->interval_km > $currentKm);
+                $selectedSchedule = $dueSchedule ?? $nextSchedule ?? $tk->jadwalDetail->last();
+                $intervalKm = $selectedSchedule?->interval_km ?? $firstJadwal?->interval_km ?? 10000;
+                $intervalBulan = $selectedSchedule?->interval_bulan ?? $firstJadwal?->interval_bulan ?? 6;
+                $aksiDefault = $selectedSchedule?->jenis_aksi ?? JenisAksi::G;
+                $targetKm = $dueSchedule?->interval_km ?? $nextSchedule?->interval_km;
                 $targetDate = now()->addMonths($intervalBulan)->toDateString();
+                $status = match (true) {
+                    $dueSchedule !== null => StatusKomponen::JATUH_TEMPO,
+                    $nextSchedule === null => StatusKomponen::BELUM_DATA,
+                    $nextSchedule->interval_km - $currentKm <= ($kendaraan->threshold_servis_km ?? 1000) => StatusKomponen::SEGERA,
+                    default => StatusKomponen::AMAN,
+                };
 
-                KomponenKendaraan::create([
+                $componentAttributes = [
                     'id_kendaraan' => $kendaraan->id,
                     'id_template_komponen' => $tk->id,
                     'nama_komponen' => $tk->nama_komponen,
@@ -65,11 +87,20 @@ class KomponenServisService
                     'aksi_terakhir' => null,
                     'km_jatuh_tempo' => $targetKm,
                     'tgl_jatuh_tempo' => $targetDate,
-                    'status' => StatusKomponen::AMAN,
+                    'status' => $status,
                     'is_aktif' => true,
-                ]);
+                ];
 
-                $insertedCount++;
+                if ($existingComponent !== null) {
+                    $existingComponent->fill($componentAttributes);
+
+                    if ($overwrite || $existingComponent->isDirty()) {
+                        $existingComponent->save();
+                    }
+                } else {
+                    KomponenKendaraan::create($componentAttributes);
+                    $insertedCount++;
+                }
             }
 
             // Simpan id_template rujukan pada kendaraan
@@ -77,6 +108,17 @@ class KomponenServisService
 
             return $insertedCount;
         });
+    }
+
+    public function applyRecommendedTemplateToKendaraan(Kendaraan $kendaraan, bool $overwrite = false): int
+    {
+        $template = $kendaraan->templateRekomendasi();
+
+        if ($template === null) {
+            return 0;
+        }
+
+        return $this->applyTemplateToKendaraan($kendaraan, $template, $overwrite);
     }
 
     /**
@@ -91,19 +133,26 @@ class KomponenServisService
      *     komponen: array<int, array>
      * }
      */
-    public function getKomponenKendaraan(Kendaraan $kendaraan, ?int $currentKm = null): array
-    {
+    public function getKomponenKendaraan(
+        Kendaraan $kendaraan,
+        ?int $currentKm = null,
+        string $jenisPengajuan = 'RUTIN',
+    ): array {
         $currentKm = $currentKm
             ?? $kendaraan->mileageTerbaru?->kilometer_akhir
             ?? $kendaraan->kilometer_terakhir
             ?? 0;
 
+        $rekomendasiTemplate = $kendaraan->templateRekomendasi();
+
+        if ($jenisPengajuan === 'RUTIN' && $rekomendasiTemplate !== null) {
+            return $this->getKomponenTemplate($kendaraan, $rekomendasiTemplate, $currentKm);
+        }
+
         $komponens = $kendaraan->komponen()
             ->where('is_aktif', true)
             ->orderBy('nomor_urut', 'asc')
             ->get();
-
-        $rekomendasiTemplate = $kendaraan->templateRekomendasi();
 
         // Jika kendaraan belum punya komponen sendiri sama sekali
         if ($komponens->isEmpty()) {
@@ -168,7 +217,9 @@ class KomponenServisService
             ];
 
             $result[] = [
+                'form_key' => 'kendaraan-'.$komp->id,
                 'id_komponen_kendaraan' => $komp->id,
+                'id_template_komponen' => null,
                 'nomor_urut' => $komp->nomor_urut,
                 'nama_komponen' => $komp->nama_komponen,
                 'kategori' => $kategoriRaw,
@@ -183,6 +234,7 @@ class KomponenServisService
                 'sisa_km' => $targetKm !== null ? ($targetKm - $currentKm) : null,
                 'keterangan' => $keterangan,
                 'is_rekomendasi' => $isRekomendasi,
+                'lock_action' => false,
             ];
         }
 
@@ -198,5 +250,169 @@ class KomponenServisService
             'rekomendasi_count' => $rekomendasiCount,
             'komponen' => $result,
         ];
+    }
+
+    /**
+     * Berikan rekomendasi dari jadwal template yang jatuh setelah servis terakhir.
+     *
+     * @return array{
+     *     has_komponen: bool,
+     *     template_nama: string,
+     *     rekomendasi_template: array{id: int, nama: string, deskripsi: ?string},
+     *     current_km: int,
+     *     rekomendasi_count: int,
+     *     komponen: array<int, array>
+     * }
+     */
+    private function getKomponenTemplate(
+        Kendaraan $kendaraan,
+        TemplateJadwalServis $template,
+        int $currentKm,
+    ): array {
+        $lastServiceKm = (int) ($kendaraan->riwayatServis()
+            ->orderByDesc('tanggal_servis')
+            ->orderByDesc('id')
+            ->value('kilometer_servis') ?? 0);
+
+        $vehicleComponents = $kendaraan->komponen()
+            ->where('is_aktif', true)
+            ->whereNotNull('id_template_komponen')
+            ->get()
+            ->keyBy('id_template_komponen');
+
+        $templateComponents = TemplateKomponen::query()
+            ->where('id_template', $template->id)
+            ->where('is_aktif', true)
+            ->with(['jadwalDetail' => fn ($query) => $query->orderBy('interval_km')])
+            ->orderBy('nomor_urut')
+            ->get();
+
+        $recommendations = [];
+
+        foreach ($templateComponents as $templateComponent) {
+            $vehicleComponent = $vehicleComponents->get($templateComponent->id);
+            $serviceBaselineKm = max($lastServiceKm, (int) ($vehicleComponent?->km_terakhir_servis ?? 0));
+            $dueSchedule = $templateComponent->jadwalDetail
+                ->filter(fn ($schedule): bool => $schedule->interval_km > $serviceBaselineKm
+                    && $schedule->interval_km <= $currentKm)
+                ->last();
+            $nextSchedule = $templateComponent->jadwalDetail
+                ->first(fn ($schedule): bool => $schedule->interval_km > $currentKm);
+            $selectedSchedule = $dueSchedule ?? $nextSchedule ?? $templateComponent->jadwalDetail->last();
+            $isRecommended = $dueSchedule !== null;
+            $action = $selectedSchedule?->jenis_aksi instanceof JenisAksi
+                ? $selectedSchedule->jenis_aksi->value
+                : $selectedSchedule?->jenis_aksi;
+            $actionLabel = match ($action) {
+                'G' => 'Ganti',
+                'P' => 'Periksa',
+                default => 'Belum diatur',
+            };
+
+            if ($isRecommended) {
+                $status = 'JATUH_TEMPO';
+                $description = "Jadwal {$dueSchedule->interval_km} km telah tercapai.";
+            } elseif ($nextSchedule !== null) {
+                $status = 'AMAN';
+                $description = "Jadwal berikutnya {$nextSchedule->interval_km} km ({$actionLabel}).";
+            } else {
+                $status = 'BELUM_DATA';
+                $description = 'Tidak ada jadwal kilometer berikutnya pada template.';
+            }
+
+            $category = $templateComponent->kategori instanceof \BackedEnum
+                ? $templateComponent->kategori->value
+                : (string) $templateComponent->kategori;
+
+            $recommendations[] = [
+                'form_key' => 'template-'.$templateComponent->id,
+                'id_komponen_kendaraan' => $vehicleComponent?->id,
+                'id_template_komponen' => $templateComponent->id,
+                'nomor_urut' => $templateComponent->nomor_urut,
+                'nama_komponen' => $templateComponent->nama_komponen,
+                'kategori' => $category,
+                'kategori_label' => str_replace('_', ' ', ucwords(strtolower($category), '_')),
+                'interval_km' => $nextSchedule?->interval_km,
+                'interval_bulan' => $nextSchedule?->interval_bulan,
+                'status' => $status,
+                'status_label' => [
+                    'JATUH_TEMPO' => 'Jadwal Tercapai',
+                    'AMAN' => 'Belum Jatuh Tempo',
+                    'BELUM_DATA' => 'Belum Ada Jadwal',
+                ][$status],
+                'aksi_rekomendasi' => $action,
+                'aksi_label' => $actionLabel,
+                'km_jatuh_tempo' => $dueSchedule?->interval_km ?? $nextSchedule?->interval_km,
+                'sisa_km' => $nextSchedule !== null ? $nextSchedule->interval_km - $currentKm : null,
+                'keterangan' => $description,
+                'is_rekomendasi' => $isRecommended,
+                'lock_action' => true,
+            ];
+        }
+
+        return [
+            'has_komponen' => $templateComponents->isNotEmpty(),
+            'template_nama' => $template->nama,
+            'rekomendasi_template' => [
+                'id' => $template->id,
+                'nama' => $template->nama,
+                'deskripsi' => $template->deskripsi,
+            ],
+            'current_km' => $currentKm,
+            'rekomendasi_count' => count(array_filter($recommendations, fn (array $item): bool => $item['is_rekomendasi'])),
+            'komponen' => $recommendations,
+        ];
+    }
+
+    public function createKomponenKendaraanFromTemplate(
+        Kendaraan $kendaraan,
+        int $idTemplateKomponen,
+        int $currentKm,
+    ): KomponenKendaraan {
+        $template = $kendaraan->templateRekomendasi();
+
+        abort_if($template === null, 422, 'Template servis kendaraan tidak tersedia.');
+
+        $templateComponent = TemplateKomponen::query()
+            ->where('id_template', $template->id)
+            ->where('is_aktif', true)
+            ->with(['jadwalDetail' => fn ($query) => $query->orderBy('interval_km')])
+            ->findOrFail($idTemplateKomponen);
+
+        $component = KomponenKendaraan::query()->firstOrNew([
+            'id_kendaraan' => $kendaraan->id,
+            'id_template_komponen' => $templateComponent->id,
+        ]);
+
+        if (! $component->exists) {
+            $nextSchedule = $templateComponent->jadwalDetail
+                ->first(fn ($schedule): bool => $schedule->interval_km > $currentKm);
+            $firstSchedule = $templateComponent->jadwalDetail->first();
+            $defaultSchedule = $nextSchedule ?? $templateComponent->jadwalDetail->last();
+            abort_if($defaultSchedule === null, 422, 'Komponen template belum memiliki jadwal servis.');
+            $action = $defaultSchedule->jenis_aksi;
+
+            $component->fill([
+                'nama_komponen' => $templateComponent->nama_komponen,
+                'kategori' => $templateComponent->kategori,
+                'nomor_urut' => $templateComponent->nomor_urut,
+                'interval_km' => $firstSchedule?->interval_km,
+                'interval_bulan' => $firstSchedule?->interval_bulan,
+                'jenis_aksi_default' => $action,
+                'km_jatuh_tempo' => $nextSchedule?->interval_km,
+                'tgl_jatuh_tempo' => $nextSchedule !== null
+                    ? now()->addMonths($nextSchedule->interval_bulan)->toDateString()
+                    : null,
+                'status' => StatusKomponen::AMAN,
+                'is_aktif' => true,
+            ]);
+        } else {
+            $component->is_aktif = true;
+        }
+
+        $component->save();
+        $kendaraan->update(['id_template' => $template->id]);
+
+        return $component;
     }
 }

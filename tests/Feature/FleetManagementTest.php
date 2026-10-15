@@ -58,6 +58,7 @@ class FleetManagementTest extends TestCase
 
         $this->assertDatabaseHas('riwayat_servis', [
             'id_kendaraan' => $kendaraan->id,
+            'kilometer_servis' => 1500,
             'id_pembuat' => $pengelola->id,
         ]);
         $this->assertDatabaseHas('kendaraan', [
@@ -73,20 +74,21 @@ class FleetManagementTest extends TestCase
         $kendaraan = Kendaraan::factory()
             ->for($pengelola, 'pengelola')
             ->create([
+                'kilometer_terakhir' => 1500,
                 'status_perawatan' => 'SEDANG_SERVIS',
             ]);
 
         $this->actingAs($admin)->post('/riwayat-servis', [
             'id_kendaraan' => $kendaraan->id,
             'tanggal_servis' => '2026-09-29',
-            'kilometer_servis' => 2200,
+            'kilometer_servis' => 1500,
             'nama_bengkel' => 'Bengkel PLN',
             'total_biaya' => 450000,
         ]);
 
         $this->assertDatabaseHas('riwayat_servis', [
             'id_kendaraan' => $kendaraan->id,
-            'kilometer_servis' => 2200,
+            'kilometer_servis' => 1500,
             'id_pembuat' => $admin->id,
         ]);
         $this->assertDatabaseHas('kendaraan', [

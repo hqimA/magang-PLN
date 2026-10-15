@@ -110,16 +110,22 @@ class Kendaraan extends Model
     {
         $bbm = $this->jenis_bbm;
         $trans = $this->transmisi;
+        $bbmValues = in_array($bbm, ['SOLAR', 'DIESEL'], true)
+            ? ['SOLAR', 'DIESEL']
+            : [$bbm];
 
         return TemplateJadwalServis::where('is_aktif', true)
-            ->where(function ($q) use ($bbm) {
-                $q->where('jenis_bbm', $bbm)
+            ->where(function ($q) use ($bbmValues) {
+                $q->whereIn('jenis_bbm', $bbmValues)
                     ->orWhere('jenis_bbm', 'SEMUA');
             })
             ->where(function ($q) use ($trans) {
                 $q->where('transmisi', $trans)
                     ->orWhere('transmisi', 'SEMUA');
             })
+            ->orderByRaw('CASE WHEN jenis_bbm = ? THEN 0 WHEN jenis_bbm = ? THEN 2 ELSE 1 END', [$bbm, 'SEMUA'])
+            ->orderByRaw('CASE WHEN transmisi = ? THEN 0 ELSE 1 END', [$trans])
+            ->orderBy('id')
             ->first();
     }
 

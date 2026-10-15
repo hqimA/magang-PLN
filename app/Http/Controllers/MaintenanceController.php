@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Kendaraan;
-use App\Models\Mileage;
+use App\Models\KomponenKendaraan;
 use App\Models\PengajuanKomponen;
 use App\Models\PengajuanServis;
 use App\Services\CloudinaryService;
@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Throwable;
 
@@ -33,9 +34,10 @@ class MaintenanceController extends Controller
                     ->orderBy('dibuat_pada', 'desc')
                     ->get();
             } else {
-                // Pengelola: hanya pengajuan yang dibuat oleh dirinya sendiri (semua status)
+                // Pengelola: tampilkan semua pengajuan aktif/memerlukan tindak lanjut, bukan yang sudah dibatalkan.
                 $pengajuanMaintenance = PengajuanServis::with(['kendaraan.mileageTerbaru', 'pengaju'])
                     ->where('id_pengaju', $user->id)
+                    ->where('status_persetujuan', '!=', 'DIBATALKAN')
                     ->orderBy('dibuat_pada', 'desc')
                     ->get();
             }
@@ -60,32 +62,21 @@ class MaintenanceController extends Controller
             ->orderBy('merk_tipe')
             ->get();
 
-        // Peta kilometer_akhir terbaru per kendaraan (fallback ke kilometer_terakhir kendaraan jika belum ada catatan trip mileage)
-        $mileageMap = [];
-        foreach ($kendaraanList as $k) {
-            $latest = Mileage::where('id_kendaraan', $k->id)
-                ->orderByDesc('tanggal_perjalanan')
-                ->orderByDesc('id')
-                ->first();
-            $mileageMap[$k->id] = $latest?->kilometer_akhir ?? $k->kilometer_terakhir;
-        }
+        $mileageMap = $kendaraanList->mapWithKeys(
+            fn (Kendaraan $kendaraan): array => [$kendaraan->id => $kendaraan->kilometer_terakhir],
+        )->all();
 
         return view('maintenance.create', compact('kendaraanList', 'mileageMap'));
     }
 
-    /** AJAX: return kilometer_akhir terbaru untuk kendaraan tertentu. */
+    /** AJAX: return kilometer_terakhir kendaraan tertentu. */
     public function mileageKendaraan(Request $request, Kendaraan $kendaraan): JsonResponse
     {
         abort_if($request->user()->isAdmin(), 403);
         abort_unless((int) $kendaraan->id_pengelola === (int) $request->user()->id, 403);
 
-        $latest = Mileage::where('id_kendaraan', $kendaraan->id)
-            ->orderByDesc('tanggal_perjalanan')
-            ->orderByDesc('id')
-            ->first();
-
         return response()->json([
-            'kilometer_akhir' => $latest?->kilometer_akhir ?? $kendaraan->kilometer_terakhir,
+            'kilometer_akhir' => $kendaraan->kilometer_terakhir,
         ]);
     }
 
@@ -95,27 +86,45 @@ class MaintenanceController extends Controller
         abort_if($request->user()->isAdmin(), 403);
         abort_unless((int) $kendaraan->id_pengelola === (int) $request->user()->id, 403);
 
-        $data = $komponenService->getKomponenKendaraan($kendaraan);
+        $validated = $request->validate([
+            'jenis_pengajuan' => ['nullable', 'in:RUTIN,DARURAT'],
+        ]);
+
+        $currentKm = (int) ($kendaraan->kilometer_terakhir ?? 0);
+
+        $data = $komponenService->getKomponenKendaraan(
+            $kendaraan,
+            $currentKm,
+            $validated['jenis_pengajuan'] ?? 'RUTIN',
+        );
 
         return response()->json($data);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, KomponenServisService $komponenService): RedirectResponse
     {
         abort_if($request->user()->isAdmin(), 403, 'Admin tidak dapat membuat pengajuan maintenance.');
 
         $validated = $request->validate([
             'id_kendaraan' => ['required', 'exists:kendaraan,id'],
             'jenis_pengajuan' => ['required', 'in:RUTIN,DARURAT'],
-            'deskripsi_keluhan' => ['required', 'string', 'max:2000'],
-            'estimasi_biaya' => ['nullable', 'numeric', 'min:0'],
+            'deskripsi_keluhan' => [
+                Rule::requiredIf($request->input('jenis_pengajuan') === 'RUTIN'),
+                'nullable',
+                'string',
+                'max:2000',
+            ],
+            'estimasi_biaya' => [
+                Rule::requiredIf($request->input('jenis_pengajuan') === 'DARURAT'),
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
             'foto_bukti_odometer' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
-            'komponen' => ['nullable', 'array'],
-            'komponen.*.id_komponen_kendaraan' => ['required_with:komponen', 'exists:komponen_kendaraan,id'],
-            'komponen.*.jenis_aksi' => ['required_with:komponen', 'in:P,G'],
-            'komponen.*.catatan' => ['nullable', 'string', 'max:500'],
         ], [], [
-            'foto_bukti_odometer' => 'foto bukti odometer',
+            'foto_bukti_odometer' => $request->input('jenis_pengajuan') === 'RUTIN'
+                ? 'foto bukti odometer'
+                : 'foto bukti kerusakan',
         ]);
 
         // Pastikan kendaraan milik Pengelola yang login
@@ -123,34 +132,115 @@ class MaintenanceController extends Controller
             ->where('id_pengelola', $request->user()->id)
             ->firstOrFail();
 
-        // Ambil snapshot kilometer dari Mileage terbaru, fallback ke kilometer_terakhir kendaraan
-        $latestMileage = Mileage::where('id_kendaraan', $kendaraan->id)
-            ->orderByDesc('tanggal_perjalanan')
-            ->orderByDesc('id')
-            ->first();
+        $currentKm = (int) ($kendaraan->kilometer_terakhir ?? 0);
+        $usesRoutineTemplate = $validated['jenis_pengajuan'] === 'RUTIN'
+            && $kendaraan->templateRekomendasi() !== null;
+
+        if ($usesRoutineTemplate) {
+            $recommendations = $komponenService->getKomponenKendaraan($kendaraan, $currentKm);
+            $dueTemplateComponentIds = collect($recommendations['komponen'])
+                ->filter(fn (array $item): bool => $item['is_rekomendasi'])
+                ->pluck('id_template_komponen')
+                ->all();
+
+            $validatedComponents = $request->validate([
+                'komponen' => ['nullable', 'array'],
+                'komponen.*.id_template_komponen' => [
+                    'required',
+                    'integer',
+                    'distinct',
+                    Rule::in($dueTemplateComponentIds),
+                ],
+                'komponen.*.catatan' => ['nullable', 'string', 'max:500'],
+            ], [
+                'komponen.*.id_template_komponen.in' => 'Komponen yang dipilih tidak termasuk jadwal servis rutin kendaraan pada kilometer saat ini.',
+            ]);
+        } elseif ($validated['jenis_pengajuan'] === 'DARURAT') {
+            $validatedComponents = ['komponen' => []];
+        } else {
+            $validatedComponents = $request->validate([
+                'komponen' => ['nullable', 'array'],
+                'komponen.*.id_komponen_kendaraan' => [
+                    'required',
+                    'integer',
+                    'distinct',
+                    Rule::in(KomponenKendaraan::query()
+                        ->where('id_kendaraan', $kendaraan->id)
+                        ->where('is_aktif', true)
+                        ->pluck('id')
+                        ->all()),
+                ],
+                'komponen.*.jenis_aksi' => ['required', 'in:P,G'],
+                'komponen.*.catatan' => ['nullable', 'string', 'max:500'],
+            ]);
+        }
 
         $fotoPath = null;
+        $fotoFolder = $validated['jenis_pengajuan'] === 'RUTIN'
+            ? 'bukti_odometer'
+            : 'bukti_kerusakan';
 
         try {
-            DB::transaction(function () use ($kendaraan, $validated, $latestMileage, $request, &$fotoPath): void {
-                $fotoPath = app(CloudinaryService::class)->upload($request->file('foto_bukti_odometer'), 'bukti_odometer');
+            DB::transaction(function () use (
+                $kendaraan,
+                $validated,
+                $validatedComponents,
+                $currentKm,
+                $usesRoutineTemplate,
+                $komponenService,
+                $request,
+                $fotoFolder,
+                &$fotoPath,
+            ): void {
+                $kendaraan = Kendaraan::query()
+                    ->lockForUpdate()
+                    ->findOrFail($kendaraan->id);
+                $currentKm = (int) ($kendaraan->kilometer_terakhir ?? 0);
+
+                $fotoPath = app(CloudinaryService::class)->upload($request->file('foto_bukti_odometer'), $fotoFolder);
 
                 $pengajuan = PengajuanServis::create([
                     'id_kendaraan' => $kendaraan->id,
                     'id_pengaju' => $request->user()->id,
                     'jenis_pengajuan' => $validated['jenis_pengajuan'],
-                    'deskripsi_keluhan' => $validated['deskripsi_keluhan'],
+                    'deskripsi_keluhan' => $validated['deskripsi_keluhan']
+                        ?? 'Pengajuan darurat tanpa keterangan tambahan.',
                     'estimasi_biaya' => $validated['estimasi_biaya'] ?? null,
-                    'kilometer_pengajuan' => $latestMileage?->kilometer_akhir ?? $kendaraan->kilometer_terakhir,
+                    'kilometer_pengajuan' => $currentKm,
                     'foto_bukti_odometer' => $fotoPath,
                     'status_persetujuan' => 'MENUNGGU',
                 ]);
 
-                if (! empty($validated['komponen'])) {
-                    foreach ($validated['komponen'] as $item) {
+                if ($usesRoutineTemplate) {
+                    $komponenService->applyRecommendedTemplateToKendaraan($kendaraan);
+
+                    $dueComponents = collect($komponenService->getKomponenKendaraan($kendaraan, $currentKm)['komponen'])
+                        ->filter(fn (array $item): bool => $item['is_rekomendasi'])
+                        ->values();
+
+                    foreach ($dueComponents as $index => $recommendation) {
+                        $vehicleComponent = $komponenService->createKomponenKendaraanFromTemplate(
+                            $kendaraan,
+                            (int) $recommendation['id_template_komponen'],
+                            $currentKm,
+                        );
+
                         PengajuanKomponen::create([
                             'id_pengajuan' => $pengajuan->id,
-                            'id_komponen_kendaraan' => $item['id_komponen_kendaraan'],
+                            'id_komponen_kendaraan' => $vehicleComponent->id,
+                            'jenis_aksi' => $recommendation['aksi_rekomendasi'],
+                            'catatan' => $validatedComponents['komponen'][$index]['catatan'] ?? null,
+                        ]);
+                    }
+                } else {
+                    foreach ($validatedComponents['komponen'] ?? [] as $item) {
+                        $vehicleComponent = KomponenKendaraan::query()
+                            ->where('id_kendaraan', $kendaraan->id)
+                            ->findOrFail($item['id_komponen_kendaraan']);
+
+                        PengajuanKomponen::create([
+                            'id_pengajuan' => $pengajuan->id,
+                            'id_komponen_kendaraan' => $vehicleComponent->id,
                             'jenis_aksi' => $item['jenis_aksi'],
                             'catatan' => $item['catatan'] ?? null,
                         ]);
@@ -165,8 +255,12 @@ class MaintenanceController extends Controller
             throw $exception;
         }
 
+        $message = $validated['jenis_pengajuan'] === 'DARURAT'
+            ? 'Pengajuan darurat beserta foto kerusakan dan estimasi biaya berhasil diajukan.'
+            : 'Pengajuan servis rutin beserta komponen dan foto odometer berhasil diajukan.';
+
         return redirect()->route('maintenance.index', ['tab' => 'pengajuan'])
-            ->with('success', 'Pengajuan maintenance beserta foto bukti odometer berhasil diajukan dan sedang menunggu persetujuan Admin.');
+            ->with('success', $message.' Pengajuan sedang menunggu persetujuan Admin.');
     }
 
     public function show(Request $request, PengajuanServis $pengajuan): View
@@ -223,5 +317,32 @@ class MaintenanceController extends Controller
         ]);
 
         return back()->with('success', 'Pengajuan telah ditolak.');
+    }
+
+    public function cancel(Request $request, PengajuanServis $pengajuan): RedirectResponse
+    {
+        abort_if($request->user()->isAdmin(), 403);
+
+        $wasCancelled = DB::transaction(function () use ($request, $pengajuan): bool {
+            $ownedRequest = PengajuanServis::query()
+                ->where('id', $pengajuan->id)
+                ->where('id_pengaju', $request->user()->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (! in_array($ownedRequest->status_persetujuan, ['MENUNGGU', 'DITOLAK'], true)) {
+                return false;
+            }
+
+            $ownedRequest->update(['status_persetujuan' => 'DIBATALKAN']);
+
+            return true;
+        });
+
+        if (! $wasCancelled) {
+            return back()->with('error', 'Pengajuan hanya dapat dibatalkan jika statusnya Menunggu atau Ditolak.');
+        }
+
+        return back()->with('success', 'Pengajuan maintenance berhasil dibatalkan.');
     }
 }

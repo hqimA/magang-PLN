@@ -146,19 +146,19 @@
                                         </div>
                                         <div>
                                             <x-input-label for="kilometer_awal" :value="__('Kilometer Awal')" />
-                                            <x-text-input id="kilometer_awal" class="block mt-1 w-full" type="number" min="0" name="kilometer_awal" :value="old('kilometer_awal', $selected->kilometer_terakhir)" required />
-                                            <x-input-error :messages="$errors->get('kilometer_awal')" class="mt-2" />
+                                            <x-text-input id="kilometer_awal" class="block mt-1 w-full bg-gray-50" type="number" min="0" name="kilometer_awal" :value="$selected->kilometer_terakhir" readonly />
+                                            <p class="mt-1 text-xs text-slate-500">Otomatis mengikuti kilometer terakhir kendaraan dan tidak dapat diedit.</p>
                                         </div>
                                         <div>
                                             <x-input-label for="kilometer_akhir" :value="__('Kilometer Akhir')" />
-                                            <x-text-input id="kilometer_akhir" class="block mt-1 w-full" type="number" min="0" name="kilometer_akhir" :value="old('kilometer_akhir')" required />
+                                            <x-text-input id="kilometer_akhir" class="block mt-1 w-full" type="number" min="{{ $selected->kilometer_terakhir }}" step="1" name="kilometer_akhir" :value="old('kilometer_akhir')" required />
                                             <x-input-error :messages="$errors->get('kilometer_akhir')" class="mt-2" />
                                         </div>
                                         <div class="md:col-span-2">
                                             <x-input-label for="foto_bukti" :value="__('Foto Bukti Odometer')" />
                                             <input id="foto_bukti" name="foto_bukti" type="file" accept="image/jpeg,image/png,image/webp" required
                                                    class="mt-1 block w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-600 shadow-sm transition file:mr-4 file:border-0 file:bg-indigo-50 file:px-4 file:py-3 file:text-sm file:font-semibold file:text-indigo-700 hover:border-indigo-300 hover:file:bg-indigo-100" />
-                                            <p class="mt-2 text-xs text-slate-500">Format JPG, PNG, atau WEBP. Ukuran maksimal 5 MB.</p>
+                                            <p class="mt-2 text-xs text-slate-500">Format JPG, PNG, atau WEBP. Ukuran maksimal 10 MB.</p>
                                             <x-input-error :messages="$errors->get('foto_bukti')" class="mt-2" />
                                         </div>
                                         <div class="md:col-span-2">

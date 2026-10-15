@@ -7,6 +7,7 @@ use App\Models\Kendaraan;
 use App\Models\TemplateJadwalServis;
 use App\Models\User;
 use App\Services\CloudinaryService;
+use App\Services\KomponenServisService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -58,7 +59,7 @@ class KendaraanController extends Controller
         return view('kendaraan.create', compact('pengelolas'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, KomponenServisService $komponenService)
     {
         $user = $request->user();
 
@@ -87,7 +88,10 @@ class KendaraanController extends Controller
         }
 
         try {
-            Kendaraan::create($validated);
+            DB::transaction(function () use ($validated, $komponenService): void {
+                $kendaraan = Kendaraan::create($validated);
+                $komponenService->applyRecommendedTemplateToKendaraan($kendaraan);
+            });
         } catch (Throwable $exception) {
             app(CloudinaryService::class)->deleteSafely($validated['foto_kendaraan'] ?? null);
 
@@ -97,17 +101,27 @@ class KendaraanController extends Controller
         return redirect()->route('kendaraan.index')->with('success', 'Kendaraan berhasil ditambahkan.');
     }
 
-    public function show(Request $request, string $id)
+    public function show(Request $request, string $id, KomponenServisService $komponenService)
     {
         $user = $request->user();
-        $kendaraan = Kendaraan::with([
-            'pengelola',
-            'template',
-            'komponen' => fn ($q) => $q->orderBy('nomor_urut'),
-            'mileageTerbaru',
-        ])->findOrFail($id);
+        $kendaraan = Kendaraan::findOrFail($id);
 
         $this->authorizeKendaraan($user, $kendaraan);
+
+        DB::transaction(function () use ($kendaraan, $komponenService): void {
+            $kendaraan = Kendaraan::query()
+                ->lockForUpdate()
+                ->findOrFail($kendaraan->id);
+
+            $komponenService->applyRecommendedTemplateToKendaraan($kendaraan);
+        });
+
+        $kendaraan->load([
+            'pengelola',
+            'template',
+            'komponen' => fn ($query) => $query->orderBy('nomor_urut'),
+            'mileageTerbaru',
+        ]);
 
         $rekomendasiTemplate = $kendaraan->templateRekomendasi();
         $allTemplates = TemplateJadwalServis::where('is_aktif', true)->orderBy('nama')->get();
@@ -132,7 +146,7 @@ class KendaraanController extends Controller
         return view('kendaraan.edit', compact('kendaraan', 'pengelolas'));
     }
 
-    public function update(Request $request, string $id)
+    public function update(Request $request, string $id, KomponenServisService $komponenService)
     {
         $user = $request->user();
         $kendaraan = Kendaraan::findOrFail($id);
@@ -146,7 +160,6 @@ class KendaraanController extends Controller
             'transmisi' => 'required|in:MANUAL,OTOMATIS',
             'jenis_bbm' => 'required|in:BENSIN,SOLAR,DIESEL,LISTRIK',
             'kategori_penggunaan' => 'required|in:PEJABAT,TEKNISI,ANGKUT_BARANG,MOTOR_OPERASIONAL',
-            'kilometer_terakhir' => 'required|integer',
             'tanggal_pembelian' => 'required|date',
             ...$this->documentExpiryDateRules($request),
             'status_perawatan' => 'required|in:BAIK,PERLU_SERVIS,SEDANG_SERVIS,RUSAK',
@@ -166,8 +179,17 @@ class KendaraanController extends Controller
             $validated['id_pengelola'] = $kendaraan->id_pengelola;
         }
 
+        $specificationsChanged = $kendaraan->jenis_bbm !== $validated['jenis_bbm']
+            || $kendaraan->transmisi !== $validated['transmisi'];
+
         try {
-            $kendaraan->update($validated);
+            DB::transaction(function () use ($kendaraan, $validated, $specificationsChanged, $komponenService): void {
+                $kendaraan->update($validated);
+
+                if ($specificationsChanged) {
+                    $komponenService->applyRecommendedTemplateToKendaraan($kendaraan, true);
+                }
+            });
         } catch (Throwable $exception) {
             app(CloudinaryService::class)->deleteSafely($uploadedUrl);
 

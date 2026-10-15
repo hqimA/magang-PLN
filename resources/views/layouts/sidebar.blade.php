@@ -119,7 +119,7 @@
             <x-slot name="trigger">
                 <button type="button" class="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-200 transition duration-150 ease-in-out hover:bg-white/5 hover:text-white">
                     <i class="hgi hgi-stroke hgi-user-circle-02 h-5 w-5 shrink-0"></i>
-                    <span class="flex-1 text-start">{{ auth()->user()?->isAdmin() ? __('Admin') : __('Pengelola Kendaraan') }}</span>
+                    <span class="flex-1 text-start">{{ auth()->user()?->name }}</span>
                     <i class="hgi hgi-stroke hgi-arrow-down-01 h-4 w-4 shrink-0"></i>
                 </button>
             </x-slot>
