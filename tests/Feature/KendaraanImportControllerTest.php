@@ -186,10 +186,38 @@ class KendaraanImportControllerTest extends TestCase
             ->actingAs($admin)
             ->post(route('kendaraan.import'), ['file' => $file])
             ->assertRedirect(route('kendaraan.index'))
-            ->assertSessionHasErrors('file');
+            ->assertSessionHasErrors([
+                'file' => 'Baris 2: Foto gagal diunduh: Tautan tidak berisi gambar JPG, PNG, atau WebP yang valid. Gunakan URL HTTPS langsung ke JPG, PNG, atau WebP yang dapat diakses publik, bukan tautan berbagi atau halaman preview.',
+            ]);
 
         $this->assertDatabaseCount('kendaraan', 0);
         $this->assertSame([], $this->cloudinaryFake()->uploadedUrls);
+    }
+
+    public function test_import_reports_cloudinary_upload_failures_separately_from_photo_download_failures(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $row = $this->vehicleRow('B 1246 PLN');
+        $row[10] = 'https://8.8.8.8/vehicle.png';
+        $this->useImageResponses([new Response(200, ['Content-Type' => 'image/png'], $this->validPng())]);
+        $this->app->instance(CloudinaryService::class, new class extends FakeCloudinaryService
+        {
+            public function upload(UploadedFile $file, string $folder): string
+            {
+                throw new \RuntimeException('Cloudinary is unavailable.');
+            }
+        });
+        $file = $this->createImportFile([$row]);
+
+        $this->from(route('kendaraan.index'))
+            ->actingAs($admin)
+            ->post(route('kendaraan.import'), ['file' => $file])
+            ->assertRedirect(route('kendaraan.index'))
+            ->assertSessionHasErrors([
+                'file' => 'Baris 2: Foto berhasil diunduh, tetapi gagal diunggah ke Cloudinary. Minta admin memeriksa konfigurasi atau layanan Cloudinary.',
+            ]);
+
+        $this->assertDatabaseCount('kendaraan', 0);
     }
 
     public function test_import_rejects_remote_images_larger_than_ten_megabytes(): void

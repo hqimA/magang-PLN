@@ -19,6 +19,7 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Reader\Exception;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use RuntimeException;
 use Throwable;
 
 class KendaraanImport
@@ -160,35 +161,51 @@ class KendaraanImport
                     if ($imageUrl !== null && $imageUrl !== '') {
                         try {
                             $localPath = $this->imageDownloader->download($imageUrl);
+                        } catch (RuntimeException $exception) {
+                            report($exception);
 
-                            try {
-                                $uploadedUrl = $this->cloudinary->upload(
-                                    new UploadedFile(
-                                        $localPath,
-                                        'kendaraan.'.$this->imageExtension($localPath),
-                                        mime_content_type($localPath) ?: null,
-                                        UPLOAD_ERR_OK,
-                                        true,
-                                    ),
-                                    'kendaraan',
-                                );
-                            } finally {
-                                if (is_file($localPath)) {
-                                    unlink($localPath);
-                                }
-                            }
-
-                            $uploadedUrls[] = $uploadedUrl;
-                            $row['data']['foto_kendaraan'] = $uploadedUrl;
+                            throw ValidationException::withMessages([
+                                'file' => [
+                                    "Baris {$row['baris']}: Foto gagal diunduh: {$exception->getMessage()} Gunakan URL HTTPS langsung ke JPG, PNG, atau WebP yang dapat diakses publik, bukan tautan berbagi atau halaman preview.",
+                                ],
+                            ]);
                         } catch (Throwable $exception) {
                             report($exception);
 
                             throw ValidationException::withMessages([
                                 'file' => [
-                                    "Baris {$row['baris']}: URL Foto Kendaraan tidak dapat diunduh sebagai gambar publik yang valid atau gagal diunggah ke Cloudinary.",
+                                    "Baris {$row['baris']}: Server gagal mengunduh foto. Pastikan URL HTTPS langsung ke gambar dapat diakses publik.",
                                 ],
                             ]);
                         }
+
+                        try {
+                            $uploadedUrl = $this->cloudinary->upload(
+                                new UploadedFile(
+                                    $localPath,
+                                    'kendaraan.'.$this->imageExtension($localPath),
+                                    mime_content_type($localPath) ?: null,
+                                    UPLOAD_ERR_OK,
+                                    true,
+                                ),
+                                'kendaraan',
+                            );
+                        } catch (Throwable $exception) {
+                            report($exception);
+
+                            throw ValidationException::withMessages([
+                                'file' => [
+                                    "Baris {$row['baris']}: Foto berhasil diunduh, tetapi gagal diunggah ke Cloudinary. Minta admin memeriksa konfigurasi atau layanan Cloudinary.",
+                                ],
+                            ]);
+                        } finally {
+                            if (is_file($localPath)) {
+                                unlink($localPath);
+                            }
+                        }
+
+                        $uploadedUrls[] = $uploadedUrl;
+                        $row['data']['foto_kendaraan'] = $uploadedUrl;
                     } else {
                         $row['data']['foto_kendaraan'] = null;
                     }
@@ -270,7 +287,7 @@ class KendaraanImport
             'image/jpeg' => 'jpg',
             'image/png' => 'png',
             'image/webp' => 'webp',
-            default => throw new \RuntimeException('Format foto kendaraan tidak didukung.'),
+            default => throw new RuntimeException('Format foto kendaraan tidak didukung.'),
         };
     }
 
