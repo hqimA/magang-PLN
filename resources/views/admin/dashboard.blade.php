@@ -221,7 +221,7 @@
                     <h3 id="vehicle-categories-heading" class="mb-4 text-lg font-semibold text-gray-900">
                         {{ __('Kendaraan per Kategori') }}
                     </h3>
-                    <div class="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                    <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
                         <table class="min-w-full divide-y divide-gray-200 text-sm">
                             <thead class="bg-gray-50 text-left text-gray-600">
                                 <tr>
@@ -251,7 +251,7 @@
                     <h3 id="fuel-types-heading" class="mb-4 text-lg font-semibold text-gray-900">
                         {{ __('Tipe Bahan Bakar') }}
                     </h3>
-                    <div class="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                    <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
                         <table class="min-w-full divide-y divide-gray-200 text-sm">
                             <thead class="bg-gray-50 text-left text-gray-600">
                                 <tr>

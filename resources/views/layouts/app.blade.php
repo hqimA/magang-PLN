@@ -18,13 +18,13 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="app-shell font-sans antialiased text-slate-900">
-        <div class="min-h-screen">
+        <div x-data class="min-h-screen">
             @include('layouts.sidebar')
 
-            <div class="lg:ps-64">
+            <div class="min-w-0 lg:ps-64">
                 <!-- Mobile Top Bar -->
                 <div class="app-header sticky top-0 z-20 flex h-16 items-center gap-3 border-b px-4 backdrop-blur-md lg:hidden">
-                    <button type="button" @click="$store.sidebar.toggle()" class="inline-flex items-center justify-center rounded-xl p-2 text-sky-700 transition duration-150 ease-in-out hover:bg-sky-50 hover:text-sky-900 focus:outline-none focus:ring-2 focus:ring-sky-200">
+                    <button type="button" @click="$store.sidebar.toggle()" aria-controls="app-sidebar" aria-expanded="false" :aria-expanded="$store.sidebar.open.toString()" class="inline-flex items-center justify-center rounded-xl p-2 text-sky-700 transition duration-150 ease-in-out hover:bg-sky-50 hover:text-sky-900 focus:outline-none focus:ring-2 focus:ring-sky-200">
                         <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                             <path x-show="! $store.sidebar.open" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                             <path x-show="$store.sidebar.open" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />

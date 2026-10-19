@@ -9,9 +9,10 @@
 @endphp
 
 <aside
+    id="app-sidebar"
     aria-label="Sidebar"
-    x-data
-    class="app-sidebar fixed inset-y-0 start-0 z-40 flex w-64 shrink-0 flex-col border-e bg-gradient-to-b from-white to-sky-50 text-slate-700 shadow-xl backdrop-blur-xl transition-transform duration-200 ease-in-out lg:translate-x-0"
+    @keydown.escape.window="$store.sidebar.close()"
+    class="app-sidebar pointer-events-auto fixed inset-y-0 start-0 z-[60] flex w-[min(18rem,calc(100vw_-_3rem))] shrink-0 flex-col border-e bg-gradient-to-b from-white to-sky-50 text-slate-700 shadow-xl backdrop-blur-xl transition-transform duration-200 ease-in-out lg:w-64 lg:translate-x-0"
     :class="$store.sidebar.open ? 'translate-x-0' : '-translate-x-full'"
 >
     <div class="flex h-16 shrink-0 items-center justify-between px-6">
@@ -32,7 +33,7 @@
 
     <nav
         @click="if ($event.target.closest('a')) $store.sidebar.close()"
-        class="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pt-2"
+        class="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pt-2"
     >
         <a
             href="{{ route('dashboard') }}"
@@ -146,4 +147,4 @@
     </div>
 </aside>
 
-<div x-show="$store.sidebar.open" @click="$store.sidebar.close()" x-transition.opacity.duration.200ms class="fixed inset-0 z-20 bg-sky-950/35 backdrop-blur-[2px] lg:hidden" style="display: none;"></div>
+<div x-show="$store.sidebar.open" @click="$store.sidebar.close()" x-transition.opacity.duration.200ms aria-hidden="true" class="pointer-events-auto fixed inset-0 z-50 bg-sky-950/35 backdrop-blur-[2px] lg:hidden" style="display: none;"></div>
