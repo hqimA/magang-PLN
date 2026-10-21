@@ -1,4 +1,4 @@
-<x-app-layout>
+www<x-app-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
@@ -18,13 +18,27 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
                     <h3 class="text-base font-semibold text-gray-700 mb-4">Informasi Kendaraan</h3>
-                    <div class="flex items-start gap-5">
-                        @if($riwayatServis->kendaraan->foto_kendaraan)
-                            <img src="{{ \App\Services\CloudinaryService::url($riwayatServis->kendaraan->foto_kendaraan, 'w_800,c_limit,f_auto,q_auto') }}"
-                                 alt="Foto Kendaraan"
-                                 class="h-24 w-36 object-cover rounded-lg border border-gray-200 shrink-0" />
+                    <div class="flex flex-col sm:flex-row items-start gap-6">
+                        @php $fotoKendaraanPath = $riwayatServis->kendaraan->fotoCover()?->path; @endphp
+                        @if($fotoKendaraanPath)
+                            <div
+                                onclick="openImagePreview('{{ \App\Services\ImageStorageService::url($fotoKendaraanPath) }}', 'Foto {{ $riwayatServis->kendaraan->merk_tipe }} ({{ $riwayatServis->kendaraan->plat_nomor }})')"
+                                class="group relative w-full sm:w-60 h-44 rounded-xl overflow-hidden border border-gray-200 bg-gray-50 shadow-sm cursor-pointer shrink-0 transition hover:shadow-md hover:border-indigo-300"
+                            >
+                                <img src="{{ \App\Services\ImageStorageService::url($fotoKendaraanPath, 'w_800,c_limit,f_auto,q_auto') }}"
+                                     alt="Foto Kendaraan"
+                                     class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                                <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <span class="bg-black/60 text-white text-xs px-2.5 py-1.5 rounded-full flex items-center gap-1.5 backdrop-blur-sm shadow">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+                                        </svg>
+                                        Perbesar
+                                    </span>
+                                </div>
+                            </div>
                         @else
-                            <div class="h-24 w-36 flex items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 shrink-0">
+                            <div class="w-full sm:w-60 h-44 flex items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 shrink-0">
                                 <svg class="h-10 w-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
                                 </svg>
@@ -140,7 +154,7 @@
                     <h3 class="text-base font-semibold text-gray-700 mb-4">Foto / Nota Servis</h3>
                     @if($riwayatServis->foto_nota)
                         @if(str_ends_with(strtolower($riwayatServis->foto_nota), '.pdf'))
-                            <a href="{{ \App\Services\CloudinaryService::url($riwayatServis->foto_nota) }}" target="_blank"
+                            <a href="{{ \App\Services\ImageStorageService::url($riwayatServis->foto_nota) }}" target="_blank"
                                class="inline-flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200 rounded-md text-sm font-medium text-red-700 hover:bg-red-100 transition">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
@@ -148,8 +162,8 @@
                                 Lihat Nota PDF
                             </a>
                         @else
-                            <a href="{{ \App\Services\CloudinaryService::url($riwayatServis->foto_nota) }}" target="_blank">
-                                <img src="{{ \App\Services\CloudinaryService::url($riwayatServis->foto_nota, 'w_800,c_limit,f_auto,q_auto') }}"
+                            <a href="{{ \App\Services\ImageStorageService::url($riwayatServis->foto_nota) }}" target="_blank">
+                                <img src="{{ \App\Services\ImageStorageService::url($riwayatServis->foto_nota, 'w_800,c_limit,f_auto,q_auto') }}"
                                      alt="Foto Nota Servis"
                                      class="max-h-80 rounded-lg border border-gray-200 object-contain" />
                             </a>

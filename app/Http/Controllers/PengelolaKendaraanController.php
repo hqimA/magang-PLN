@@ -51,7 +51,7 @@ class PengelolaKendaraanController extends Controller
 
                 $query->visibleTo($user);
             })
-            ->with(['pengelola', 'riwayatServisTerbaru'])
+            ->with(['pengelola', 'riwayatServisTerbaru', 'fotos'])
             ->orderBy('plat_nomor')
             ->get();
 

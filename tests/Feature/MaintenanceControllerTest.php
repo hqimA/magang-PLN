@@ -10,10 +10,10 @@ use App\Models\TemplateJadwalDetail;
 use App\Models\TemplateJadwalServis;
 use App\Models\TemplateKomponen;
 use App\Models\User;
-use App\Services\CloudinaryService;
+use App\Services\ImageStorageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Tests\Support\Fakes\FakeCloudinaryService;
+use Tests\Support\Fakes\FakeImageStorageService;
 use Tests\TestCase;
 
 class MaintenanceControllerTest extends TestCase
@@ -24,7 +24,7 @@ class MaintenanceControllerTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
-        $this->app->instance(CloudinaryService::class, new FakeCloudinaryService);
+        $this->app->instance(ImageStorageService::class, new FakeImageStorageService);
     }
 
     public function test_rutin_merekomendasikan_aksi_template_terakhir_sejak_servis_terakhir(): void
@@ -280,7 +280,7 @@ class MaintenanceControllerTest extends TestCase
             'deskripsi_keluhan' => 'Pengajuan darurat tanpa keterangan tambahan.',
         ]);
         $this->assertStringStartsWith(
-            'https://res.cloudinary.com/test/image/upload/v123/bukti_kerusakan/',
+            'bukti_kerusakan/fake-',
             $pengajuan->foto_bukti_odometer,
         );
     }

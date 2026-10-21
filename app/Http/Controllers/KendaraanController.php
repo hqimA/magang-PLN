@@ -7,7 +7,7 @@ use App\Enums\UnitPln;
 use App\Models\Kendaraan;
 use App\Models\TemplateJadwalServis;
 use App\Models\User;
-use App\Services\CloudinaryService;
+use App\Services\ImageStorageService;
 use App\Services\KomponenServisService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
@@ -31,7 +31,7 @@ class KendaraanController extends Controller
 
         $kendaraans = Kendaraan::query()
             ->visibleTo($user)
-            ->with('pengelola')
+            ->with(['pengelola', 'fotos'])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('plat_nomor', 'like', "%{$search}%")
@@ -90,7 +90,6 @@ class KendaraanController extends Controller
                     ->where('peran', 'PENGELOLA')
                     ->where('unit_pln', $request->input('unit_pln')),
             ],
-            'foto_kendaraan' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
         ]);
 
         $this->validateManagerUnit($validated);
@@ -101,18 +100,12 @@ class KendaraanController extends Controller
             $validated['id_pengelola'] = $user->id;
         }
 
-        if ($request->hasFile('foto_kendaraan')) {
-            $validated['foto_kendaraan'] = app(CloudinaryService::class)->upload($request->file('foto_kendaraan'), 'kendaraan');
-        }
-
         try {
             DB::transaction(function () use ($validated, $komponenService): void {
                 $kendaraan = Kendaraan::create($validated);
                 $komponenService->applyRecommendedTemplateToKendaraan($kendaraan);
             });
         } catch (Throwable $exception) {
-            app(CloudinaryService::class)->deleteSafely($validated['foto_kendaraan'] ?? null);
-
             throw $exception;
         }
 
@@ -135,6 +128,7 @@ class KendaraanController extends Controller
         });
 
         $kendaraan->load([
+            'fotos',
             'pengelola',
             'template',
             'komponen' => fn ($query) => $query->orderBy('nomor_urut'),
@@ -162,6 +156,7 @@ class KendaraanController extends Controller
             : User::whereKey($user->id)->get();
 
         $unitPln = UnitPln::cases();
+        $kendaraan->load('fotos');
 
         return view('kendaraan.edit', compact('kendaraan', 'pengelolas', 'unitPln'));
     }
@@ -190,18 +185,9 @@ class KendaraanController extends Controller
                     ->where('peran', 'PENGELOLA')
                     ->where('unit_pln', $request->input('unit_pln')),
             ],
-            'foto_kendaraan' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
         ]);
 
         $this->validateManagerUnit($validated);
-
-        $uploadedUrl = null;
-
-        if ($request->hasFile('foto_kendaraan')) {
-            $uploadedUrl = app(CloudinaryService::class)->upload($request->file('foto_kendaraan'), 'kendaraan');
-            $validated['foto_kendaraan'] = $uploadedUrl;
-        }
-
         // Pengelola tidak dapat memindahkan kendaraan ke pengelola lain.
         if (! $user->isAdmin()) {
             $validated['id_pengelola'] = $kendaraan->id_pengelola;
@@ -219,8 +205,6 @@ class KendaraanController extends Controller
                 }
             });
         } catch (Throwable $exception) {
-            app(CloudinaryService::class)->deleteSafely($uploadedUrl);
-
             throw $exception;
         }
 
@@ -234,7 +218,14 @@ class KendaraanController extends Controller
 
         $kendaraan = Kendaraan::findOrFail($id);
 
+        // Kumpulkan path foto sebelum delete agar bisa dihapus dari storage.
+        $fotoPaths = $kendaraan->fotos()->pluck('path')->all();
+
         $kendaraan->delete();
+
+        foreach ($fotoPaths as $path) {
+            app(ImageStorageService::class)->deleteSafely($path);
+        }
 
         return redirect()->route('kendaraan.index')->with('success', 'Kendaraan berhasil dihapus.');
     }
@@ -249,19 +240,26 @@ class KendaraanController extends Controller
         ]);
         $vehicleIds = array_map('intval', $validated['kendaraan_ids']);
         $deletedCount = 0;
+        $photosToDelete = [];
 
-        DB::transaction(function () use ($vehicleIds, &$deletedCount): void {
+        DB::transaction(function () use ($vehicleIds, &$deletedCount, &$photosToDelete): void {
             Kendaraan::query()
                 ->whereKey($vehicleIds)
                 ->orderBy('id')
                 ->lockForUpdate()
-                ->chunkById(100, function (Collection $kendaraans) use (&$deletedCount): void {
+                ->chunkById(100, function (Collection $kendaraans) use (&$deletedCount, &$photosToDelete): void {
                     foreach ($kendaraans as $kendaraan) {
+                        $fotoPaths = $kendaraan->fotos()->pluck('path')->all();
+                        array_push($photosToDelete, ...$fotoPaths);
                         $kendaraan->delete();
                         $deletedCount++;
                     }
                 });
         });
+
+        foreach ($photosToDelete as $photo) {
+            app(ImageStorageService::class)->deleteSafely($photo);
+        }
 
         return redirect()->route('kendaraan.index')->with(
             'success',

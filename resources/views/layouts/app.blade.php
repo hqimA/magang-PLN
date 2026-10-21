@@ -68,5 +68,8 @@
                 </main>
             </div>
         </div>
+
+        {{-- Global Image Fullscreen Lightbox --}}
+        <x-image-modal />
     </body>
 </html>

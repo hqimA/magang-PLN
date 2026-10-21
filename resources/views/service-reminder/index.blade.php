@@ -74,7 +74,7 @@
                                             <td class="px-4 py-3">
                                                 <div class="flex items-center">
                                                     @if($vehicle['foto'])
-                                                        <img src="{{ \App\Services\CloudinaryService::url($vehicle['foto'], 'w_150,h_150,c_fill,f_auto,q_auto') }}" class="h-10 w-14 object-cover rounded-md border border-gray-200 mr-3" />
+                                                        <img src="{{ \App\Services\ImageStorageService::url($vehicle['foto'], 'w_150,h_150,c_fill,f_auto,q_auto') }}" class="h-10 w-14 object-cover rounded-md border border-gray-200 mr-3" />
                                                     @else
                                                         <div class="h-10 w-14 flex items-center justify-center rounded-md border border-dashed border-gray-300 bg-gray-50 mr-3">
                                                             <svg class="h-5 w-5 text-gray-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">

@@ -161,10 +161,12 @@
                                             @endif
                                             <td class="px-4 py-3 text-sm text-gray-900">{{ $index + 1 }}</td>
                                             <td class="px-4 py-3">
-                                                @if($kendaraan->foto_kendaraan)
-                                                    <img src="{{ \App\Services\CloudinaryService::url($kendaraan->foto_kendaraan, 'w_150,h_150,c_fill,f_auto,q_auto') }}"
+                                                @php $coverFoto = $kendaraan->fotoCover(); @endphp
+                                                @if($coverFoto)
+                                                    <img src="{{ \App\Services\ImageStorageService::url($coverFoto->path) }}"
                                                          alt="Foto {{ $kendaraan->merk_tipe }}"
-                                                         class="h-14 w-20 object-cover rounded-md border border-gray-200" />
+                                                         onclick="openImagePreview('{{ \App\Services\ImageStorageService::url($coverFoto->path) }}', 'Foto {{ $kendaraan->merk_tipe }} ({{ $kendaraan->plat_nomor }})')"
+                                                         class="h-14 w-20 object-cover rounded-md border border-gray-200 cursor-pointer transition hover:scale-105 hover:shadow-sm" />
                                                 @else
                                                     <div class="h-14 w-20 flex items-center justify-center rounded-md border border-dashed border-gray-300 bg-gray-50">
                                                         <svg class="h-7 w-7 text-gray-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">

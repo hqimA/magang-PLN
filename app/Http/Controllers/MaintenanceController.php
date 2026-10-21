@@ -11,7 +11,7 @@ use App\Models\PengajuanKomponen;
 use App\Models\PengajuanServis;
 use App\Models\RiwayatServis;
 use App\Models\User;
-use App\Services\CloudinaryService;
+use App\Services\ImageStorageService;
 use App\Services\KomponenServisService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -351,24 +351,22 @@ class MaintenanceController extends Controller
             ? 'bukti_odometer'
             : 'bukti_kerusakan';
 
+        $fotoPath = app(ImageStorageService::class)->store($request->file('foto_bukti_odometer'), $fotoFolder);
+
         try {
             DB::transaction(function () use (
                 $kendaraan,
                 $validated,
                 $validatedComponents,
-                $currentKm,
                 $usesRoutineTemplate,
                 $komponenService,
                 $request,
-                $fotoFolder,
-                &$fotoPath,
+                $fotoPath,
             ): void {
                 $kendaraan = Kendaraan::query()
                     ->lockForUpdate()
                     ->findOrFail($kendaraan->id);
                 $currentKm = (int) ($kendaraan->kilometer_terakhir ?? 0);
-
-                $fotoPath = app(CloudinaryService::class)->upload($request->file('foto_bukti_odometer'), $fotoFolder);
 
                 $pengajuan = PengajuanServis::create([
                     'id_kendaraan' => $kendaraan->id,
@@ -439,9 +437,7 @@ class MaintenanceController extends Controller
                 }
             });
         } catch (Throwable $exception) {
-            if (is_string($fotoPath)) {
-                app(CloudinaryService::class)->deleteSafely($fotoPath);
-            }
+            app(ImageStorageService::class)->deleteSafely($fotoPath);
 
             throw $exception;
         }

@@ -9,7 +9,7 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
-                    <form method="POST" action="{{ route('kendaraan.update', $kendaraan->id) }}" enctype="multipart/form-data">
+                    <form method="POST" action="{{ route('kendaraan.update', $kendaraan->id) }}">
                         @csrf
                         @method('PUT')
                         
@@ -137,67 +137,124 @@
                             </div>
                         </div>
 
-                        {{-- Foto Kendaraan --}}
-                        <div class="mt-6">
-                            <x-input-label for="foto_kendaraan" :value="__('Foto Kendaraan')" />
-
-                            {{-- Tampilkan foto existing --}}
-                            @if($kendaraan->foto_kendaraan)
-                                <div class="mt-2 mb-3">
-                                    <p class="text-xs text-gray-500 mb-1">Foto saat ini:</p>
-                                    <img src="{{ \App\Services\CloudinaryService::url($kendaraan->foto_kendaraan, 'w_800,c_limit,f_auto,q_auto') }}"
-                                         alt="Foto {{ $kendaraan->merk_tipe }}"
-                                         class="h-40 w-auto rounded-md border border-gray-200 object-cover" />
-                                </div>
-                            @endif
-
-                            <div class="mt-1">
-                                <input
-                                    id="foto_kendaraan"
-                                    type="file"
-                                    name="foto_kendaraan"
-                                    accept="image/jpg,image/jpeg,image/png,image/webp"
-                                    class="block w-full text-sm text-gray-700 border border-gray-300 rounded-md shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 file:mr-4 file:py-2 file:px-4 file:rounded-l-md file:border-0 file:text-xs file:font-semibold file:uppercase file:tracking-widest file:bg-gray-800 file:text-white hover:file:bg-gray-700 transition"
-                                    onchange="previewFoto(this)"
-                                />
-                                <x-input-error :messages="$errors->get('foto_kendaraan')" class="mt-2" />
-                                <p class="mt-1 text-xs text-gray-500">
-                                    {{ $kendaraan->foto_kendaraan ? 'Unggah foto baru untuk mengganti yang lama. ' : '' }}Format: JPG, PNG, WebP. Maksimal 10 MB. (Opsional)
-                                </p>
-                            </div>
-                            <div id="preview-container" class="mt-3 hidden">
-                                <p class="text-xs text-gray-500 mb-1">Preview foto baru:</p>
-                                <img id="foto-preview" alt="Preview Foto" class="h-40 w-auto rounded-md border border-gray-200 object-cover" />
-                            </div>
-                        </div>
-
                         <div class="flex items-center justify-end mt-6">
                             <a href="{{ route('kendaraan.index') }}" class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150">
                                 Batal
                             </a>
                             <x-primary-button class="ml-4">
-                                {{ __('Simpan') }}
+                                {{ __('Simpan Perubahan') }}
                             </x-primary-button>
                         </div>
                     </form>
+                </div>
+            </div>
 
-                    <script>
-                        function previewFoto(input) {
-                            const container = document.getElementById('preview-container');
-                            const img = document.getElementById('foto-preview');
-                            if (input.files && input.files[0]) {
-                                const reader = new FileReader();
-                                reader.onload = (e) => {
-                                    img.src = e.target.result;
-                                    container.classList.remove('hidden');
-                                };
-                                reader.readAsDataURL(input.files[0]);
-                            } else {
-                                container.classList.add('hidden');
-                                img.removeAttribute('src');
-                            }
-                        }
-                    </script>
+            {{-- Galeri Foto Kendaraan (Card Terpisah) --}}
+            <div class="mt-6 bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 text-gray-900">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-800">{{ __('Foto Kendaraan') }}</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">Maksimal 5 foto. Foto pertama otomatis menjadi foto utama.</p>
+                        </div>
+                        <span class="text-xs font-medium text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
+                            {{ $kendaraan->fotos->count() }} / 5 foto
+                        </span>
+                    </div>
+
+                    {{-- Flash error dari foto controller --}}
+                    @if(session('error'))
+                        <div class="mb-3 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm">
+                            {{ session('error') }}
+                        </div>
+                    @endif
+
+                    {{-- Grid foto existing --}}
+                    @if($kendaraan->fotos->isNotEmpty())
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-4">
+                            @foreach($kendaraan->fotos as $foto)
+                                <div class="relative group rounded-lg overflow-hidden border-2 {{ $foto->is_utama ? 'border-indigo-500 shadow-sm' : 'border-gray-200' }} bg-gray-50">
+                                    <img src="{{ \App\Services\ImageStorageService::url($foto->path) }}"
+                                         alt="Foto kendaraan"
+                                         class="w-full h-28 object-cover" />
+
+                                    {{-- Badge utama --}}
+                                    @if($foto->is_utama)
+                                        <span class="absolute top-1 left-1 bg-indigo-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow">
+                                            UTAMA
+                                        </span>
+                                    @endif
+
+                                    {{-- Overlay aksi --}}
+                                    <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 p-2">
+                                        {{-- Perbesar foto --}}
+                                        <button type="button"
+                                                onclick="openImagePreview('{{ \App\Services\ImageStorageService::url($foto->path) }}', 'Foto Kendaraan')"
+                                                class="w-full text-[10px] font-semibold px-2 py-1 bg-white/20 hover:bg-white/30 text-white rounded transition whitespace-nowrap cursor-pointer">
+                                            🔍 Perbesar
+                                        </button>
+
+                                        {{-- Set sebagai utama (hanya jika bukan utama) --}}
+                                        @unless($foto->is_utama)
+                                            <form method="POST" action="{{ route('kendaraan.foto.set-utama', [$kendaraan->id, $foto->id]) }}">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit"
+                                                        class="w-full text-[10px] font-semibold px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition whitespace-nowrap">
+                                                    ★ Set Utama
+                                                </button>
+                                            </form>
+                                        @endunless
+
+                                        {{-- Hapus foto --}}
+                                        <form method="POST" action="{{ route('kendaraan.foto.destroy', [$kendaraan->id, $foto->id]) }}"
+                                              onsubmit="return confirm('Hapus foto ini?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit"
+                                                    class="w-full text-[10px] font-semibold px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition">
+                                                🗑 Hapus
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="text-sm text-gray-400 italic mb-4">Belum ada foto yang diunggah.</p>
+                    @endif
+
+                    {{-- Form upload foto baru --}}
+                    @if($kendaraan->fotos->count() < 5)
+                        <form method="POST" action="{{ route('kendaraan.foto.store', $kendaraan->id) }}" enctype="multipart/form-data" class="mt-2">
+                            @csrf
+                            <div class="flex flex-col sm:flex-row gap-3 items-start">
+                                <div class="flex-1">
+                                    <input
+                                        id="foto_kendaraan_upload"
+                                        type="file"
+                                        name="foto_kendaraan[]"
+                                        multiple
+                                        accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                                        class="block w-full text-sm text-gray-700 border border-gray-300 rounded-md shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 file:mr-4 file:py-2 file:px-4 file:rounded-l-md file:border-0 file:text-xs file:font-semibold file:uppercase file:tracking-widest file:bg-gray-800 file:text-white hover:file:bg-gray-700 transition"
+                                    />
+                                    <x-input-error :messages="$errors->get('foto_kendaraan')" class="mt-1" />
+                                    <x-input-error :messages="$errors->get('foto_kendaraan.*')" class="mt-1" />
+                                    <p class="mt-1 text-xs text-gray-500">
+                                        Upload hingga {{ 5 - $kendaraan->fotos->count() }} foto sekaligus. Format: JPG, PNG, WebP. Maks 10 MB per file.
+                                    </p>
+                                </div>
+                                <button type="submit"
+                                        class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 whitespace-nowrap">
+                                    + Unggah Foto
+                                </button>
+                            </div>
+                        </form>
+                    @else
+                        <p class="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                            Batas maksimal 5 foto sudah tercapai. Hapus foto yang ada untuk mengunggah yang baru.
+                        </p>
+                    @endif
                 </div>
             </div>
         </div>

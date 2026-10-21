@@ -1,4 +1,4 @@
-<x-app-layout>
+w<x-app-layout>
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -83,7 +83,39 @@
                 </div>
             </div>
 
-            {{-- 2. Banner Rekomendasi & Penerapan Template --}}
+            {{-- 2. Galeri Foto Kendaraan --}}
+            @if($kendaraan->fotos->isNotEmpty())
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-semibold text-gray-700">Galeri Foto ({{ $kendaraan->fotos->count() }})</h3>
+                        <span class="text-xs text-gray-400">Klik foto untuk melihat ukuran penuh</span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        @foreach($kendaraan->fotos as $foto)
+                            <div
+                                onclick="openImagePreview('{{ \App\Services\ImageStorageService::url($foto->path) }}', 'Foto {{ $kendaraan->merk_tipe }} ({{ $kendaraan->plat_nomor }})')"
+                                class="group relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50 shadow-sm cursor-pointer transition-all duration-200 hover:shadow-md hover:border-indigo-300"
+                            >
+                                <img src="{{ \App\Services\ImageStorageService::url($foto->path) }}"
+                                     alt="Foto {{ $kendaraan->merk_tipe }}"
+                                     class="w-full h-44 sm:h-52 object-cover transition-transform duration-300 group-hover:scale-105" />
+
+                                {{-- Hover Zoom Hint --}}
+                                <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <span class="bg-black/60 text-white text-xs px-2.5 py-1.5 rounded-full flex items-center gap-1.5 backdrop-blur-sm shadow">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+                                        </svg>
+                                        Perbesar
+                                    </span>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
+            {{-- 3. Banner Rekomendasi & Penerapan Template --}}
             <div class="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-6 shadow-sm">
                 <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
                     <div class="space-y-1">

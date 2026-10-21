@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Kendaraan;
 use App\Models\RiwayatServis;
-use App\Services\CloudinaryService;
+use App\Services\ImageStorageService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -94,9 +94,12 @@ class RiwayatServisController extends Controller
         ]);
 
         $path = null;
+        if ($request->hasFile('foto_nota')) {
+            $path = app(ImageStorageService::class)->store($request->file('foto_nota'), 'nota_servis');
+        }
 
         try {
-            DB::transaction(function () use ($request, $validated, &$path): void {
+            DB::transaction(function () use ($request, $validated, $path): void {
                 $kendaraan = Kendaraan::query()
                     ->lockForUpdate()
                     ->findOrFail($validated['id_kendaraan']);
@@ -107,10 +110,6 @@ class RiwayatServisController extends Controller
                 }
 
                 $kilometerServis = $kendaraan->kilometer_terakhir;
-
-                if ($request->hasFile('foto_nota')) {
-                    $path = app(CloudinaryService::class)->upload($request->file('foto_nota'), 'nota_servis');
-                }
 
                 $riwayatServis = RiwayatServis::query()->create([
                     'id_pengajuan' => $validated['id_pengajuan'] ?? null,
@@ -142,9 +141,7 @@ class RiwayatServisController extends Controller
                 $kendaraan->save();
             });
         } catch (Throwable $exception) {
-            if (is_string($path)) {
-                app(CloudinaryService::class)->deleteSafely($path);
-            }
+            app(ImageStorageService::class)->deleteSafely($path);
 
             throw $exception;
         }

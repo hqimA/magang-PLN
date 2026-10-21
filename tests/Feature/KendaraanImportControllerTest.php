@@ -9,7 +9,7 @@ use App\Models\TemplateJadwalDetail;
 use App\Models\TemplateJadwalServis;
 use App\Models\TemplateKomponen;
 use App\Models\User;
-use App\Services\CloudinaryService;
+use App\Services\ImageStorageService;
 use App\Services\RemoteImageDownloader;
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
@@ -21,7 +21,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use Tests\Support\Fakes\FakeCloudinaryService;
+use Tests\Support\Fakes\FakeImageStorageService;
 use Tests\TestCase;
 
 class KendaraanImportControllerTest extends TestCase
@@ -33,7 +33,7 @@ class KendaraanImportControllerTest extends TestCase
         parent::setUp();
 
         $this->withoutVite();
-        $this->app->instance(CloudinaryService::class, new FakeCloudinaryService);
+        $this->app->instance(ImageStorageService::class, new FakeImageStorageService);
     }
 
     public function test_admin_can_import_vehicles_without_assigning_a_manager(): void
@@ -147,12 +147,12 @@ class KendaraanImportControllerTest extends TestCase
             ->assertRedirect(route('kendaraan.index'));
 
         $kendaraan = Kendaraan::query()->where('plat_nomor', 'B 1235 PLN')->firstOrFail();
-        $this->assertNotNull($kendaraan->foto_kendaraan);
+        $this->assertNotNull($kendaraan->fotoUtama);
         $this->assertStringStartsWith(
-            'https://res.cloudinary.com/test/image/upload/v123/kendaraan/',
-            $kendaraan->foto_kendaraan,
+            'kendaraan/fake-',
+            $kendaraan->fotoUtama->path,
         );
-        $this->assertCount(1, $this->cloudinaryFake()->uploadedUrls);
+        $this->assertCount(1, $this->imageStorageFake()->storedFiles);
     }
 
     public function test_import_rejects_non_https_photo_urls_without_saving_vehicles(): void
@@ -169,7 +169,7 @@ class KendaraanImportControllerTest extends TestCase
             ->assertSessionHasErrors('file');
 
         $this->assertDatabaseCount('kendaraan', 0);
-        $this->assertSame([], $this->cloudinaryFake()->uploadedUrls);
+        $this->assertSame([], $this->imageStorageFake()->storedFiles);
     }
 
     public function test_import_rejects_embedded_vehicle_photos(): void
@@ -241,7 +241,7 @@ class KendaraanImportControllerTest extends TestCase
             ->assertSessionHasErrors('file');
 
         $this->assertDatabaseCount('kendaraan', 0);
-        $this->assertSame([], $this->cloudinaryFake()->uploadedUrls);
+        $this->assertSame([], $this->imageStorageFake()->storedFiles);
     }
 
     public function test_import_rejects_remote_responses_that_are_not_images(): void
@@ -261,7 +261,7 @@ class KendaraanImportControllerTest extends TestCase
             ]);
 
         $this->assertDatabaseCount('kendaraan', 0);
-        $this->assertSame([], $this->cloudinaryFake()->uploadedUrls);
+        $this->assertSame([], $this->imageStorageFake()->storedFiles);
     }
 
     public function test_import_reports_cloudinary_upload_failures_separately_from_photo_download_failures(): void
@@ -270,11 +270,11 @@ class KendaraanImportControllerTest extends TestCase
         $row = $this->vehicleRow('B 1246 PLN');
         $row[11] = 'https://8.8.8.8/vehicle.png';
         $this->useImageResponses([new Response(200, ['Content-Type' => 'image/png'], $this->validPng())]);
-        $this->app->instance(CloudinaryService::class, new class extends FakeCloudinaryService
+        $this->app->instance(ImageStorageService::class, new class extends FakeImageStorageService
         {
-            public function upload(UploadedFile $file, string $folder): string
+            public function storeFromPath(string $absolutePath, string $folder): string
             {
-                throw new \RuntimeException('Cloudinary is unavailable.');
+                throw new \RuntimeException('Storage is unavailable.');
             }
         });
         $file = $this->createImportFile([$row]);
@@ -284,7 +284,7 @@ class KendaraanImportControllerTest extends TestCase
             ->post(route('kendaraan.import'), ['file' => $file])
             ->assertRedirect(route('kendaraan.index'))
             ->assertSessionHasErrors([
-                'file' => 'Baris 2: Foto berhasil diunduh, tetapi gagal diunggah ke Cloudinary. Minta admin memeriksa konfigurasi atau layanan Cloudinary.',
+                'file' => 'Baris 2: Foto berhasil diunduh, tetapi gagal disimpan ke storage lokal.',
             ]);
 
         $this->assertDatabaseCount('kendaraan', 0);
@@ -307,7 +307,7 @@ class KendaraanImportControllerTest extends TestCase
             ->assertSessionHasErrors('file');
 
         $this->assertDatabaseCount('kendaraan', 0);
-        $this->assertSame([], $this->cloudinaryFake()->uploadedUrls);
+        $this->assertSame([], $this->imageStorageFake()->storedFiles);
     }
 
     public function test_import_deletes_uploaded_photos_when_a_later_photo_fails(): void
@@ -330,9 +330,9 @@ class KendaraanImportControllerTest extends TestCase
             ->assertSessionHasErrors('file');
 
         $this->assertDatabaseCount('kendaraan', 0);
-        $cloudinary = $this->cloudinaryFake();
-        $this->assertCount(1, $cloudinary->uploadedUrls);
-        $this->assertSame($cloudinary->uploadedUrls, $cloudinary->deletedUrls);
+        $storage = $this->imageStorageFake();
+        $this->assertCount(1, $storage->storedFiles);
+        $this->assertSame($storage->storedFiles, $storage->deletedPaths);
     }
 
     public function test_import_accepts_excel_date_cells_and_converts_them_to_vehicle_dates(): void
@@ -740,9 +740,9 @@ class KendaraanImportControllerTest extends TestCase
         );
     }
 
-    private function cloudinaryFake(): FakeCloudinaryService
+    private function imageStorageFake(): FakeImageStorageService
     {
-        return $this->app->make(CloudinaryService::class);
+        return $this->app->make(ImageStorageService::class);
     }
 
     private function validPng(): string

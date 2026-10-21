@@ -31,24 +31,12 @@ use Illuminate\Support\Carbon;
     'tanggal_kir_berlaku_sampai',
     'tanggal_pembelian',
     'status_perawatan',
-    'foto_kendaraan',
     'id_pengelola',
 ])]
 class Kendaraan extends Model
 {
-    use Concerns\HasCloudinaryImages;
-
     /** @use HasFactory<KendaraanFactory> */
     use HasFactory;
-
-    protected array $cloudinaryImages = ['foto_kendaraan'];
-
-    protected array $cloudinaryChildren = [
-        'laporan_kerusakan' => ['id_kendaraan', 'foto_bukti'],
-        'mileage' => ['id_kendaraan', 'foto_bukti'],
-        'pengajuan_servis' => ['id_kendaraan', 'foto_bukti_odometer'],
-        'riwayat_servis' => ['id_kendaraan', 'foto_nota'],
-    ];
 
     protected $table = 'kendaraan';
 
@@ -72,6 +60,37 @@ class Kendaraan extends Model
         }
 
         return $query->where('unit_pln', $user->unit_pln->value);
+    }
+
+    public function fotos(): HasMany
+    {
+        return $this->hasMany(KendaraanFoto::class, 'id_kendaraan')
+            ->orderByDesc('is_utama')
+            ->orderBy('urutan')
+            ->orderBy('id');
+    }
+
+    public function fotoUtama(): HasOne
+    {
+        return $this->hasOne(KendaraanFoto::class, 'id_kendaraan')->where('is_utama', true)->oldestOfMany('id');
+    }
+
+    /**
+     * Dapatkan foto cover (foto utama, atau foto urutan pertama sebagai fallback).
+     */
+    public function fotoCover(): ?KendaraanFoto
+    {
+        if ($this->relationLoaded('fotoUtama') && $this->fotoUtama) {
+            return $this->fotoUtama;
+        }
+
+        if ($this->relationLoaded('fotos')) {
+            return $this->fotos->firstWhere('is_utama', true) ?? $this->fotos->first();
+        }
+
+        return $this->fotoUtama ?? $this->fotos()->first();
+
+        return $this->fotoUtama ?? $this->fotos()->first();
     }
 
     public function template(): BelongsTo

@@ -5,10 +5,10 @@ namespace Tests\Feature;
 use App\Models\Kendaraan;
 use App\Models\RiwayatServis;
 use App\Models\User;
-use App\Services\CloudinaryService;
+use App\Services\ImageStorageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Tests\Support\Fakes\FakeCloudinaryService;
+use Tests\Support\Fakes\FakeImageStorageService;
 use Tests\TestCase;
 
 class RiwayatServisControllerTest extends TestCase
@@ -19,7 +19,7 @@ class RiwayatServisControllerTest extends TestCase
     {
         parent::setUp();
 
-        $this->app->instance(CloudinaryService::class, new FakeCloudinaryService);
+        $this->app->instance(ImageStorageService::class, new FakeImageStorageService);
     }
 
     public function test_guest_is_redirected_to_login_when_creating_service_history(): void
@@ -82,10 +82,10 @@ class RiwayatServisControllerTest extends TestCase
             'id_pembuat' => $user->id,
         ]);
         $this->assertStringStartsWith(
-            'https://res.cloudinary.com/test/image/upload/v123/nota_servis/',
+            'nota_servis/fake-',
             $riwayatServis->foto_nota,
         );
-        $this->assertTrue(CloudinaryService::isPdf($riwayatServis->foto_nota));
+        $this->assertTrue(ImageStorageService::isPdf($riwayatServis->foto_nota));
 
         $this->assertDatabaseHas('rincian_sparepart', [
             'id_riwayat_servis' => $riwayatServis->id,
