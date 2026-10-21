@@ -37,7 +37,7 @@ class PengelolaKendaraanController extends Controller
 
         $kendaraans = Kendaraan::query()
             ->where('id_pengelola', $currentPengelola->id)
-            ->with(['pengelola', 'riwayatServisTerbaru'])
+            ->with(['pengelola', 'riwayatServisTerbaru', 'fotos'])
             ->orderBy('plat_nomor')
             ->get();
 

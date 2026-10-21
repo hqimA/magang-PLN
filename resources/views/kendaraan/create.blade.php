@@ -1,4 +1,4 @@
-<x-app-layout>
+w<x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
             {{ __('Tambah Kendaraan') }}
@@ -123,24 +123,14 @@
                             </div>
                         </div>
 
-                        {{-- Foto Kendaraan --}}
-                        <div class="mt-6">
-                            <x-input-label for="foto_kendaraan" :value="__('Foto Kendaraan')" />
-                            <div class="mt-1">
-                                <input
-                                    id="foto_kendaraan"
-                                    type="file"
-                                    name="foto_kendaraan"
-                                    accept="image/jpg,image/jpeg,image/png,image/webp"
-                                    class="block w-full text-sm text-gray-700 border border-gray-300 rounded-md shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 file:mr-4 file:py-2 file:px-4 file:rounded-l-md file:border-0 file:text-xs file:font-semibold file:uppercase file:tracking-widest file:bg-gray-800 file:text-white hover:file:bg-gray-700 transition"
-                                    onchange="previewFoto(this)"
-                                />
-                                <x-input-error :messages="$errors->get('foto_kendaraan')" class="mt-2" />
-                                <p class="mt-1 text-xs text-gray-500">Format: JPG, PNG, WebP. Maksimal 2 MB. (Opsional)</p>
-                            </div>
-                            <div id="preview-container" class="mt-3 hidden">
-                                <p class="text-xs text-gray-500 mb-1">Preview:</p>
-                                <img id="foto-preview" alt="Preview Foto" class="h-40 w-auto rounded-md border border-gray-200 object-cover" />
+                        {{-- Info Galeri Foto --}}
+                        <div class="mt-6 rounded-lg border border-indigo-100 bg-indigo-50/50 p-4 text-xs text-indigo-700 flex items-start gap-3">
+                            <svg class="h-5 w-5 text-indigo-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <div>
+                                <p class="font-semibold text-indigo-900">Foto Kendaraan</p>
+                                <p class="mt-0.5 text-indigo-600">Setelah data kendaraan disimpan, Anda dapat mengunggah hingga 5 foto dan menentukan foto utama melalui halaman <strong>Edit Kendaraan</strong>.</p>
                             </div>
                         </div>
 
@@ -153,24 +143,6 @@
                             </x-primary-button>
                         </div>
                     </form>
-
-                    <script>
-                        function previewFoto(input) {
-                            const container = document.getElementById('preview-container');
-                            const img = document.getElementById('foto-preview');
-                            if (input.files && input.files[0]) {
-                                const reader = new FileReader();
-                                reader.onload = (e) => {
-                                    img.src = e.target.result;
-                                    container.classList.remove('hidden');
-                                };
-                                reader.readAsDataURL(input.files[0]);
-                            } else {
-                                container.classList.add('hidden');
-                                img.removeAttribute('src');
-                            }
-                        }
-                    </script>
                 </div>
             </div>
         </div>

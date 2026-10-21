@@ -10,10 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PengajuanServis extends Model
 {
-    use Concerns\HasCloudinaryImages;
     use HasFactory;
-
-    protected array $cloudinaryImages = ['foto_bukti_odometer'];
 
     protected $table = 'pengajuan_servis';
 
