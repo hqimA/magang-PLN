@@ -39,18 +39,27 @@
                         </p>
                     </div>
 
-                    <form method="GET" action="{{ route('laporan-pengeluaran.index') }}" class="grid gap-3 rounded-2xl border border-white/10 bg-white/[0.06] p-4 backdrop-blur sm:grid-cols-[minmax(0,1fr)_9rem_auto] sm:items-end">
-                        <div class="grid gap-1.5">
+                    <form method="GET" action="{{ route('laporan-pengeluaran.index') }}" class="grid w-full min-w-0 gap-3 rounded-2xl border border-white/10 bg-white/[0.06] p-4 backdrop-blur sm:grid-cols-[repeat(2,minmax(0,1fr))] lg:grid-cols-[minmax(0,1fr)_9rem_minmax(0,1fr)_auto] lg:items-end">
+                        <div class="grid min-w-0 gap-1.5">
                             <label for="bulan" class="text-xs font-medium text-slate-300">{{ __('Periode Bulan') }}</label>
-                            <select id="bulan" name="bulan" class="min-w-36 rounded-lg border-white/30 bg-white/10 text-sm text-white shadow-sm focus:border-white focus:ring-white">
+                            <select id="bulan" name="bulan" class="w-full min-w-0 max-w-36 rounded-lg border-white/30 bg-white/10 text-sm text-white shadow-sm focus:border-white focus:ring-white">
                                 @foreach ([1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'] as $nomorBulan => $namaBulan)
                                     <option value="{{ $nomorBulan }}" @selected($bulan === $nomorBulan)>{{ __($namaBulan) }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="grid gap-1.5">
+                        <div class="grid min-w-0 gap-1.5">
                             <label for="tahun" class="text-xs font-medium text-slate-300">{{ __('Tahun') }}</label>
-                            <input id="tahun" name="tahun" type="number" min="1000" max="9999" value="{{ $tahun }}" class="rounded-lg border-white/30 bg-white/10 text-sm text-white shadow-sm focus:border-white focus:ring-white">
+                            <input id="tahun" name="tahun" type="number" min="1000" max="9999" value="{{ $tahun }}" class="w-full min-w-0 max-w-36 rounded-lg border-white/30 bg-white/10 text-sm text-white shadow-sm focus:border-white focus:ring-white">
+                        </div>
+                        <div class="grid min-w-0 gap-1.5">
+                            <label for="unit_pln" class="text-xs font-medium text-slate-300">{{ __('Unit PLN') }}</label>
+                            <select id="unit_pln" name="unit_pln" class="w-full min-w-0 rounded-lg border-white/30 bg-white/10 text-sm text-white shadow-sm focus:border-white focus:ring-white">
+                                <option value="SEMUA" @selected($unitPlnSelected === 'SEMUA')>{{ __('Semua Unit') }}</option>
+                                @foreach ($unitPln as $unit)
+                                    <option value="{{ $unit->value }}" @selected($unitPlnSelected === $unit->value)>{{ $unit->value }}</option>
+                                @endforeach
+                            </select>
                         </div>
                         <button type="submit" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-blue-800 shadow-sm transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-700">
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
@@ -169,8 +178,9 @@
                         </a>
                     </div>
                     <div class="mx-5 mb-5 rounded-xl bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-500 sm:mx-6">
-                        {{ __('File ekspor menggunakan periode yang sedang dipilih:') }}
+                        {{ __('File ekspor menggunakan periode dan unit yang sedang dipilih:') }}
                         <span class="font-semibold text-slate-700">{{ str_pad((string) $bulan, 2, '0', STR_PAD_LEFT) }}/{{ $tahun }}</span>
+                        <span class="font-semibold text-slate-700">· {{ $unitPlnSelected === 'SEMUA' ? __('Seluruh Unit') : $unitPlnSelected }}</span>
                     </div>
 
                     <div class="mx-5 mb-5 flex flex-col gap-5 rounded-2xl border border-rose-200 bg-gradient-to-br from-white via-rose-50/50 to-amber-50/70 p-5 shadow-sm sm:mx-6 sm:flex-row sm:items-center sm:justify-between sm:p-6">
@@ -245,6 +255,7 @@
                         <thead class="bg-slate-50/80 text-left text-xs uppercase tracking-wide text-slate-500">
                             <tr>
                                 <th scope="col" class="whitespace-nowrap px-5 py-3.5 font-semibold sm:px-6">{{ __('Kendaraan') }}</th>
+                                <th scope="col" class="whitespace-nowrap px-5 py-3.5 font-semibold">{{ __('Unit PLN') }}</th>
                                 <th scope="col" class="whitespace-nowrap px-5 py-3.5 font-semibold">{{ __('Pengelola') }}</th>
                                 <th scope="col" class="whitespace-nowrap px-5 py-3.5 text-right font-semibold">{{ __('Biaya Servis') }}</th>
                                 <th scope="col" class="whitespace-nowrap px-5 py-3.5 text-right font-semibold">{{ __('Biaya Perbaikan') }}</th>
@@ -258,6 +269,7 @@
                                         <span class="block font-semibold text-slate-900">{{ $baris['plat_nomor'] }}</span>
                                         <span class="mt-1 block text-xs font-normal text-slate-500">{{ $baris['merk_tipe'] }}</span>
                                     </th>
+                                    <td class="whitespace-nowrap px-5 py-4">{{ $baris['unit_pln'] }}</td>
                                     <td class="whitespace-nowrap px-5 py-4">{{ $baris['pengelola'] }}</td>
                                     <td class="whitespace-nowrap px-5 py-4 text-right tabular-nums">Rp {{ number_format($baris['total_biaya_servis'], 2, ',', '.') }}</td>
                                     <td class="whitespace-nowrap px-5 py-4 text-right tabular-nums">Rp {{ number_format($baris['total_biaya_perbaikan'], 2, ',', '.') }}</td>
@@ -265,7 +277,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="px-6 py-16 text-center">
+                                    <td colspan="6" class="px-6 py-16 text-center">
                                         <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
                                             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" aria-hidden="true">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 3.75h5.379c.398 0 .779.158 1.06.44l4.121 4.12c.281.282.44.663.44 1.061v10.879a1.5 1.5 0 01-1.5 1.5h-9.5a1.5 1.5 0 01-1.5-1.5v-15a1.5 1.5 0 011.5-1.5zM13.5 4.5v4.25h4.25" />
@@ -280,7 +292,7 @@
                         @if ($jumlahKendaraan > 0)
                             <tfoot class="border-t border-slate-200 bg-slate-50">
                                 <tr>
-                                    <th scope="row" colspan="2" class="px-5 py-4 text-left text-sm font-semibold text-slate-800 sm:px-6">{{ __('Total') }}</th>
+                                    <th scope="row" colspan="3" class="px-5 py-4 text-left text-sm font-semibold text-slate-800 sm:px-6">{{ __('Total') }}</th>
                                     <td class="whitespace-nowrap px-5 py-4 text-right text-sm font-semibold tabular-nums text-slate-800">Rp {{ number_format($totalBiayaServis, 2, ',', '.') }}</td>
                                     <td class="whitespace-nowrap px-5 py-4 text-right text-sm font-semibold tabular-nums text-slate-800">Rp {{ number_format($totalBiayaPerbaikan, 2, ',', '.') }}</td>
                                     <td class="whitespace-nowrap px-5 py-4 text-right text-sm font-bold tabular-nums text-emerald-800 sm:px-6">Rp {{ number_format($totalPengeluaran, 2, ',', '.') }}</td>

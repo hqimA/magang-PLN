@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Kendaraan;
 use App\Models\Mileage;
 use App\Models\PengajuanServis;
+use App\Models\RiwayatServis;
 use App\Models\User;
 use App\Services\CloudinaryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -55,6 +56,10 @@ class MaintenanceIndexTest extends TestCase
         $response->assertOk();
         $response->assertSee('KM');
         $response->assertSee('5,000 km');
+        $response->assertSee(route('maintenance.index', ['tab' => 'pengajuan']), false)
+            ->assertSee(route('maintenance.index', ['tab' => 'proses']), false)
+            ->assertSee(route('maintenance.index', ['tab' => 'usai']), false)
+            ->assertSee(route('maintenance.index', ['tab' => 'ditolak']), false);
     }
 
     public function test_tab_aktif_menampilkan_kilometer_terakhir_kendaraan(): void
@@ -86,7 +91,7 @@ class MaintenanceIndexTest extends TestCase
             'dibuat_pada' => now(),
         ]);
 
-        $response = $this->actingAs($admin)->get(route('maintenance.index', ['tab' => 'aktif']));
+        $response = $this->actingAs($admin)->get(route('maintenance.index', ['tab' => 'proses']));
 
         $response->assertOk();
         $response->assertSee('KM');
@@ -117,6 +122,7 @@ class MaintenanceIndexTest extends TestCase
         ]);
         $pengajuanMenunggu = $this->createPengajuan($pengelola, $kendaraanMenunggu, 'MENUNGGU');
         $pengajuanDitolak = $this->createPengajuan($pengelola, $kendaraanDitolak, 'DITOLAK');
+        $pengajuanDitolak->update(['alasan_penolakan' => 'Bukti belum lengkap.']);
         $pengajuanDisetujui = $this->createPengajuan($pengelola, $kendaraanDisetujui, 'DISETUJUI');
         $pengajuanDibatalkan = $this->createPengajuan($pengelola, $kendaraanDibatalkan, 'DIBATALKAN');
 
@@ -125,11 +131,63 @@ class MaintenanceIndexTest extends TestCase
 
         $response->assertOk()
             ->assertSee(route('maintenance.cancel', $pengajuanMenunggu), false)
-            ->assertSee(route('maintenance.cancel', $pengajuanDitolak), false)
+            ->assertDontSee(route('maintenance.cancel', $pengajuanDitolak), false)
             ->assertDontSee(route('maintenance.cancel', $pengajuanDisetujui), false)
             ->assertDontSee(route('maintenance.cancel', $pengajuanDibatalkan), false)
             ->assertDontSee('B 9999 XYZ')
             ->assertDontSee('Kendaraan yang Dibatalkan');
+
+        $rejectedResponse = $this->actingAs($pengelola)
+            ->get(route('maintenance.index', ['tab' => 'ditolak']));
+
+        $rejectedResponse->assertOk()
+            ->assertSee('Maintenance Ditolak')
+            ->assertSee('Bukti belum lengkap.')
+            ->assertSee(route('maintenance.cancel', $pengajuanDitolak), false)
+            ->assertDontSee(route('maintenance.cancel', $pengajuanMenunggu), false)
+            ->assertDontSee(route('maintenance.cancel', $pengajuanDisetujui), false)
+            ->assertDontSee('B 9999 XYZ')
+            ->assertDontSee('Kendaraan yang Dibatalkan');
+    }
+
+    public function test_pengelola_hanya_melihat_maintenance_usai_dari_unit_pln_nya(): void
+    {
+        $pengelolaUp2d = User::factory()->pengelola()->create(['unit_pln' => 'UP2D']);
+        $pengelolaUp3 = User::factory()->pengelola()->create(['unit_pln' => 'UP3']);
+        $kendaraanUp2d = Kendaraan::factory()->for($pengelolaUp2d, 'pengelola')->create([
+            'unit_pln' => 'UP2D',
+            'plat_nomor' => 'B 1200 UP2',
+        ]);
+        $kendaraanUp3 = Kendaraan::factory()->for($pengelolaUp3, 'pengelola')->create([
+            'unit_pln' => 'UP3',
+            'plat_nomor' => 'B 1300 UP3',
+        ]);
+
+        RiwayatServis::create([
+            'id_kendaraan' => $kendaraanUp2d->id,
+            'tanggal_servis' => '2026-10-01',
+            'kilometer_servis' => 1000,
+            'nama_bengkel' => 'Bengkel Unit UP2D',
+            'total_biaya' => 100000,
+            'id_pembuat' => $pengelolaUp2d->id,
+        ]);
+        RiwayatServis::create([
+            'id_kendaraan' => $kendaraanUp3->id,
+            'tanggal_servis' => '2026-10-02',
+            'kilometer_servis' => 2000,
+            'nama_bengkel' => 'Bengkel Unit UP3',
+            'total_biaya' => 200000,
+            'id_pembuat' => $pengelolaUp3->id,
+        ]);
+
+        $response = $this->actingAs($pengelolaUp2d)
+            ->get(route('maintenance.index', ['tab' => 'usai']));
+
+        $response->assertOk()
+            ->assertSee('Bengkel Unit UP2D')
+            ->assertSee('B 1200 UP2')
+            ->assertDontSee('Bengkel Unit UP3')
+            ->assertDontSee('B 1300 UP3');
     }
 
     public function test_admin_tidak_melihat_tombol_ajukan_maintenance(): void
@@ -250,7 +308,7 @@ class MaintenanceIndexTest extends TestCase
         ]);
 
         $response = $this->actingAs($admin)
-            ->from(route('maintenance.index', ['tab' => 'aktif']))
+            ->from(route('maintenance.index', ['tab' => 'proses']))
             ->post(route('riwayat-servis.store'), [
                 'id_pengajuan' => $pengajuan->id,
                 'id_kendaraan' => $kendaraan->id,
@@ -258,9 +316,10 @@ class MaintenanceIndexTest extends TestCase
                 'kilometer_servis' => 5500,
                 'nama_bengkel' => 'Bengkel Resmi PLN',
                 'total_biaya' => 800000,
+                'foto_nota' => UploadedFile::fake()->image('nota-servis.jpg'),
             ]);
 
-        $response->assertRedirect(route('maintenance.index', ['tab' => 'aktif']));
+        $response->assertRedirect(route('maintenance.index', ['tab' => 'usai']));
         $this->assertDatabaseHas('riwayat_servis', [
             'id_pengajuan' => $pengajuan->id,
             'id_kendaraan' => $kendaraan->id,
@@ -270,14 +329,73 @@ class MaintenanceIndexTest extends TestCase
             'target_kilometer_berikutnya' => 10000,
             'id_pembuat' => $admin->id,
         ]);
+        $serviceHistory = RiwayatServis::query()->where('id_pengajuan', $pengajuan->id)->firstOrFail();
+        $this->assertNotNull($serviceHistory->foto_nota);
+        $this->assertStringStartsWith(
+            'https://res.cloudinary.com/test/image/upload/v123/nota_servis/',
+            $serviceHistory->foto_nota,
+        );
 
         $kendaraan->refresh();
         $this->assertEquals(5000, $kendaraan->kilometer_terakhir);
         $this->assertEquals('BAIK', $kendaraan->status_perawatan);
 
-        // Setelah selesai, maintenance tidak lagi muncul di tab aktif
-        $aktifResponse = $this->actingAs($admin)->get(route('maintenance.index', ['tab' => 'aktif']));
-        $aktifResponse->assertDontSee('Bengkel Resmi PLN');
+        // Setelah selesai, data berpindah dari tab proses ke tab usai.
+        $processResponse = $this->actingAs($admin)->get(route('maintenance.index', ['tab' => 'proses']));
+        $processResponse->assertDontSee('Bengkel Resmi PLN');
+
+        $completedResponse = $this->actingAs($admin)->get(route('maintenance.index', ['tab' => 'usai']));
+        $completedResponse->assertSee('Bengkel Resmi PLN')
+            ->assertSee('Usai Maintenance')
+            ->assertSee(route('service-history.show', $pengajuan->riwayatServis->id), false);
+    }
+
+    public function test_maintenance_cannot_be_completed_without_service_receipt_photo(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $manager = User::factory()->pengelola()->create();
+        $vehicle = Kendaraan::factory()->for($manager, 'pengelola')->create([
+            'status_perawatan' => 'SEDANG_SERVIS',
+        ]);
+        $request = PengajuanServis::create([
+            'id_kendaraan' => $vehicle->id,
+            'id_pengaju' => $manager->id,
+            'id_disetujui_oleh' => $admin->id,
+            'jenis_pengajuan' => 'RUTIN',
+            'deskripsi_keluhan' => 'Servis berkala',
+            'status_persetujuan' => 'DISETUJUI',
+            'dibuat_pada' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('maintenance.index', ['tab' => 'proses']))
+            ->assertOk()
+            ->assertSee('Upload Foto Nota / Dokumentasi Servis *')
+            ->assertSee('id="foto_nota" name="foto_nota" type="file" accept="image/*,.pdf" required', false);
+
+        $this->actingAs($admin)
+            ->from(route('maintenance.index', ['tab' => 'proses']))
+            ->post(route('riwayat-servis.store'), [
+                'id_pengajuan' => $request->id,
+                'id_kendaraan' => $vehicle->id,
+                'tanggal_servis' => now()->toDateString(),
+                'nama_bengkel' => 'Bengkel PLN',
+                'total_biaya' => 100000,
+            ])
+            ->assertRedirect(route('maintenance.index', ['tab' => 'proses']))
+            ->assertSessionHasErrors([
+                'foto_nota' => 'Foto nota wajib diunggah untuk menyelesaikan maintenance.',
+            ]);
+
+        $this->assertDatabaseCount('riwayat_servis', 0);
+        $this->assertDatabaseHas('pengajuan_servis', [
+            'id' => $request->id,
+            'status_persetujuan' => 'DISETUJUI',
+        ]);
+        $this->assertDatabaseHas('kendaraan', [
+            'id' => $vehicle->id,
+            'status_perawatan' => 'SEDANG_SERVIS',
+        ]);
     }
 
     public function test_form_create_dan_ajax_menggunakan_kilometer_terakhir_jika_belum_ada_mileage(): void

@@ -15,7 +15,7 @@ class ServiceReminderController extends Controller
         $user = $request->user();
         $vehicles = Kendaraan::query()
             ->with(['riwayatServisTerbaru', 'pengelola'])
-            ->when($user->peran !== 'ADMIN', fn ($query) => $query->whereBelongsTo($user, 'pengelola'))
+            ->visibleTo($user)
             ->orderBy('plat_nomor')
             ->get()
             ->map(function (Kendaraan $vehicle) use ($mileagePrediction): array {
@@ -45,7 +45,7 @@ class ServiceReminderController extends Controller
         if ($isActive) {
             $vehicles = Kendaraan::query()
                 ->with(['riwayatServisTerbaru', 'pengelola'])
-                ->when($user->peran !== 'ADMIN', fn ($query) => $query->whereBelongsTo($user, 'pengelola'))
+                ->visibleTo($user)
                 ->orderBy('plat_nomor')
                 ->get()
                 ->map(function (Kendaraan $vehicle) {

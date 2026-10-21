@@ -71,10 +71,10 @@
                                 <span class="text-slate-400 transition group-open:rotate-180">⌄</span>
                             </summary>
                             <div class="space-y-2 border-t border-slate-200 px-4 py-3 text-xs leading-5 text-slate-600">
-                                <p>Gunakan satu file Excel sesuai template. Isi kolom Foto Kendaraan dengan URL HTTPS langsung menuju file gambar publik (bukan halaman preview atau tautan berbagi). Gambar yang ditempel atau ditautkan sebagai objek Excel tidak didukung.</p>
-                                <p>Jangan mengubah nama atau urutan 11 kolom template. Isi tanggal dengan format tanggal/bulan/tahun (DD/MM/YYYY), contoh 13/10/2026; tanggal STNK dan KIR boleh dikosongkan.</p>
+                                <p>Gunakan satu file Excel sesuai template. Isi kolom Unit PLN dengan UP2D atau UP3; kendaraan dan tugasnya akan terlihat oleh Pengelola di unit tersebut. Isi kolom Foto Kendaraan dengan URL HTTPS langsung menuju file gambar publik (bukan halaman preview atau tautan berbagi).</p>
+                                <p>Jangan mengubah nama atau urutan 12 kolom template. Isi tanggal dengan format tanggal/bulan/tahun (DD/MM/YYYY), contoh 13/10/2026; tanggal STNK dan KIR boleh dikosongkan.</p>
                                 <p>Gunakan MANUAL/OTOMATIS, BENSIN/SOLAR/DIESEL/LISTRIK, dan kategori PEJABAT/TEKNISI/ANGKUT_BARANG (atau Angkut Barang)/MOTOR_OPERASIONAL. Foto harus berupa JPG, PNG, atau WebP publik maksimal 10 MB dan 20 megapiksel per foto. Server akan mengunduh, mengompresi, mengubahnya ke WebP, dan mengunggahnya ke Cloudinary.</p>
-                                <p>Kendaraan hasil impor belum diberikan kepada Pengelola. Admin dapat menetapkan Pengelola melalui menu edit kendaraan.</p>
+                                <p>Kendaraan hasil impor sudah dikelompokkan berdasarkan Unit PLN. Admin dapat menetapkan Pengelola penanggung jawab melalui menu edit kendaraan.</p>
                                 <p class="font-semibold text-amber-800">Jika template, isi baris, gambar, atau plat nomor tidak valid/duplikat, seluruh file ditolak dan tidak ada kendaraan yang ditambahkan.</p>
                             </div>
                         </details>
@@ -113,7 +113,7 @@
                             @if(($search ?? '') !== '' || ($status ?? '') !== '')
                                 Data tidak ditemukan.
                             @else
-                                Belum ada kendaraan yang ditetapkan untuk akun ini.
+                                Belum ada kendaraan untuk Unit PLN akun ini.
                             @endif
                             @if($isAdmin)
                                 <a href="{{ route('kendaraan.create') }}" class="text-indigo-600 hover:underline">Tambah sekarang</a>.
@@ -138,6 +138,7 @@
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Foto</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plat Nomor</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Merk / Tipe</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit PLN</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tahun</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Km</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -174,6 +175,7 @@
                                             </td>
                                             <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $kendaraan->plat_nomor }}</td>
                                             <td class="px-4 py-3 text-sm text-gray-700">{{ $kendaraan->merk_tipe }}</td>
+                                            <td class="px-4 py-3 text-sm text-gray-700">{{ $kendaraan->unit_pln?->value ?? '-' }}</td>
                                             <td class="px-4 py-3 text-sm text-gray-700">{{ $kendaraan->tahun_pembuatan }}</td>
                                             <td class="px-4 py-3 text-sm text-gray-700">{{ number_format($kendaraan->kilometer_terakhir) }} km</td>
                                             <td class="px-4 py-3 text-sm">

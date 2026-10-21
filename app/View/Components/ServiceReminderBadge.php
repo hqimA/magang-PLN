@@ -31,7 +31,7 @@ class ServiceReminderBadge extends Component
 
         $this->count = Kendaraan::query()
             ->with(['riwayatServisTerbaru'])
-            ->when($user->peran !== 'ADMIN', fn ($query) => $query->whereBelongsTo($user, 'pengelola'))
+            ->visibleTo($user)
             ->get()
             ->map(function ($vehicle) {
                 return $vehicle->serviceReminder();

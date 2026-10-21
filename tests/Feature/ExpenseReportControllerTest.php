@@ -21,11 +21,13 @@ class ExpenseReportControllerTest extends TestCase
         $kendaraanDenganBiaya = Kendaraan::factory()->for($manager, 'pengelola')->create([
             'plat_nomor' => 'B 1234 PLN',
             'merk_tipe' => 'Toyota Avanza',
+            'unit_pln' => 'UP2D',
             'status_perawatan' => 'BAIK',
         ]);
         $kendaraanTanpaBiaya = Kendaraan::factory()->for($manager, 'pengelola')->create([
             'plat_nomor' => 'B 5678 PLN',
             'merk_tipe' => 'Mitsubishi Xpander',
+            'unit_pln' => 'UP2D',
             'status_perawatan' => 'BAIK',
         ]);
 
@@ -74,6 +76,7 @@ class ExpenseReportControllerTest extends TestCase
         $this->assertSame([
             [
                 'plat_nomor' => 'B 1234 PLN',
+                'unit_pln' => 'UP2D',
                 'merk_tipe' => 'Toyota Avanza',
                 'pengelola' => $manager->name,
                 'total_biaya_servis' => 125000.0,
@@ -82,6 +85,7 @@ class ExpenseReportControllerTest extends TestCase
             ],
             [
                 'plat_nomor' => 'B 5678 PLN',
+                'unit_pln' => 'UP2D',
                 'merk_tipe' => 'Mitsubishi Xpander',
                 'pengelola' => $manager->name,
                 'total_biaya_servis' => 0.0,
@@ -116,6 +120,7 @@ class ExpenseReportControllerTest extends TestCase
         $this->assertSame([
             [
                 'plat_nomor' => 'B 4321 PLN',
+                'unit_pln' => 'UP2D',
                 'merk_tipe' => $kendaraan->merk_tipe,
                 'pengelola' => '-',
                 'total_biaya_servis' => 0.0,
@@ -139,6 +144,7 @@ class ExpenseReportControllerTest extends TestCase
         $kendaraan = Kendaraan::factory()->for($manager, 'pengelola')->create([
             'plat_nomor' => 'B 9001 PLN',
             'merk_tipe' => 'Toyota Innova',
+            'unit_pln' => 'UP2D',
             'status_perawatan' => 'BAIK',
         ]);
         DB::table('riwayat_servis')->insert([
@@ -173,9 +179,10 @@ class ExpenseReportControllerTest extends TestCase
         ]));
 
         $response->assertOk();
-        Excel::assertDownloaded('laporan-pengeluaran-2026-09.xlsx', function (ExpenseReportExport $export) use ($manager): bool {
+        Excel::assertDownloaded('laporan-pengeluaran-2026-09-seluruh-unit.xlsx', function (ExpenseReportExport $export) use ($manager): bool {
             return $export->collection()->all() === [[
                 'B 9001 PLN',
+                'UP2D',
                 'Toyota Innova',
                 $manager->name,
                 125000.0,
@@ -308,6 +315,10 @@ class ExpenseReportControllerTest extends TestCase
         $response->assertOk()
             ->assertSee('Ekspor Excel')
             ->assertSee('Ekspor PDF')
+            ->assertSee('Unit PLN')
+            ->assertSee('value="SEMUA"', false)
+            ->assertSee('value="UP2D"', false)
+            ->assertSee('value="UP3"', false)
             ->assertSee('Hapus Semua Data Laporan')
             ->assertSee('Sudah ekspor arsip lengkap laporan?')
             ->assertSee('Belum, ekspor dulu')
@@ -340,6 +351,91 @@ class ExpenseReportControllerTest extends TestCase
 
         $response->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->assertStringStartsWith('%PDF-', $response->getContent());
+    }
+
+    public function test_admin_can_filter_the_report_and_excel_export_by_pln_unit(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $managerUp2d = User::factory()->pengelola()->create(['unit_pln' => 'UP2D']);
+        $managerUp3 = User::factory()->pengelola()->create(['unit_pln' => 'UP3']);
+        Kendaraan::factory()->for($managerUp2d, 'pengelola')->create([
+            'unit_pln' => 'UP2D',
+            'plat_nomor' => 'B 2000 UP2',
+        ]);
+        Kendaraan::factory()->for($managerUp3, 'pengelola')->create([
+            'unit_pln' => 'UP3',
+            'plat_nomor' => 'B 3000 UP3',
+        ]);
+        Excel::fake();
+
+        $response = $this->actingAs($admin)->get(route('laporan-pengeluaran.index', [
+            'bulan' => 9,
+            'tahun' => 2026,
+            'unit_pln' => 'UP3',
+        ]));
+
+        $response->assertOk()
+            ->assertSee('B 3000 UP3')
+            ->assertDontSee('B 2000 UP2');
+        $this->assertSame('UP3', $response->viewData('unitPlnSelected'));
+        $this->assertSame(['B 3000 UP3'], array_column($response->viewData('rekap'), 'plat_nomor'));
+
+        $this->actingAs($admin)->get(route('laporan-pengeluaran.excel', [
+            'bulan' => 9,
+            'tahun' => 2026,
+            'unit_pln' => 'UP3',
+        ]))->assertOk();
+
+        Excel::assertDownloaded(
+            'laporan-pengeluaran-2026-09-UP3.xlsx',
+            fn (ExpenseReportExport $export): bool => $export->collection()->all() === [[
+                'B 3000 UP3',
+                'UP3',
+                Kendaraan::query()->where('plat_nomor', 'B 3000 UP3')->value('merk_tipe'),
+                $managerUp3->name,
+                0.0,
+                0.0,
+                0.0,
+            ]],
+        );
+
+        $pdfResponse = $this->actingAs($admin)->get(route('laporan-pengeluaran.pdf', [
+            'bulan' => 9,
+            'tahun' => 2026,
+            'unit_pln' => 'UP3',
+        ]));
+
+        $pdfResponse->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringContainsString('UP3.pdf', $pdfResponse->headers->get('content-disposition'));
+    }
+
+    public function test_admin_can_view_and_export_all_units_and_invalid_unit_is_rejected(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $managerUp2d = User::factory()->pengelola()->create(['unit_pln' => 'UP2D']);
+        $managerUp3 = User::factory()->pengelola()->create(['unit_pln' => 'UP3']);
+        Kendaraan::factory()->for($managerUp2d, 'pengelola')->create(['unit_pln' => 'UP2D']);
+        Kendaraan::factory()->for($managerUp3, 'pengelola')->create(['unit_pln' => 'UP3']);
+        Excel::fake();
+
+        $response = $this->actingAs($admin)->get(route('laporan-pengeluaran.index', ['unit_pln' => 'SEMUA']));
+
+        $response->assertOk();
+        $this->assertCount(2, $response->viewData('rekap'));
+        $this->assertSame('SEMUA', $response->viewData('unitPlnSelected'));
+
+        $this->actingAs($admin)
+            ->get(route('laporan-pengeluaran.excel', [
+                'unit_pln' => 'SEMUA',
+                'bulan' => 9,
+                'tahun' => 2026,
+            ]))
+            ->assertOk();
+        Excel::assertDownloaded('laporan-pengeluaran-2026-09-seluruh-unit.xlsx');
+
+        $this->actingAs($admin)
+            ->get(route('laporan-pengeluaran.index', ['unit_pln' => 'UNIT-TIDAK-VALID']))
+            ->assertSessionHasErrors('unit_pln');
     }
 
     private function createReportHistory(Kendaraan $kendaraan, User $manager): void

@@ -21,7 +21,11 @@ class PengelolaKendaraanController extends Controller
         if ($isAdmin) {
             $pengelolas = User::query()
                 ->where('peran', 'PENGELOLA')
-                ->orWhereHas('kendaraan')
+                ->addSelect([
+                    'kendaraan_count' => Kendaraan::query()
+                        ->selectRaw('count(*)')
+                        ->whereColumn('kendaraan.unit_pln', 'users.unit_pln'),
+                ])
                 ->orderBy('name')
                 ->get();
 
@@ -36,7 +40,17 @@ class PengelolaKendaraanController extends Controller
         }
 
         $kendaraans = Kendaraan::query()
-            ->where('id_pengelola', $currentPengelola->id)
+            ->when($isAdmin && $currentPengelola->unit_pln !== null, function ($query) use ($currentPengelola): void {
+                $query->where('unit_pln', $currentPengelola->unit_pln->value);
+            }, function ($query) use ($isAdmin, $currentPengelola, $user): void {
+                if ($isAdmin) {
+                    $query->where('id_pengelola', $currentPengelola->id);
+
+                    return;
+                }
+
+                $query->visibleTo($user);
+            })
             ->with(['pengelola', 'riwayatServisTerbaru'])
             ->orderBy('plat_nomor')
             ->get();

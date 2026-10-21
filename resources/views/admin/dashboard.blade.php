@@ -24,8 +24,8 @@
                         </svg>
                         Maintenance
                     </a>
-                    <a href="{{ route('service-history.index') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-200 rounded-md text-sm font-medium hover:bg-gray-50 transition shadow-sm">
-                        Riwayat Servis
+                    <a href="{{ route('maintenance.index', ['tab' => 'usai']) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-200 rounded-md text-sm font-medium hover:bg-gray-50 transition shadow-sm">
+                        Usai Maintenance
                     </a>
                     <a href="{{ route('service-reminder.index') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-200 rounded-md text-sm font-medium hover:bg-gray-50 transition shadow-sm">
                         Service Reminder

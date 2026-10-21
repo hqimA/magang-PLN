@@ -59,6 +59,7 @@ class KendaraanImportControllerTest extends TestCase
         $this->assertDatabaseHas('kendaraan', [
             'plat_nomor' => 'B 1234 PLN',
             'merk_tipe' => 'Toyota Avanza',
+            'unit_pln' => 'UP2D',
             'id_pengelola' => null,
             'kilometer_terakhir' => 10000,
             'interval_servis_km' => 5000,
@@ -137,7 +138,7 @@ class KendaraanImportControllerTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         $row = $this->vehicleRow('B 1235 PLN');
-        $row[10] = 'https://8.8.8.8/vehicle.png';
+        $row[11] = 'https://8.8.8.8/vehicle.png';
         $this->useImageResponses([new Response(200, ['Content-Type' => 'image/png'], $this->validPng())]);
         $file = $this->createImportFile([$row]);
 
@@ -158,7 +159,7 @@ class KendaraanImportControllerTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         $row = $this->vehicleRow('B 1236 PLN');
-        $row[10] = 'http://8.8.8.8/vehicle.png';
+        $row[11] = 'http://8.8.8.8/vehicle.png';
         $file = $this->createImportFile([$row]);
 
         $this->from(route('kendaraan.index'))
@@ -187,11 +188,27 @@ class KendaraanImportControllerTest extends TestCase
         $this->assertDatabaseCount('kendaraan', 0);
     }
 
+    public function test_import_rejects_a_vehicle_with_an_unknown_pln_unit(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $invalidRow = $this->vehicleRow('B 5003 PLN');
+        $invalidRow[7] = 'UP4';
+        $file = $this->createImportFile([$invalidRow]);
+
+        $this->from(route('kendaraan.index'))
+            ->actingAs($admin)
+            ->post(route('kendaraan.import'), ['file' => $file])
+            ->assertRedirect(route('kendaraan.index'))
+            ->assertSessionHasErrors('file');
+
+        $this->assertDatabaseMissing('kendaraan', ['plat_nomor' => 'B 5003 PLN']);
+    }
+
     public function test_import_rejects_redirects_to_private_addresses(): void
     {
         $admin = User::factory()->admin()->create();
         $row = $this->vehicleRow('B 1240 PLN');
-        $row[10] = 'https://8.8.8.8/redirect.png';
+        $row[11] = 'https://8.8.8.8/redirect.png';
         $this->useImageResponses([
             new Response(302, ['Location' => 'https://127.0.0.1/private.png']),
         ]);
@@ -210,7 +227,7 @@ class KendaraanImportControllerTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         $row = $this->vehicleRow('B 1243 PLN');
-        $row[10] = 'https://images.example.test/vehicle.png';
+        $row[11] = 'https://images.example.test/vehicle.png';
         $this->useImageResponses(
             [new Response(200, ['Content-Type' => 'image/png'], $this->validPng())],
             '192.168.1.10',
@@ -231,7 +248,7 @@ class KendaraanImportControllerTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         $row = $this->vehicleRow('B 1244 PLN');
-        $row[10] = 'https://8.8.8.8/vehicle.png';
+        $row[11] = 'https://8.8.8.8/vehicle.png';
         $this->useImageResponses([new Response(200, ['Content-Type' => 'image/png'], '<html>not an image</html>')]);
         $file = $this->createImportFile([$row]);
 
@@ -251,7 +268,7 @@ class KendaraanImportControllerTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         $row = $this->vehicleRow('B 1246 PLN');
-        $row[10] = 'https://8.8.8.8/vehicle.png';
+        $row[11] = 'https://8.8.8.8/vehicle.png';
         $this->useImageResponses([new Response(200, ['Content-Type' => 'image/png'], $this->validPng())]);
         $this->app->instance(CloudinaryService::class, new class extends FakeCloudinaryService
         {
@@ -277,7 +294,7 @@ class KendaraanImportControllerTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         $row = $this->vehicleRow('B 1245 PLN');
-        $row[10] = 'https://8.8.8.8/vehicle.png';
+        $row[11] = 'https://8.8.8.8/vehicle.png';
         $this->useImageResponses([
             new Response(200, ['Content-Type' => 'image/png'], str_repeat('x', 10 * 1024 * 1024 + 1)),
         ]);
@@ -297,9 +314,9 @@ class KendaraanImportControllerTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         $firstRow = $this->vehicleRow('B 1241 PLN');
-        $firstRow[10] = 'https://8.8.8.8/first.png';
+        $firstRow[11] = 'https://8.8.8.8/first.png';
         $secondRow = $this->vehicleRow('B 1242 PLN');
-        $secondRow[10] = 'https://8.8.8.8/missing.png';
+        $secondRow[11] = 'https://8.8.8.8/missing.png';
         $this->useImageResponses([
             new Response(200, ['Content-Type' => 'image/png'], $this->validPng()),
             new Response(404),
@@ -339,9 +356,9 @@ class KendaraanImportControllerTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         $row = $this->vehicleRow('B 1238 PLN');
-        $row[7] = '01/01/2022';
-        $row[8] = '01/01/2025';
+        $row[8] = '01/01/2022';
         $row[9] = '01/01/2025';
+        $row[10] = '01/01/2025';
         $file = $this->createImportFile([$row]);
 
         $this->actingAs($admin)
@@ -356,15 +373,15 @@ class KendaraanImportControllerTest extends TestCase
         ]);
     }
 
-    public function test_imported_vehicle_is_assigned_to_the_manager_with_a_matching_category(): void
+    public function test_imported_vehicle_is_visible_to_managers_in_the_matching_pln_unit(): void
     {
         $admin = User::factory()->admin()->create();
         $manager = User::factory()->pengelola()->create([
-            'kategori_kendaraan' => 'TEKNISI',
+            'unit_pln' => 'UP3',
         ]);
-        $file = $this->createImportFile([
-            $this->vehicleRow('B 1236 PLN'),
-        ]);
+        $row = $this->vehicleRow('B 1236 PLN');
+        $row[7] = 'UP3';
+        $file = $this->createImportFile([$row]);
 
         $this->actingAs($admin)
             ->post(route('kendaraan.import'), ['file' => $file])
@@ -372,66 +389,38 @@ class KendaraanImportControllerTest extends TestCase
 
         $kendaraan = Kendaraan::query()->where('plat_nomor', 'B 1236 PLN')->firstOrFail();
 
-        $this->assertSame($manager->id, $kendaraan->id_pengelola);
-
-        $this->actingAs($admin)
-            ->get(route('kendaraan.edit', $kendaraan->id))
-            ->assertOk()
-            ->assertSee($manager->name);
+        $this->assertSame('UP3', $kendaraan->unit_pln->value);
+        $this->assertNull($kendaraan->id_pengelola);
 
         $this->actingAs($manager)
             ->get(route('kendaraan.index'))
             ->assertOk()
             ->assertSee($kendaraan->plat_nomor);
+
+        $otherUnitManager = User::factory()->pengelola()->create(['unit_pln' => 'UP2D']);
+        $this->actingAs($otherUnitManager)
+            ->get(route('kendaraan.index'))
+            ->assertDontSee($kendaraan->plat_nomor);
     }
 
-    public function test_each_imported_category_is_assigned_to_its_configured_manager(): void
+    public function test_each_imported_vehicle_is_stored_under_its_selected_pln_unit(): void
     {
         $admin = User::factory()->admin()->create();
-        $managers = [
-            'PEJABAT' => User::factory()->pengelola()->create([
-                'email' => 'bahar@example.test',
-                'kategori_kendaraan' => 'PEJABAT',
-            ]),
-            'MOTOR_OPERASIONAL' => User::factory()->pengelola()->create([
-                'email' => 'motor@example.test',
-                'kategori_kendaraan' => 'MOTOR_OPERASIONAL',
-            ]),
-            'ANGKUT_BARANG' => User::factory()->pengelola()->create([
-                'email' => 'angkut@example.test',
-                'kategori_kendaraan' => 'ANGKUT_BARANG',
-            ]),
-            'TEKNISI' => User::factory()->pengelola()->create([
-                'email' => 'teknisi@example.test',
-                'kategori_kendaraan' => 'TEKNISI',
-            ]),
-        ];
-        $rows = [];
-
-        foreach (array_keys($managers) as $index => $category) {
-            $row = $this->vehicleRow('B 130'.$index.' PLN');
-            $row[6] = $category;
-            $rows[] = $row;
-        }
+        $up2dRow = $this->vehicleRow('B 1300 PLN');
+        $up3Row = $this->vehicleRow('B 1301 PLN');
+        $up3Row[7] = 'UP3';
 
         $this->actingAs($admin)
-            ->post(route('kendaraan.import'), ['file' => $this->createImportFile($rows)])
+            ->post(route('kendaraan.import'), ['file' => $this->createImportFile([$up2dRow, $up3Row])])
             ->assertRedirect(route('kendaraan.index'));
 
-        foreach (array_values($managers) as $index => $manager) {
-            $this->assertDatabaseHas('kendaraan', [
-                'plat_nomor' => 'B 130'.$index.' PLN',
-                'id_pengelola' => $manager->id,
-            ]);
-        }
+        $this->assertDatabaseHas('kendaraan', ['plat_nomor' => 'B 1300 PLN', 'unit_pln' => 'UP2D']);
+        $this->assertDatabaseHas('kendaraan', ['plat_nomor' => 'B 1301 PLN', 'unit_pln' => 'UP3']);
     }
 
-    public function test_imported_vehicle_stays_unassigned_when_no_manager_matches_its_category(): void
+    public function test_imported_vehicle_does_not_need_a_specific_manager_assignment(): void
     {
         $admin = User::factory()->admin()->create();
-        User::factory()->pengelola()->create([
-            'kategori_kendaraan' => 'PEJABAT',
-        ]);
         $file = $this->createImportFile([
             $this->vehicleRow('B 1237 PLN'),
         ]);
@@ -442,6 +431,7 @@ class KendaraanImportControllerTest extends TestCase
 
         $this->assertDatabaseHas('kendaraan', [
             'plat_nomor' => 'B 1237 PLN',
+            'unit_pln' => 'UP2D',
             'id_pengelola' => null,
         ]);
     }
@@ -527,7 +517,7 @@ class KendaraanImportControllerTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         $row = $this->vehicleRow('B 5002 PLN');
-        $row[8] = '2028-01-01';
+        $row[9] = '2028-01-01';
         $file = $this->createImportFile([$row]);
 
         $response = $this->from(route('kendaraan.index'))
@@ -605,15 +595,16 @@ class KendaraanImportControllerTest extends TestCase
             ->assertSee(route('kendaraan.import'));
     }
 
-    public function test_pengelola_can_only_view_assigned_vehicles_without_mutation_controls(): void
+    public function test_pengelola_can_only_view_vehicles_in_their_pln_without_mutation_controls(): void
     {
         $manager = User::factory()->pengelola()->create();
-        $otherManager = User::factory()->pengelola()->create();
+        $otherManager = User::factory()->pengelola()->create(['unit_pln' => 'UP3']);
         $vehicle = Kendaraan::factory()->for($manager, 'pengelola')->create([
             'plat_nomor' => 'B 7000 PLN',
         ]);
         $otherVehicle = Kendaraan::factory()->for($otherManager, 'pengelola')->create([
             'plat_nomor' => 'B 7001 PLN',
+            'unit_pln' => 'UP3',
         ]);
 
         $this->actingAs($manager)
@@ -666,6 +657,7 @@ class KendaraanImportControllerTest extends TestCase
             'MANUAL',
             'BENSIN',
             'TEKNISI',
+            'UP2D',
             '2022-01-01',
             null,
             null,
@@ -692,12 +684,12 @@ class KendaraanImportControllerTest extends TestCase
         }
 
         if ($excelDateCells) {
-            $worksheet->setCellValue('H2', 44562);
-            $worksheet->getStyle('H2')->getNumberFormat()->setFormatCode('yyyy-mm-dd');
+            $worksheet->setCellValue('I2', 44562);
+            $worksheet->getStyle('I2')->getNumberFormat()->setFormatCode('yyyy-mm-dd');
         }
 
         if ($photoText !== null) {
-            $worksheet->setCellValue('K2', $photoText);
+            $worksheet->setCellValue('L2', $photoText);
         }
 
         $photoPath = null;
@@ -709,7 +701,7 @@ class KendaraanImportControllerTest extends TestCase
             ));
             $drawing = new Drawing;
             $drawing->setPath($photoPath);
-            $drawing->setCoordinates('K2');
+            $drawing->setCoordinates('L2');
             $drawing->setWorksheet($worksheet);
         }
 
@@ -774,6 +766,7 @@ class KendaraanImportControllerTest extends TestCase
             'Transmisi',
             'Jenis BBM',
             'Kategori Penggunaan',
+            'Unit PLN',
             'Tanggal Pembelian',
             'STNK Berlaku Sampai',
             'KIR Berlaku Sampai',

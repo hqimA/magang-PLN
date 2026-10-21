@@ -77,6 +77,20 @@
                                 </select>
                                 <x-input-error :messages="$errors->get('kategori_penggunaan')" class="mt-2" />
                             </div>
+
+                            <div>
+                                <x-input-label for="unit_pln" :value="__('Unit PLN')" />
+                                <select id="unit_pln" name="unit_pln" class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm block mt-1 w-full" required>
+                                    <option value="">-- Pilih Unit PLN --</option>
+                                    @foreach($unitPln as $unit)
+                                        <option value="{{ $unit->value }}" @selected(old('unit_pln') === $unit->value)>
+                                            {{ $unit->value }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <x-input-error :messages="$errors->get('unit_pln')" class="mt-2" />
+                                <p class="mt-1 text-xs text-gray-500">Kendaraan ini akan dapat diakses oleh Pengelola di Unit PLN yang dipilih.</p>
+                            </div>
                             
                             <!-- Tanggal Pembelian -->
                             <div>
@@ -97,29 +111,17 @@
                                 <x-input-error :messages="$errors->get('tanggal_kir_berlaku_sampai')" class="mt-2" />
                             </div>
 
-                            <!-- Status Perawatan -->
-                            <div>
-                                <x-input-label for="status_perawatan" :value="__('Status Kendaraan')" />
-                                <select id="status_perawatan" name="status_perawatan" class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm block mt-1 w-full" required>
-                                    <option value="">-- Pilih Status --</option>
-                                    <option value="BAIK" {{ old('status_perawatan') == 'BAIK' ? 'selected' : '' }}>Aktif (Baik)</option>
-                                    <option value="PERLU_SERVIS" {{ old('status_perawatan') == 'PERLU_SERVIS' ? 'selected' : '' }}>Maintenance (Perlu Servis)</option>
-                                    <option value="SEDANG_SERVIS" {{ old('status_perawatan') == 'SEDANG_SERVIS' ? 'selected' : '' }}>Maintenance (Sedang Servis)</option>
-                                    <option value="RUSAK" {{ old('status_perawatan') == 'RUSAK' ? 'selected' : '' }}>Tidak Aktif (Rusak)</option>
-                                </select>
-                                <x-input-error :messages="$errors->get('status_perawatan')" class="mt-2" />
-                            </div>
-
                             <!-- Pengelola -->
                             <div>
                                 <x-input-label for="id_pengelola" :value="__('Pengelola')" />
                                 <select id="id_pengelola" name="id_pengelola" class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm block mt-1 w-full" required>
                                     <option value="">-- Pilih Pengelola --</option>
                                     @foreach($pengelolas as $p)
-                                        <option value="{{ $p->id }}" {{ old('id_pengelola') == $p->id ? 'selected' : '' }}>{{ $p->name }}</option>
+                                        <option value="{{ $p->id }}" data-unit="{{ $p->unit_pln->value }}" @selected(old('id_pengelola') == $p->id)>{{ $p->name }} ({{ $p->unit_pln->value }})</option>
                                     @endforeach
                                 </select>
                                 <x-input-error :messages="$errors->get('id_pengelola')" class="mt-2" />
+                                <p id="pengelola-unit-hint" class="mt-1 text-xs text-gray-500">Pilih Pengelola yang tersedia atau pilih Unit PLN untuk menyaring daftar.</p>
                             </div>
                         </div>
 
@@ -155,6 +157,57 @@
                     </form>
 
                     <script>
+                        const unitPlnSelect = document.getElementById('unit_pln');
+                        const pengelolaSelect = document.getElementById('id_pengelola');
+                        const pengelolaUnitHint = document.getElementById('pengelola-unit-hint');
+                        const pengelolaOptions = [...pengelolaSelect.querySelectorAll('option[data-unit]')];
+
+                        function filterPengelolaByUnit(resetSelection = false) {
+                            const selectedUnit = unitPlnSelect.value;
+                            let matchingPengelolaCount = 0;
+                            let selectedManagerMatchesUnit = false;
+
+                            pengelolaOptions.forEach((option) => {
+                                const matchesUnit = selectedUnit === '' || option.dataset.unit === selectedUnit;
+                                option.hidden = !matchesUnit;
+                                option.disabled = !matchesUnit;
+
+                                if (matchesUnit) {
+                                    matchingPengelolaCount++;
+                                    selectedManagerMatchesUnit ||= option.selected;
+                                }
+                            });
+
+                            if (resetSelection && !selectedManagerMatchesUnit) {
+                                pengelolaSelect.value = '';
+                            }
+
+                            pengelolaUnitHint.textContent = selectedUnit === ''
+                                ? matchingPengelolaCount > 0
+                                    ? 'Pilih Pengelola yang tersedia atau pilih Unit PLN untuk menyaring daftar.'
+                                    : 'Belum ada akun Pengelola yang memiliki Unit PLN. Atur unit akun terlebih dahulu.'
+                                : matchingPengelolaCount > 0
+                                    ? `Pengelola dibatasi ke unit ${selectedUnit}.`
+                                    : `Belum ada akun Pengelola di unit ${selectedUnit}. Atur unit akun atau pilih unit lain.`;
+                        }
+
+                        unitPlnSelect.addEventListener('change', () => filterPengelolaByUnit(true));
+                        pengelolaSelect.addEventListener('change', () => {
+                            const selectedManager = pengelolaSelect.selectedOptions[0];
+
+                            if (selectedManager?.dataset.unit && unitPlnSelect.value !== selectedManager.dataset.unit) {
+                                unitPlnSelect.value = selectedManager.dataset.unit;
+                                filterPengelolaByUnit();
+                            }
+                        });
+
+                        const currentManager = pengelolaSelect.selectedOptions[0];
+                        if (!unitPlnSelect.value && currentManager?.dataset.unit) {
+                            unitPlnSelect.value = currentManager.dataset.unit;
+                        }
+
+                        filterPengelolaByUnit();
+
                         function previewFoto(input) {
                             const container = document.getElementById('preview-container');
                             const img = document.getElementById('foto-preview');

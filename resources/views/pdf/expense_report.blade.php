@@ -86,12 +86,13 @@
     </header>
 
     <h1>Rekapitulasi Biaya Kendaraan</h1>
-    <p class="period">Periode {{ sprintf('%02d', $bulan) }}/{{ $tahun }}</p>
+    <p class="period">Periode {{ sprintf('%02d', $bulan) }}/{{ $tahun }} · Unit {{ $unitPlnSelected === 'SEMUA' ? 'Seluruh Unit' : $unitPlnSelected }}</p>
 
     <table>
         <thead>
             <tr>
                 <th>Plat Nomor</th>
+                <th>Unit PLN</th>
                 <th>Merk/Tipe</th>
                 <th>Pengelola</th>
                 <th class="amount">Biaya Servis</th>
@@ -103,6 +104,7 @@
             @forelse ($rekap as $baris)
                 <tr>
                     <td>{{ $baris['plat_nomor'] }}</td>
+                    <td>{{ $baris['unit_pln'] }}</td>
                     <td>{{ $baris['merk_tipe'] }}</td>
                     <td>{{ $baris['pengelola'] }}</td>
                     <td class="amount">Rp {{ number_format($baris['total_biaya_servis'], 2, ',', '.') }}</td>
@@ -111,7 +113,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td class="empty" colspan="6">Belum ada data kendaraan pada periode ini.</td>
+                    <td class="empty" colspan="7">Belum ada data kendaraan pada periode ini.</td>
                 </tr>
             @endforelse
         </tbody>

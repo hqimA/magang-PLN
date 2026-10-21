@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\KategoriKomponen;
+use App\Enums\UnitPln;
 use App\Models\Kendaraan;
 use App\Models\TemplateJadwalServis;
 use App\Models\User;
@@ -13,6 +14,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class KendaraanController extends Controller
@@ -26,8 +29,9 @@ class KendaraanController extends Controller
         $search = trim((string) $request->query('search', ''));
         $status = (string) $request->query('status', '');
 
-        $kendaraans = Kendaraan::with('pengelola')
-            ->when(! $user->isAdmin(), fn ($query) => $query->where('id_pengelola', $user->id))
+        $kendaraans = Kendaraan::query()
+            ->visibleTo($user)
+            ->with('pengelola')
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('plat_nomor', 'like', "%{$search}%")
@@ -53,10 +57,16 @@ class KendaraanController extends Controller
         $user = $request->user();
 
         $pengelolas = $user->isAdmin()
-            ? User::where('peran', 'PENGELOLA')->orderBy('name')->get()
+            ? User::query()
+                ->where('peran', 'PENGELOLA')
+                ->whereIn('unit_pln', array_column(UnitPln::cases(), 'value'))
+                ->orderBy('name')
+                ->get()
             : User::whereKey($user->id)->get();
 
-        return view('kendaraan.create', compact('pengelolas'));
+        $unitPln = UnitPln::cases();
+
+        return view('kendaraan.create', compact('pengelolas', 'unitPln'));
     }
 
     public function store(Request $request, KomponenServisService $komponenService)
@@ -70,13 +80,21 @@ class KendaraanController extends Controller
             'transmisi' => 'required|in:MANUAL,OTOMATIS',
             'jenis_bbm' => 'required|in:BENSIN,SOLAR,DIESEL,LISTRIK',
             'kategori_penggunaan' => 'required|in:PEJABAT,TEKNISI,ANGKUT_BARANG,MOTOR_OPERASIONAL',
+            'unit_pln' => ['required', Rule::in(array_column(UnitPln::cases(), 'value'))],
             'kilometer_terakhir' => 'required|integer',
             'tanggal_pembelian' => 'required|date',
             ...$this->documentExpiryDateRules($request),
-            'status_perawatan' => 'required|in:BAIK,PERLU_SERVIS,SEDANG_SERVIS,RUSAK',
-            'id_pengelola' => 'required|exists:users,id,peran,PENGELOLA',
+            'id_pengelola' => [
+                'required',
+                Rule::exists('users', 'id')
+                    ->where('peran', 'PENGELOLA')
+                    ->where('unit_pln', $request->input('unit_pln')),
+            ],
             'foto_kendaraan' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
         ]);
+
+        $this->validateManagerUnit($validated);
+        $validated['status_perawatan'] = 'BAIK';
 
         // Pengelola hanya dapat membuat kendaraan atas namanya sendiri.
         if (! $user->isAdmin()) {
@@ -143,7 +161,9 @@ class KendaraanController extends Controller
             ? User::where('peran', 'PENGELOLA')->orderBy('name')->get()
             : User::whereKey($user->id)->get();
 
-        return view('kendaraan.edit', compact('kendaraan', 'pengelolas'));
+        $unitPln = UnitPln::cases();
+
+        return view('kendaraan.edit', compact('kendaraan', 'pengelolas', 'unitPln'));
     }
 
     public function update(Request $request, string $id, KomponenServisService $komponenService)
@@ -160,12 +180,20 @@ class KendaraanController extends Controller
             'transmisi' => 'required|in:MANUAL,OTOMATIS',
             'jenis_bbm' => 'required|in:BENSIN,SOLAR,DIESEL,LISTRIK',
             'kategori_penggunaan' => 'required|in:PEJABAT,TEKNISI,ANGKUT_BARANG,MOTOR_OPERASIONAL',
+            'unit_pln' => ['required', Rule::in(array_column(UnitPln::cases(), 'value'))],
             'tanggal_pembelian' => 'required|date',
             ...$this->documentExpiryDateRules($request),
             'status_perawatan' => 'required|in:BAIK,PERLU_SERVIS,SEDANG_SERVIS,RUSAK',
-            'id_pengelola' => 'required|exists:users,id,peran,PENGELOLA',
+            'id_pengelola' => [
+                'required',
+                Rule::exists('users', 'id')
+                    ->where('peran', 'PENGELOLA')
+                    ->where('unit_pln', $request->input('unit_pln')),
+            ],
             'foto_kendaraan' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
         ]);
+
+        $this->validateManagerUnit($validated);
 
         $uploadedUrl = null;
 
@@ -275,8 +303,23 @@ class KendaraanController extends Controller
     private function authorizeKendaraan(User $user, Kendaraan $kendaraan): void
     {
         abort_unless(
-            $user->isAdmin() || (int) $kendaraan->id_pengelola === (int) $user->id,
+            $user->isAdmin()
+                || ($user->unit_pln !== null && $kendaraan->unit_pln === $user->unit_pln),
             403,
         );
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function validateManagerUnit(array $validated): void
+    {
+        $manager = User::query()->findOrFail($validated['id_pengelola']);
+
+        if ($manager->unit_pln?->value !== $validated['unit_pln']) {
+            throw ValidationException::withMessages([
+                'id_pengelola' => 'Pengelola harus berasal dari Unit PLN kendaraan yang dipilih.',
+            ]);
+        }
     }
 }

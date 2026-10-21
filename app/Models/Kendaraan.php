@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\UnitPln;
 use Database\Factories\KendaraanFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,6 +20,7 @@ use Illuminate\Support\Carbon;
     'transmisi',
     'jenis_bbm',
     'kategori_penggunaan',
+    'unit_pln',
     'id_template',          // ditambah: FK ke template_jadwal_servis
     'kilometer_terakhir',
     'interval_servis_km',
@@ -56,6 +59,19 @@ class Kendaraan extends Model
     public function pengelola(): BelongsTo
     {
         return $this->belongsTo(User::class, 'id_pengelola');
+    }
+
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        if ($user->unit_pln === null) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where('unit_pln', $user->unit_pln->value);
     }
 
     public function template(): BelongsTo
@@ -185,6 +201,7 @@ class Kendaraan extends Model
     {
         return [
             'tahun_pembuatan' => 'integer',
+            'unit_pln' => UnitPln::class,
             'kilometer_terakhir' => 'integer',
             'interval_servis_km' => 'integer',
             'interval_servis_bulan' => 'integer',

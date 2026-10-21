@@ -53,6 +53,7 @@
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Peran</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit PLN</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kendaraan</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                                     </tr>
@@ -73,6 +74,7 @@
                                                     {{ $user->isAdmin() ? 'Admin' : 'Pengelola' }}
                                                 </span>
                                             </td>
+                                            <td class="px-4 py-3 text-sm text-gray-700">{{ $user->unit_pln?->value ?? '-' }}</td>
                                             <td class="px-4 py-3 text-sm text-gray-700">{{ $user->kendaraan_count }}</td>
                                             <td class="px-4 py-3 text-sm">
                                                 <div class="flex items-center gap-2">

@@ -36,17 +36,17 @@
                             </div>
 
                             <div>
-                                <x-input-label for="kategori_kendaraan" :value="__('Kategori Kendaraan Pengelola')" />
-                                <select id="kategori_kendaraan" name="kategori_kendaraan" class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm block mt-1 w-full">
-                                    <option value="">Pilih kategori kendaraan</option>
-                                    @foreach($kategoriKendaraan as $kategori)
-                                        <option value="{{ $kategori->value }}" @selected(old('kategori_kendaraan', $user->kategori_kendaraan?->value) === $kategori->value)>
-                                            {{ str_replace('_', ' ', ucfirst(strtolower($kategori->value))) }}
+                                <x-input-label for="unit_pln" :value="__('Unit PLN Pengelola')" />
+                                <select id="unit_pln" name="unit_pln" class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm block mt-1 w-full">
+                                    <option value="">Pilih unit PLN</option>
+                                    @foreach($unitPln as $unit)
+                                        <option value="{{ $unit->value }}" @selected(old('unit_pln', $user->unit_pln?->value) === $unit->value)>
+                                            {{ $unit->value }}
                                         </option>
                                     @endforeach
                                 </select>
-                                <p class="mt-1 text-sm text-gray-500">Wajib untuk Pengelola. Setiap kategori hanya dapat ditugaskan ke satu Pengelola.</p>
-                                <x-input-error :messages="$errors->get('kategori_kendaraan')" class="mt-2" />
+                                <p class="mt-1 text-sm text-gray-500">Pengelola dengan unit PLN yang sama berbagi akses kendaraan dan tugas unit tersebut.</p>
+                                <x-input-error :messages="$errors->get('unit_pln')" class="mt-2" />
                             </div>
 
                             <div>

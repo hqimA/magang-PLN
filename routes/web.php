@@ -63,6 +63,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/maintenance', [MaintenanceController::class, 'index'])->name('maintenance.index');
     Route::get('/maintenance/create', [MaintenanceController::class, 'create'])->name('maintenance.create');
     Route::post('/maintenance', [MaintenanceController::class, 'store'])->name('maintenance.store');
+    Route::get('/maintenance/export/usai', [MaintenanceController::class, 'exportCompleted'])->name('maintenance.export.completed');
+    Route::get('/maintenance/export/ditolak', [MaintenanceController::class, 'exportRejected'])->name('maintenance.export.rejected');
+    Route::patch('/maintenance/notifications/{notifikasi}/read', [MaintenanceController::class, 'markNotificationRead'])
+        ->name('maintenance.notifications.read');
     Route::patch('/maintenance/{pengajuan}/cancel', [MaintenanceController::class, 'cancel'])->name('maintenance.cancel');
     Route::get('/maintenance/mileage/{kendaraan}', [MaintenanceController::class, 'mileageKendaraan'])->name('maintenance.mileage-kendaraan');
     Route::get('/maintenance/komponen/{kendaraan}', [MaintenanceController::class, 'komponenKendaraan'])->name('maintenance.komponen-kendaraan');

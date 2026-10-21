@@ -1,11 +1,7 @@
-﻿@php
+@php
     $isAdmin = auth()->user()?->isAdmin() ?? false;
 
-    $maintenanceActive = request()->routeIs('maintenance.*')
-        || request()->routeIs('service-history.*')
-        || request()->routeIs('service-reminder.*')
-        || request()->routeIs('service-reminders.*')
-        || request()->routeIs('template-komponen.*');
+    $maintenanceActive = request()->routeIs('maintenance.*');
 @endphp
 
 <aside
@@ -51,38 +47,21 @@
             <span>{{ __('Kendaraan') }}</span>
         </a>
 
-        <div x-data="{ open: @js($maintenanceActive) }">
-            <button
-                type="button"
-                @click="open = ! open"
-                class="mt-1 flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium transition duration-150 ease-in-out {{ $maintenanceActive ? 'border-sky-200 bg-gradient-to-r from-sky-100 to-blue-50 text-blue-800' : 'border-transparent text-slate-300 hover:border-white/10 hover:bg-white/5 hover:text-white' }}"
-            >
+        <a href="{{ route('maintenance.index') }}" class="mt-1 flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition duration-150 ease-in-out {{ $maintenanceActive ? 'border-sky-200 bg-gradient-to-r from-sky-100 to-blue-50 text-blue-800' : 'border-transparent text-slate-300 hover:border-white/10 hover:bg-white/5 hover:text-white' }}">
+            <span class="flex items-center gap-3">
                 <i class="hgi hgi-stroke hgi-wrench-01 h-5 w-5 shrink-0"></i>
-                <span class="flex-1 text-start">{{ __('Maintenance') }}</span>
-                <i class="hgi hgi-stroke hgi-arrow-down-01 h-4 w-4 shrink-0 transition-transform duration-200 ease-in-out" :class="open ? 'rotate-180' : ''"></i>
-            </button>
+                <span>{{ __('Maintenance') }}</span>
+            </span>
+            <x-maintenance-request-badge />
+        </a>
 
-            <div x-show="open" x-transition.duration.200ms class="mt-1 space-y-1 ps-11">
-                <a href="{{ route('maintenance.index', ['tab' => 'pengajuan']) }}" class="block rounded-xl px-3 py-2 text-sm transition duration-150 ease-in-out {{ request()->routeIs('maintenance.*') && request()->query('tab', 'pengajuan') === 'pengajuan' ? 'bg-sky-50 font-medium text-blue-800' : 'text-slate-300 hover:bg-white/5 hover:text-white' }}">
-                    {{ __('Pengajuan Maintenance') }}
-                </a>
-                <a href="{{ route('maintenance.index', ['tab' => 'aktif']) }}" class="block rounded-xl px-3 py-2 text-sm transition duration-150 ease-in-out {{ request()->routeIs('maintenance.*') && request()->query('tab') === 'aktif' ? 'bg-sky-50 font-medium text-blue-800' : 'text-slate-300 hover:bg-white/5 hover:text-white' }}">
-                    {{ __('Maintenance Aktif') }}
-                </a>
-                <a href="{{ route('service-history.index') }}" class="block rounded-xl px-3 py-2 text-sm transition duration-150 ease-in-out {{ request()->routeIs('service-history.*') ? 'bg-sky-50 font-medium text-blue-800' : 'text-slate-300 hover:bg-white/5 hover:text-white' }}">
-                    {{ __('Riwayat Servis') }}
-                </a>
-                <a href="{{ route('service-reminder.index') }}" class="flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm transition duration-150 ease-in-out {{ request()->routeIs('service-reminder.*', 'service-reminders.*') ? 'bg-sky-50 font-medium text-blue-800' : 'text-slate-300 hover:bg-white/5 hover:text-white' }}">
-                    <span>{{ __('Service Reminder') }}</span>
-                    <x-service-reminder-badge />
-                </a>
-                @if($isAdmin)
-                    <a href="{{ route('template-komponen.index') }}" class="block rounded-xl px-3 py-2 text-sm transition duration-150 ease-in-out {{ request()->routeIs('template-komponen.*') ? 'bg-sky-50 font-medium text-blue-800' : 'text-slate-300 hover:bg-white/5 hover:text-white' }}">
-                        {{ __('Template Komponen') }}
-                    </a>
-                @endif
-            </div>
-        </div>
+        <a href="{{ route('service-reminder.index') }}" class="mt-1 flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition duration-150 ease-in-out {{ request()->routeIs('service-reminder.*', 'service-reminders.*') ? 'border-sky-200 bg-gradient-to-r from-sky-100 to-blue-50 text-blue-800' : 'border-transparent text-slate-300 hover:border-white/10 hover:bg-white/5 hover:text-white' }}">
+            <span class="flex items-center gap-3">
+                <i class="hgi hgi-stroke hgi-notification-01 h-5 w-5 shrink-0"></i>
+                <span>{{ __('Service Reminder') }}</span>
+            </span>
+            <x-service-reminder-badge />
+        </a>
 
         <a href="{{ route('mileage.index') }}" class="mt-1 flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium transition duration-150 ease-in-out {{ request()->routeIs('mileage.*') ? 'border-sky-200 bg-gradient-to-r from-sky-100 to-blue-50 text-blue-800' : 'border-transparent text-slate-300 hover:border-white/10 hover:bg-white/5 hover:text-white' }}">
             <i class="hgi hgi-stroke hgi-dashboard-speed-01 text-xl shrink-0"></i>

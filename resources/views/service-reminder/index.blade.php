@@ -39,15 +39,9 @@
 
             {{-- Reminder List Card --}}
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900" x-data="{ filter: 'all' }">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <div class="p-6 text-gray-900">
+                    <div class="mb-6">
                         <h3 class="text-lg font-medium text-gray-900">Daftar Kendaraan Perlu Servis</h3>
-                        
-                        <div class="flex flex-wrap gap-2">
-                            <button @click="filter = 'all'" :class="{'bg-gray-800 text-white': filter === 'all', 'bg-gray-200 text-gray-700': filter !== 'all'}" class="px-4 py-2 text-sm font-medium rounded-md transition-colors">Semua</button>
-                            <button @click="filter = 'akan_servis'" :class="{'bg-yellow-500 text-white': filter === 'akan_servis', 'bg-yellow-100 text-yellow-800': filter !== 'akan_servis'}" class="px-4 py-2 text-sm font-medium rounded-md transition-colors">Akan Servis</button>
-                            <button @click="filter = 'terlambat'" :class="{'bg-red-600 text-white': filter === 'terlambat', 'bg-red-100 text-red-800': filter !== 'terlambat'}" class="px-4 py-2 text-sm font-medium rounded-md transition-colors">Terlambat</button>
-                        </div>
                     </div>
 
                     @if(!$setting->is_active)
@@ -75,12 +69,7 @@
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     @foreach($vehicles as $index => $vehicle)
-                                        @php
-                                            $statusLabelForFilter = $vehicle['reminder']['status'] === 'TERLAMBAT_SERVIS'
-                                                ? 'terlambat'
-                                                : 'akan_servis';
-                                        @endphp
-                                        <tr class="hover:bg-gray-50" x-show="filter === 'all' || filter === '{{ $statusLabelForFilter }}'" style="display: none;" x-transition>
+                                        <tr class="hover:bg-gray-50">
                                             <td class="px-4 py-3 text-sm text-gray-900">{{ $index + 1 }}</td>
                                             <td class="px-4 py-3">
                                                 <div class="flex items-center">

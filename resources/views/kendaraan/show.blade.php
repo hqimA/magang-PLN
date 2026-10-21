@@ -49,7 +49,7 @@
 
             {{-- 1. Kartu Info Kendaraan --}}
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-sm">
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4 text-sm">
                     <div>
                         <span class="text-xs text-gray-400 block">Plat Nomor</span>
                         <span class="font-bold text-gray-900 font-mono">{{ $kendaraan->plat_nomor }}</span>
@@ -57,6 +57,10 @@
                     <div>
                         <span class="text-xs text-gray-400 block">Merk / Tipe</span>
                         <span class="font-semibold text-gray-800">{{ $kendaraan->merk_tipe }}</span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-gray-400 block">Unit PLN</span>
+                        <span class="font-medium text-gray-800">{{ $kendaraan->unit_pln?->value ?? '-' }}</span>
                     </div>
                     <div>
                         <span class="text-xs text-gray-400 block">Bahan Bakar</span>

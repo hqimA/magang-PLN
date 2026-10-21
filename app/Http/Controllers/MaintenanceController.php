@@ -2,18 +2,26 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UnitPln;
+use App\Exports\MaintenanceExport;
 use App\Models\Kendaraan;
 use App\Models\KomponenKendaraan;
+use App\Models\Notifikasi;
 use App\Models\PengajuanKomponen;
 use App\Models\PengajuanServis;
+use App\Models\RiwayatServis;
+use App\Models\User;
 use App\Services\CloudinaryService;
 use App\Services\KomponenServisService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Throwable;
 
 class MaintenanceController extends Controller
@@ -21,43 +29,199 @@ class MaintenanceController extends Controller
     public function index(Request $request): View
     {
         $tab = $request->query('tab', 'pengajuan');
+
+        if ($tab === 'aktif') {
+            $tab = 'proses';
+        }
+
+        $tabs = ['pengajuan', 'proses', 'usai', 'ditolak'];
+
+        if (! in_array($tab, $tabs, true)) {
+            $tab = 'pengajuan';
+        }
+
         $user = $request->user();
 
         $pengajuanMaintenance = collect();
         $maintenanceAktif = collect();
+        $maintenanceUsai = collect();
+        $maintenanceDitolak = collect();
+        $incomingNotifications = collect();
+        $newRequestNotificationCount = 0;
+
+        if ($user->isAdmin()) {
+            $notificationQuery = Notifikasi::query()
+                ->where('id_pengguna', $user->id)
+                ->where('tipe_referensi', 'like', 'pengajuan_servis:%')
+                ->where('sudah_dibaca', false);
+
+            $newRequestNotificationCount = (clone $notificationQuery)->count();
+
+            if ($tab === 'pengajuan') {
+                $incomingNotifications = $notificationQuery
+                    ->orderByDesc('dibuat_pada')
+                    ->orderByDesc('id')
+                    ->limit(10)
+                    ->get()
+                    ->map(function (Notifikasi $notification): Notifikasi {
+                        $referenceId = substr((string) $notification->tipe_referensi, strlen('pengajuan_servis:'));
+                        $notification->setAttribute(
+                            'pengajuan_id',
+                            ctype_digit($referenceId) ? (int) $referenceId : null,
+                        );
+
+                        return $notification;
+                    });
+            }
+        }
 
         if ($tab === 'pengajuan') {
-            if ($user->isAdmin()) {
-                // Admin: semua pengajuan yang masih MENUNGGU
-                $pengajuanMaintenance = PengajuanServis::with(['kendaraan.mileageTerbaru', 'pengaju'])
-                    ->where('status_persetujuan', 'MENUNGGU')
-                    ->orderBy('dibuat_pada', 'desc')
-                    ->get();
-            } else {
-                // Pengelola: tampilkan semua pengajuan aktif/memerlukan tindak lanjut, bukan yang sudah dibatalkan.
-                $pengajuanMaintenance = PengajuanServis::with(['kendaraan.mileageTerbaru', 'pengaju'])
-                    ->where('id_pengaju', $user->id)
-                    ->where('status_persetujuan', '!=', 'DIBATALKAN')
-                    ->orderBy('dibuat_pada', 'desc')
-                    ->get();
-            }
-        } elseif ($tab === 'aktif') {
+            $pengajuanMaintenance = PengajuanServis::with(['kendaraan.mileageTerbaru', 'pengaju'])
+                ->where('status_persetujuan', 'MENUNGGU')
+                ->whereHas('kendaraan', fn ($query) => $query->visibleTo($user))
+                ->orderBy('dibuat_pada', 'desc')
+                ->get();
+        } elseif ($tab === 'proses') {
             $maintenanceAktif = PengajuanServis::with(['kendaraan.mileageTerbaru', 'pengaju', 'disetujuiOleh'])
                 ->where('status_persetujuan', 'DISETUJUI')
                 ->doesntHave('riwayatServis')
-                ->when(! $user->isAdmin(), fn ($q) => $q->whereHas('kendaraan', fn ($k) => $k->where('id_pengelola', $user->id)))
+                ->whereHas('kendaraan', fn ($query) => $query->visibleTo($user))
+                ->orderBy('dibuat_pada', 'desc')
+                ->get();
+        } elseif ($tab === 'usai') {
+            $maintenanceUsai = RiwayatServis::query()
+                ->with(['kendaraan', 'pengajuan'])
+                ->whereHas('kendaraan', fn ($query) => $query->visibleTo($user))
+                ->orderByDesc('tanggal_servis')
+                ->paginate(15)
+                ->withQueryString();
+        } elseif ($tab === 'ditolak') {
+            $maintenanceDitolak = PengajuanServis::with(['kendaraan', 'pengaju', 'disetujuiOleh'])
+                ->where('status_persetujuan', 'DITOLAK')
+                ->whereHas('kendaraan', fn ($query) => $query->visibleTo($user))
                 ->orderBy('dibuat_pada', 'desc')
                 ->get();
         }
 
-        return view('maintenance.index', compact('tab', 'pengajuanMaintenance', 'maintenanceAktif'));
+        $unitPln = UnitPln::cases();
+
+        return view('maintenance.index', compact(
+            'tab',
+            'pengajuanMaintenance',
+            'maintenanceAktif',
+            'maintenanceUsai',
+            'maintenanceDitolak',
+            'incomingNotifications',
+            'newRequestNotificationCount',
+            'unitPln',
+        ));
+    }
+
+    public function exportCompleted(Request $request): BinaryFileResponse
+    {
+        $unit = $this->exportUnit($request);
+        $user = $request->user();
+
+        $query = RiwayatServis::query()
+            ->join('kendaraan', 'kendaraan.id', '=', 'riwayat_servis.id_kendaraan')
+            ->leftJoin('pengajuan_servis', 'pengajuan_servis.id', '=', 'riwayat_servis.id_pengajuan')
+            ->whereHas('kendaraan', fn (Builder $vehicles) => $vehicles->visibleTo($user))
+            ->when($unit !== null, fn (Builder $rows) => $rows->where('kendaraan.unit_pln', $unit))
+            ->select([
+                'riwayat_servis.id',
+                'riwayat_servis.tanggal_servis as tanggal',
+                'kendaraan.unit_pln',
+                'kendaraan.plat_nomor',
+                'kendaraan.merk_tipe',
+                'pengajuan_servis.jenis_pengajuan',
+                'riwayat_servis.nama_bengkel',
+                'riwayat_servis.kilometer_servis',
+                'riwayat_servis.total_biaya',
+            ])
+            ->orderBy('riwayat_servis.id');
+
+        return Excel::download(
+            new MaintenanceExport($query, 'usai'),
+            'maintenance-usai-'.$this->exportUnitFileName($unit).'.xlsx',
+        );
+    }
+
+    public function exportRejected(Request $request): BinaryFileResponse
+    {
+        $unit = $this->exportUnit($request);
+        $user = $request->user();
+
+        $query = PengajuanServis::query()
+            ->join('kendaraan', 'kendaraan.id', '=', 'pengajuan_servis.id_kendaraan')
+            ->leftJoin('users as pemohon', 'pemohon.id', '=', 'pengajuan_servis.id_pengaju')
+            ->where('pengajuan_servis.status_persetujuan', 'DITOLAK')
+            ->whereHas('kendaraan', fn (Builder $vehicles) => $vehicles->visibleTo($user))
+            ->when($unit !== null, fn (Builder $rows) => $rows->where('kendaraan.unit_pln', $unit))
+            ->select([
+                'pengajuan_servis.id',
+                'pengajuan_servis.dibuat_pada as tanggal',
+                'kendaraan.unit_pln',
+                'kendaraan.plat_nomor',
+                'kendaraan.merk_tipe',
+                'pengajuan_servis.jenis_pengajuan',
+                'pemohon.name as pengaju',
+                'pengajuan_servis.alasan_penolakan',
+                'pengajuan_servis.estimasi_biaya',
+                'pengajuan_servis.kilometer_pengajuan',
+            ])
+            ->orderBy('pengajuan_servis.id');
+
+        return Excel::download(
+            new MaintenanceExport($query, 'ditolak'),
+            'maintenance-ditolak-'.$this->exportUnitFileName($unit).'.xlsx',
+        );
+    }
+
+    public function markNotificationRead(Request $request, Notifikasi $notifikasi): RedirectResponse
+    {
+        abort_unless($request->user()->isAdmin(), 403);
+        abort_unless(
+            $notifikasi->id_pengguna === $request->user()->id
+                && str_starts_with((string) $notifikasi->tipe_referensi, 'pengajuan_servis:'),
+            404,
+        );
+
+        $notifikasi->update(['sudah_dibaca' => true]);
+
+        return redirect()->route('maintenance.index', ['tab' => 'pengajuan']);
+    }
+
+    private function exportUnit(Request $request): ?string
+    {
+        $units = array_column(UnitPln::cases(), 'value');
+        $selectedUnit = $request->validate([
+            'unit_pln' => ['nullable', Rule::in([...$units, 'SEMUA'])],
+        ])['unit_pln'] ?? null;
+        $user = $request->user();
+
+        if (! $user->isAdmin()) {
+            abort_if($user->unit_pln === null, 403);
+            abort_if($selectedUnit !== null && $selectedUnit !== $user->unit_pln->value, 403);
+
+            return $user->unit_pln->value;
+        }
+
+        return $selectedUnit === null || $selectedUnit === 'SEMUA'
+            ? null
+            : $selectedUnit;
+    }
+
+    private function exportUnitFileName(?string $unit): string
+    {
+        return $unit ?? 'seluruh-unit';
     }
 
     public function create(Request $request): View
     {
         abort_if($request->user()->isAdmin(), 403, 'Admin tidak dapat membuat pengajuan maintenance.');
 
-        $kendaraanList = Kendaraan::where('id_pengelola', $request->user()->id)
+        $kendaraanList = Kendaraan::query()
+            ->visibleTo($request->user())
             ->with('template')
             ->orderBy('merk_tipe')
             ->get();
@@ -73,7 +237,10 @@ class MaintenanceController extends Controller
     public function mileageKendaraan(Request $request, Kendaraan $kendaraan): JsonResponse
     {
         abort_if($request->user()->isAdmin(), 403);
-        abort_unless((int) $kendaraan->id_pengelola === (int) $request->user()->id, 403);
+        abort_unless(
+            Kendaraan::query()->visibleTo($request->user())->whereKey($kendaraan->id)->exists(),
+            403,
+        );
 
         return response()->json([
             'kilometer_akhir' => $kendaraan->kilometer_terakhir,
@@ -84,7 +251,10 @@ class MaintenanceController extends Controller
     public function komponenKendaraan(Request $request, Kendaraan $kendaraan, KomponenServisService $komponenService): JsonResponse
     {
         abort_if($request->user()->isAdmin(), 403);
-        abort_unless((int) $kendaraan->id_pengelola === (int) $request->user()->id, 403);
+        abort_unless(
+            Kendaraan::query()->visibleTo($request->user())->whereKey($kendaraan->id)->exists(),
+            403,
+        );
 
         $validated = $request->validate([
             'jenis_pengajuan' => ['nullable', 'in:RUTIN,DARURAT'],
@@ -128,8 +298,9 @@ class MaintenanceController extends Controller
         ]);
 
         // Pastikan kendaraan milik Pengelola yang login
-        $kendaraan = Kendaraan::where('id', $validated['id_kendaraan'])
-            ->where('id_pengelola', $request->user()->id)
+        $kendaraan = Kendaraan::query()
+            ->visibleTo($request->user())
+            ->whereKey($validated['id_kendaraan'])
             ->firstOrFail();
 
         $currentKm = (int) ($kendaraan->kilometer_terakhir ?? 0);
@@ -211,6 +382,26 @@ class MaintenanceController extends Controller
                     'status_persetujuan' => 'MENUNGGU',
                 ]);
 
+                $unitPln = $kendaraan->unit_pln?->value ?? 'Belum ditentukan';
+                $notificationMessage = sprintf(
+                    'Pengajuan maintenance #%d untuk kendaraan %s dari unit %s menunggu persetujuan.',
+                    $pengajuan->id,
+                    $kendaraan->plat_nomor,
+                    $unitPln,
+                );
+
+                User::query()
+                    ->where('peran', 'ADMIN')
+                    ->pluck('id')
+                    ->each(fn (int $adminId) => Notifikasi::query()->create([
+                        'id_pengguna' => $adminId,
+                        'judul' => 'Pengajuan Maintenance Baru',
+                        'pesan' => $notificationMessage,
+                        'sudah_dibaca' => false,
+                        'tipe_referensi' => 'pengajuan_servis:'.$pengajuan->id,
+                        'dibuat_pada' => now(),
+                    ]));
+
                 if ($usesRoutineTemplate) {
                     $komponenService->applyRecommendedTemplateToKendaraan($kendaraan);
 
@@ -267,7 +458,10 @@ class MaintenanceController extends Controller
     {
         $user = $request->user();
 
-        if (! $user->isAdmin() && (int) $pengajuan->id_pengaju !== (int) $user->id) {
+        if (! $user->isAdmin() && ! Kendaraan::query()
+            ->visibleTo($user)
+            ->whereKey($pengajuan->id_kendaraan)
+            ->exists()) {
             abort(403);
         }
 
@@ -295,7 +489,7 @@ class MaintenanceController extends Controller
             'id_disetujui_oleh' => $request->user()->id,
         ]);
 
-        return back()->with('success', 'Pengajuan berhasil disetujui dan masuk ke Maintenance Aktif.');
+        return back()->with('success', 'Pengajuan berhasil disetujui dan masuk ke Proses Maintenance.');
     }
 
     public function reject(Request $request, PengajuanServis $pengajuan): RedirectResponse

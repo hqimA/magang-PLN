@@ -27,7 +27,7 @@ class OdometerLogController extends Controller
                 ->lockForUpdate()
                 ->findOrFail($validated['id_kendaraan']);
 
-            if ($user->peran !== 'ADMIN' && (int) $kendaraan->id_pengelola !== (int) $user->id) {
+            if (! Kendaraan::query()->visibleTo($user)->whereKey($kendaraan->id)->exists()) {
                 abort(403);
             }
 

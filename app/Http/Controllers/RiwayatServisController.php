@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Throwable;
 
@@ -22,7 +23,7 @@ class RiwayatServisController extends Controller
             ->with(['kendaraan.pengelola', 'rincianSparepart', 'pengajuan'])
             ->when(
                 $user->peran !== 'ADMIN',
-                fn ($q) => $q->whereHas('kendaraan', fn ($k) => $k->where('id_pengelola', $user->id))
+                fn ($query) => $query->whereHas('kendaraan', fn ($vehicleQuery) => $vehicleQuery->visibleTo($user))
             );
 
         // Search by plat_nomor or nama_bengkel
@@ -50,7 +51,7 @@ class RiwayatServisController extends Controller
         $riwayatServis = $query->orderByDesc('tanggal_servis')->paginate(15)->withQueryString();
 
         $kendaraanList = Kendaraan::query()
-            ->when($user->peran !== 'ADMIN', fn ($q) => $q->where('id_pengelola', $user->id))
+            ->visibleTo($user)
             ->orderBy('plat_nomor')
             ->get(['id', 'plat_nomor', 'merk_tipe']);
 
@@ -61,8 +62,7 @@ class RiwayatServisController extends Controller
     {
         $user = auth()->user();
 
-        // Authorization: non-admin can only see their own vehicles
-        if ($user->peran !== 'ADMIN' && $riwayatServis->kendaraan->id_pengelola !== $user->id) {
+        if (! Kendaraan::query()->visibleTo($user)->whereKey($riwayatServis->id_kendaraan)->exists()) {
             abort(403);
         }
 
@@ -79,11 +79,18 @@ class RiwayatServisController extends Controller
             'tanggal_servis' => ['required', 'date'],
             'nama_bengkel' => ['required', 'string', 'max:150'],
             'total_biaya' => ['required', 'numeric', 'min:0'],
-            'foto_nota' => ['nullable', 'file', 'mimes:jpeg,png,jpg,webp,pdf', 'max:10240'],
+            'foto_nota' => [
+                Rule::requiredIf(filled($request->input('id_pengajuan'))),
+                'file',
+                'mimes:jpeg,png,jpg,webp,pdf',
+                'max:10240',
+            ],
             'sparepart' => ['nullable', 'array'],
             'sparepart.*.nama_sparepart' => ['required', 'string', 'max:150'],
             'sparepart.*.jumlah' => ['required', 'integer', 'min:1'],
             'sparepart.*.harga_satuan' => ['required', 'numeric', 'min:0'],
+        ], [
+            'foto_nota.required' => 'Foto nota wajib diunggah untuk menyelesaikan maintenance.',
         ]);
 
         $path = null;
@@ -95,7 +102,7 @@ class RiwayatServisController extends Controller
                     ->findOrFail($validated['id_kendaraan']);
                 $user = $request->user();
 
-                if ($user->peran !== 'ADMIN' && (int) $kendaraan->id_pengelola !== (int) $user->id) {
+                if (! Kendaraan::query()->visibleTo($user)->whereKey($kendaraan->id)->exists()) {
                     abort(403);
                 }
 
@@ -142,7 +149,11 @@ class RiwayatServisController extends Controller
             throw $exception;
         }
 
-        return back()
+        $response = filled($validated['id_pengajuan'] ?? null)
+            ? redirect()->route('maintenance.index', ['tab' => 'usai'])
+            : back();
+
+        return $response
             ->with('status', 'riwayat-servis-created')
             ->with('success', 'Maintenance berhasil diselesaikan dan dicatat ke Riwayat Servis.');
     }

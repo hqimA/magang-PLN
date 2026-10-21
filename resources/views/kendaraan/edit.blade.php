@@ -78,6 +78,19 @@
                                 </select>
                                 <x-input-error :messages="$errors->get('kategori_penggunaan')" class="mt-2" />
                             </div>
+
+                            <div>
+                                <x-input-label for="unit_pln" :value="__('Unit PLN')" />
+                                <select id="unit_pln" name="unit_pln" class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm block mt-1 w-full" required>
+                                    <option value="">-- Pilih Unit PLN --</option>
+                                    @foreach($unitPln as $unit)
+                                        <option value="{{ $unit->value }}" @selected(old('unit_pln', $kendaraan->unit_pln?->value) === $unit->value)>
+                                            {{ $unit->value }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <x-input-error :messages="$errors->get('unit_pln')" class="mt-2" />
+                            </div>
                             
                             <!-- Tanggal Pembelian -->
                             <div>
@@ -117,7 +130,7 @@
                                 <select id="id_pengelola" name="id_pengelola" class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm block mt-1 w-full" required>
                                     <option value="">-- Pilih Pengelola --</option>
                                     @foreach($pengelolas as $p)
-                                        <option value="{{ $p->id }}" {{ old('id_pengelola', $kendaraan->id_pengelola) == $p->id ? 'selected' : '' }}>{{ $p->name }}</option>
+                                        <option value="{{ $p->id }}" {{ old('id_pengelola', $kendaraan->id_pengelola) == $p->id ? 'selected' : '' }}>{{ $p->name }} ({{ $p->unit_pln?->value ?? 'Belum ada unit' }})</option>
                                     @endforeach
                                 </select>
                                 <x-input-error :messages="$errors->get('id_pengelola')" class="mt-2" />

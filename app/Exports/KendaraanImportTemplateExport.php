@@ -22,6 +22,7 @@ class KendaraanImportTemplateExport implements FromArray, WithHeadings
             'Transmisi',
             'Jenis BBM',
             'Kategori Penggunaan',
+            'Unit PLN',
             'Tanggal Pembelian',
             'STNK Berlaku Sampai',
             'KIR Berlaku Sampai',

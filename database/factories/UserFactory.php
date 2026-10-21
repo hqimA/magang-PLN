@@ -61,6 +61,7 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'peran' => 'PENGELOLA',
+            'unit_pln' => 'UP2D',
         ]);
     }
 }

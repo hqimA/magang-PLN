@@ -22,6 +22,7 @@ class ExpenseReportExport implements FromCollection, WithHeadings
     {
         return [
             'Plat Nomor',
+            'Unit PLN',
             'Merk/Tipe',
             'Pengelola',
             'Total Biaya Servis',

@@ -21,7 +21,7 @@
                     {{ __('Kendaraan Pengelola') }}
                 </h2>
                 <p class="text-sm text-gray-500 mt-1">
-                    Daftar armada di bawah tanggung jawab: <span class="font-semibold text-gray-700">{{ $currentPengelola->name }}</span>
+                    Armada untuk Unit PLN: <span class="font-semibold text-gray-700">{{ $currentPengelola->unit_pln?->value ?? 'Belum ditetapkan' }}</span>
                     @if ($isAdmin)
                         <span class="inline-flex items-center ml-2 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">Mode Admin</span>
                     @endif
@@ -31,12 +31,12 @@
             <div class="flex flex-wrap items-center gap-2">
                 @if ($isAdmin && $pengelolas->isNotEmpty())
                     <form method="GET" action="{{ route('pengelola.kendaraan') }}" class="flex items-center gap-2">
-                        <label for="pengelola-select" class="text-xs font-medium text-gray-600">Pilih Pengelola:</label>
+                        <label for="pengelola-select" class="text-xs font-medium text-gray-600">Pilih Pengelola / Unit PLN:</label>
                         <select id="pengelola-select" name="pengelola" onchange="this.form.submit()"
                                 class="text-xs rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-1.5 pl-3 pr-8">
                             @foreach ($pengelolas as $p)
                                 <option value="{{ $p->id }}" @selected($p->id === $currentPengelola->id)>
-                                    {{ $p->name }} ({{ $p->kendaraan_count ?? $p->kendaraan->count() }} unit)
+                                    {{ $p->unit_pln?->value ?? 'Belum ada unit' }} — {{ $p->name }} ({{ $p->kendaraan_count }} kendaraan)
                                 </option>
                             @endforeach
                         </select>
@@ -58,7 +58,7 @@
                         </svg>
                         <h3 class="mt-2 text-sm font-medium text-gray-900">Belum Ada Kendaraan</h3>
                         <p class="mt-1 text-sm text-gray-500">
-                            Tidak ditemukan kendaraan untuk pengelola <span class="font-semibold">{{ $currentPengelola->name }}</span>.
+                            Tidak ditemukan kendaraan untuk Unit PLN <span class="font-semibold">{{ $currentPengelola->unit_pln?->value ?? 'yang dipilih' }}</span>.
                         </p>
                         @if ($isAdmin)
                             <div class="mt-6">

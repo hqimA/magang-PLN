@@ -25,6 +25,7 @@ class KendaraanFactory extends Factory
             'transmisi' => fake()->randomElement(['MANUAL', 'OTOMATIS']),
             'jenis_bbm' => fake()->randomElement(['BENSIN', 'SOLAR', 'DIESEL', 'LISTRIK']),
             'kategori_penggunaan' => fake()->randomElement(['PEJABAT', 'TEKNISI', 'ANGKUT_BARANG', 'MOTOR_OPERASIONAL']),
+            'unit_pln' => 'UP2D',
             'kilometer_terakhir' => fake()->numberBetween(0, 200000),
             'tanggal_pembelian' => fake()->date(),
             'status_perawatan' => fake()->randomElement(['BAIK', 'PERLU_SERVIS', 'SEDANG_SERVIS', 'RUSAK']),

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UnitPln;
 use App\Exports\ExpenseReportArchiveExport;
 use App\Exports\ExpenseReportExport;
 use App\Models\LaporanKerusakan;
@@ -12,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
@@ -30,6 +32,7 @@ class ExpenseReportController extends Controller
         $rows = collect($report['rekap'])
             ->map(fn (array $row): array => [
                 $row['plat_nomor'],
+                $row['unit_pln'],
                 $row['merk_tipe'],
                 $row['pengelola'],
                 $row['total_biaya_servis'],
@@ -40,7 +43,12 @@ class ExpenseReportController extends Controller
 
         return Excel::download(
             new ExpenseReportExport($rows),
-            sprintf('laporan-pengeluaran-%04d-%02d.xlsx', $report['tahun'], $report['bulan'])
+            sprintf(
+                'laporan-pengeluaran-%04d-%02d-%s.xlsx',
+                $report['tahun'],
+                $report['bulan'],
+                $this->reportUnitFileName($report['unitPlnSelected']),
+            )
         );
     }
 
@@ -49,7 +57,12 @@ class ExpenseReportController extends Controller
         $report = $this->getReportData($request);
 
         return Pdf::loadView('pdf.expense_report', $report)
-            ->download(sprintf('laporan-pengeluaran-%04d-%02d.pdf', $report['tahun'], $report['bulan']));
+            ->download(sprintf(
+                'laporan-pengeluaran-%04d-%02d-%s.pdf',
+                $report['tahun'],
+                $report['bulan'],
+                $this->reportUnitFileName($report['unitPlnSelected']),
+            ));
     }
 
     public function exportArchive(Request $request): BinaryFileResponse
@@ -217,7 +230,7 @@ class ExpenseReportController extends Controller
     }
 
     /**
-     * @return array{rekap: array<int, array{plat_nomor: string, merk_tipe: string, pengelola: string, total_biaya_servis: float, total_biaya_perbaikan: float, grand_total_pengeluaran: float}>, bulan: int, tahun: int}
+     * @return array{rekap: array<int, array{plat_nomor: string, unit_pln: string, merk_tipe: string, pengelola: string, total_biaya_servis: float, total_biaya_perbaikan: float, grand_total_pengeluaran: float}>, bulan: int, tahun: int, unitPlnSelected: string, unitPln: array<int, UnitPln>}
      */
     private function getReportData(Request $request): array
     {
@@ -225,10 +238,12 @@ class ExpenseReportController extends Controller
         $filters = $request->validate([
             'bulan' => ['sometimes', 'integer', 'between:1,12'],
             'tahun' => ['sometimes', 'integer', 'between:1000,9999'],
+            'unit_pln' => ['sometimes', 'string', Rule::in(['SEMUA', ...array_column(UnitPln::cases(), 'value')])],
         ]);
 
         $bulan = (int) ($filters['bulan'] ?? now()->month);
         $tahun = (int) ($filters['tahun'] ?? now()->year);
+        $unitPlnSelected = $filters['unit_pln'] ?? 'SEMUA';
         $tanggalMulai = Carbon::create($tahun, $bulan, 1)->startOfMonth()->toDateString();
         $tanggalSelesai = Carbon::create($tahun, $bulan, 1)->endOfMonth()->toDateString();
 
@@ -256,6 +271,10 @@ class ExpenseReportController extends Controller
                 ! $user->isAdmin(),
                 fn ($query) => $query->where('kendaraan.id_pengelola', $user->id),
             )
+            ->when(
+                $unitPlnSelected !== 'SEMUA',
+                fn ($query) => $query->where('kendaraan.unit_pln', $unitPlnSelected),
+            )
             ->leftJoinSub($biayaServis, 'biaya_servis', 'biaya_servis.id_kendaraan', '=', 'kendaraan.id')
             ->leftJoinSub(
                 $biayaPerbaikan,
@@ -266,6 +285,7 @@ class ExpenseReportController extends Controller
             )
             ->select([
                 'kendaraan.plat_nomor',
+                'kendaraan.unit_pln',
                 'kendaraan.merk_tipe',
                 DB::raw("COALESCE(users.name, '-') AS pengelola"),
             ])
@@ -279,6 +299,7 @@ class ExpenseReportController extends Controller
             ->get()
             ->map(fn (object $kendaraan): array => [
                 'plat_nomor' => $kendaraan->plat_nomor,
+                'unit_pln' => $kendaraan->unit_pln ?? '-',
                 'merk_tipe' => $kendaraan->merk_tipe,
                 'pengelola' => $kendaraan->pengelola,
                 'total_biaya_servis' => (float) $kendaraan->total_biaya_servis,
@@ -287,6 +308,13 @@ class ExpenseReportController extends Controller
             ])
             ->all();
 
-        return compact('rekap', 'bulan', 'tahun');
+        $unitPln = UnitPln::cases();
+
+        return compact('rekap', 'bulan', 'tahun', 'unitPlnSelected', 'unitPln');
+    }
+
+    private function reportUnitFileName(string $unitPln): string
+    {
+        return $unitPln === 'SEMUA' ? 'seluruh-unit' : $unitPln;
     }
 }

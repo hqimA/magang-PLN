@@ -4,7 +4,7 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 {{ __('Detail Riwayat Servis') }}
             </h2>
-            <a href="{{ route('service-history.index') }}"
+            <a href="{{ route('maintenance.index', ['tab' => 'usai']) }}"
                class="inline-flex items-center px-4 py-2 bg-gray-200 border border-transparent rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest hover:bg-gray-300 transition ease-in-out duration-150">
                 &larr; Kembali
             </a>

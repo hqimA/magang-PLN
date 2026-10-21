@@ -8,17 +8,23 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
             
-            {{-- Tabs --}}
-            <div class="border-b border-gray-200">
-                <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-                    <a href="{{ route('maintenance.index', ['tab' => 'pengajuan']) }}" class="{{ $tab === 'pengajuan' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700' }} whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium">
+            <nav class="flex flex-wrap gap-2" aria-label="Filter status maintenance">
+                    <a href="{{ route('maintenance.index', ['tab' => 'pengajuan']) }}" @if($tab === 'pengajuan') aria-current="page" @endif class="inline-flex items-center rounded-md px-4 py-2 text-sm font-medium shadow-sm transition {{ $tab === 'pengajuan' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100' }}">
                         Pengajuan Maintenance
+                        @if($newRequestNotificationCount > 0 && auth()->user()->isAdmin())
+                            <span class="ml-2 inline-flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-xs font-semibold text-white">{{ $newRequestNotificationCount }}</span>
+                        @endif
                     </a>
-                    <a href="{{ route('maintenance.index', ['tab' => 'aktif']) }}" class="{{ $tab === 'aktif' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700' }} whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium">
-                        Maintenance Aktif
+                    <a href="{{ route('maintenance.index', ['tab' => 'proses']) }}" @if($tab === 'proses') aria-current="page" @endif class="inline-flex items-center rounded-md px-4 py-2 text-sm font-medium shadow-sm transition {{ $tab === 'proses' ? 'bg-amber-500 text-white' : 'bg-amber-100 text-amber-800 hover:bg-amber-200' }}">
+                        Proses Maintenance
                     </a>
-                </nav>
-            </div>
+                    <a href="{{ route('maintenance.index', ['tab' => 'usai']) }}" @if($tab === 'usai') aria-current="page" @endif class="inline-flex items-center rounded-md px-4 py-2 text-sm font-medium shadow-sm transition {{ $tab === 'usai' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' }}">
+                        Usai Maintenance
+                    </a>
+                    <a href="{{ route('maintenance.index', ['tab' => 'ditolak']) }}" @if($tab === 'ditolak') aria-current="page" @endif class="inline-flex items-center rounded-md px-4 py-2 text-sm font-medium shadow-sm transition {{ $tab === 'ditolak' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700 hover:bg-red-100' }}">
+                        Maintenance Ditolak
+                    </a>
+            </nav>
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 overflow-x-auto">
@@ -32,6 +38,33 @@
                                 </a>
                             @endif
                         </div>
+
+                        @if(auth()->user()->isAdmin() && $incomingNotifications->isNotEmpty())
+                            <section class="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4" aria-label="Notifikasi pengajuan maintenance baru">
+                                <h4 class="font-semibold text-amber-900">Pengajuan Maintenance Baru ({{ $newRequestNotificationCount }})</h4>
+                                <ul class="mt-3 divide-y divide-amber-200">
+                                    @foreach($incomingNotifications as $notification)
+                                        <li class="flex flex-wrap items-center justify-between gap-3 py-3">
+                                            <div>
+                                                <p class="font-medium text-amber-950">{{ $notification->judul }}</p>
+                                                <p class="text-sm text-amber-800">{{ $notification->pesan }}</p>
+                                                <p class="mt-1 text-xs text-amber-700">{{ $notification->dibuat_pada?->translatedFormat('d M Y H:i') }}</p>
+                                            </div>
+                                            <div class="flex items-center gap-3">
+                                                @if($notification->pengajuan_id)
+                                                    <a href="{{ route('maintenance.show', ['pengajuan' => $notification->pengajuan_id, 'tab' => 'pengajuan']) }}" class="text-sm font-medium text-indigo-700 hover:text-indigo-900">Lihat pengajuan</a>
+                                                @endif
+                                                <form method="POST" action="{{ route('maintenance.notifications.read', $notification) }}">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <button type="submit" class="text-sm font-medium text-amber-900 underline hover:text-amber-700">Tandai dibaca</button>
+                                                </form>
+                                            </div>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </section>
+                        @endif
 
                         @if($pengajuanMaintenance->isEmpty())
                             <div class="text-center py-8 text-gray-500">
@@ -93,7 +126,7 @@
                                                 </span>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <a href="{{ route('maintenance.show', $p->id) }}" class="text-indigo-600 hover:text-indigo-900">Detail</a>
+                                                <a href="{{ route('maintenance.show', ['pengajuan' => $p->id, 'tab' => $tab]) }}" class="text-indigo-600 hover:text-indigo-900">Detail</a>
                                                 @if(!auth()->user()->isAdmin() && in_array($p->status_persetujuan, ['MENUNGGU', 'DITOLAK'], true))
                                                     <span class="mx-1 text-gray-300">|</span>
                                                     <form method="POST" action="{{ route('maintenance.cancel', $p) }}" class="inline"
@@ -111,14 +144,14 @@
                                 </tbody>
                             </table>
                         @endif
-                    @elseif($tab === 'aktif')
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-medium text-gray-900">Daftar Maintenance Aktif</h3>
+                    @elseif($tab === 'proses')
+                        <div class="mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">Daftar Proses Maintenance</h3>
                         </div>
 
                         @if($maintenanceAktif->isEmpty())
                             <div class="text-center py-8 text-gray-500">
-                                Belum ada maintenance aktif.
+                                Belum ada maintenance yang sedang diproses.
                             </div>
                         @else
                             <table class="min-w-full divide-y divide-gray-200">
@@ -159,7 +192,7 @@
                                                 </span>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <a href="{{ route('maintenance.show', $m->id) }}" class="text-indigo-600 hover:text-indigo-900">Detail</a>
+                                                <a href="{{ route('maintenance.show', ['pengajuan' => $m->id, 'tab' => $tab]) }}" class="text-indigo-600 hover:text-indigo-900">Detail</a>
                                                 <span class="mx-1 text-gray-300">|</span>
                                                 <button type="button"
                                                         x-data=""
@@ -182,6 +215,135 @@
                                     @endforeach
                                 </tbody>
                             </table>
+                        @endif
+                    @elseif($tab === 'usai')
+                        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                            <h3 class="text-lg font-medium text-gray-900">Daftar Maintenance Usai</h3>
+                            @if(auth()->user()->isAdmin() || auth()->user()->unit_pln !== null)
+                                <form method="GET" action="{{ route('maintenance.export.completed') }}" class="flex flex-wrap items-center gap-2">
+                                    @if(auth()->user()->isAdmin())
+                                        <label for="unit_pln_completed" class="sr-only">Unit PLN ekspor maintenance usai</label>
+                                        <select id="unit_pln_completed" name="unit_pln" class="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                            <option value="SEMUA">Semua Unit</option>
+                                            @foreach($unitPln as $unit)
+                                                <option value="{{ $unit->value }}">{{ $unit->value }}</option>
+                                            @endforeach
+                                        </select>
+                                    @else
+                                        <input type="hidden" name="unit_pln" value="{{ auth()->user()->unit_pln->value }}">
+                                        <span class="text-sm text-gray-600">Unit: {{ auth()->user()->unit_pln->value }}</span>
+                                    @endif
+                                    <button type="submit" class="inline-flex items-center rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-white shadow-sm transition hover:bg-emerald-700">Export Excel</button>
+                                </form>
+                            @endif
+                        </div>
+
+                        @if($maintenanceUsai->isEmpty())
+                            <div class="text-center py-8 text-gray-500">
+                                Belum ada maintenance yang selesai.
+                            </div>
+                        @else
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kendaraan</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Servis</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bengkel</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Odometer</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Biaya</th>
+                                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        @foreach($maintenanceUsai as $servis)
+                                            <tr>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <div class="font-medium text-gray-900">{{ $servis->kendaraan->merk_tipe }}</div>
+                                                    <div class="text-sm text-gray-500">{{ $servis->kendaraan->plat_nomor }}</div>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ $servis->pengajuan?->jenis_pengajuan ?? 'UMUM' }}</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $servis->tanggal_servis->translatedFormat('d M Y') }}</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ $servis->nama_bengkel }}</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ number_format($servis->kilometer_servis) }} km</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">Rp {{ number_format($servis->total_biaya, 0, ',', '.') }}</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                    <a href="{{ route('service-history.show', $servis->id) }}" class="text-indigo-600 hover:text-indigo-900">Detail</a>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="mt-4">
+                                {{ $maintenanceUsai->links() }}
+                            </div>
+                        @endif
+                    @elseif($tab === 'ditolak')
+                        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                            <h3 class="text-lg font-medium text-gray-900">Daftar Maintenance Ditolak</h3>
+                            @if(auth()->user()->isAdmin() || auth()->user()->unit_pln !== null)
+                                <form method="GET" action="{{ route('maintenance.export.rejected') }}" class="flex flex-wrap items-center gap-2">
+                                    @if(auth()->user()->isAdmin())
+                                        <label for="unit_pln_rejected" class="sr-only">Unit PLN ekspor maintenance ditolak</label>
+                                        <select id="unit_pln_rejected" name="unit_pln" class="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                            <option value="SEMUA">Semua Unit</option>
+                                            @foreach($unitPln as $unit)
+                                                <option value="{{ $unit->value }}">{{ $unit->value }}</option>
+                                            @endforeach
+                                        </select>
+                                    @else
+                                        <input type="hidden" name="unit_pln" value="{{ auth()->user()->unit_pln->value }}">
+                                        <span class="text-sm text-gray-600">Unit: {{ auth()->user()->unit_pln->value }}</span>
+                                    @endif
+                                    <button type="submit" class="inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-white shadow-sm transition hover:bg-red-700">Export Excel</button>
+                                </form>
+                            @endif
+                        </div>
+
+                        @if($maintenanceDitolak->isEmpty())
+                            <div class="text-center py-8 text-gray-500">
+                                Belum ada pengajuan maintenance yang ditolak.
+                            </div>
+                        @else
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kendaraan</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Pengajuan</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alasan Penolakan</th>
+                                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        @foreach($maintenanceDitolak as $pengajuan)
+                                            <tr>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <div class="font-medium text-gray-900">{{ $pengajuan->kendaraan->merk_tipe }}</div>
+                                                    <div class="text-sm text-gray-500">{{ $pengajuan->kendaraan->plat_nomor }}</div>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ $pengajuan->jenis_pengajuan }}</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $pengajuan->dibuat_pada->translatedFormat('d M Y') }}</td>
+                                                <td class="px-6 py-4 text-sm text-gray-700">{{ $pengajuan->alasan_penolakan ?: 'Tidak ada alasan yang dicantumkan.' }}</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                    <a href="{{ route('maintenance.show', ['pengajuan' => $pengajuan->id, 'tab' => $tab]) }}" class="text-indigo-600 hover:text-indigo-900">Detail</a>
+                                                    @if(!auth()->user()->isAdmin() && $pengajuan->id_pengaju === auth()->id())
+                                                        <span class="mx-1 text-gray-300">|</span>
+                                                        <form method="POST" action="{{ route('maintenance.cancel', $pengajuan) }}" class="inline" onsubmit="return confirm('Yakin ingin membatalkan pengajuan maintenance ini?')">
+                                                            @csrf
+                                                            @method('PATCH')
+                                                            <button type="submit" class="text-red-600 hover:text-red-800">Batalkan</button>
+                                                        </form>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
                         @endif
                     @endif
                 </div>
@@ -271,9 +433,10 @@
                 </div>
 
                 <div>
-                    <x-input-label for="foto_nota" value="Upload Nota / Dokumentasi Servis (Opsional)" />
-                    <input id="foto_nota" name="foto_nota" type="file" accept="image/*,.pdf"
+                    <x-input-label for="foto_nota" value="Upload Foto Nota / Dokumentasi Servis *" />
+                    <input id="foto_nota" name="foto_nota" type="file" accept="image/*,.pdf" required
                            class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+                    <p class="mt-1 text-xs text-gray-500">Foto nota wajib diunggah untuk menyelesaikan maintenance. File gambar atau PDF, maksimal 10 MB.</p>
                     <x-input-error :messages="$errors->get('foto_nota')" class="mt-1" />
                 </div>
             </div>

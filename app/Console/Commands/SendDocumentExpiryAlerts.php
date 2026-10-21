@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Kendaraan;
+use App\Models\User;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -35,27 +36,38 @@ class SendDocumentExpiryAlerts extends Command
                             continue;
                         }
 
-                        $reference = 'kendaraan:'.$kendaraan->id.':'.$type.':'.$expiryDate->format('Ymd');
-                        $alreadyNotified = DB::table('notifikasi')
-                            ->where('id_pengguna', $kendaraan->id_pengelola)
-                            ->where('tipe_referensi', $reference)
-                            ->exists();
-
-                        if ($alreadyNotified) {
+                        if ($kendaraan->unit_pln === null) {
                             continue;
                         }
 
-                        DB::table('notifikasi')->insert([
-                            'id_pengguna' => $kendaraan->id_pengelola,
-                            'judul' => $document['label'].' kendaraan '.$kendaraan->plat_nomor.' akan habis',
-                            'pesan' => 'Masa berlaku '.$document['label'].' kendaraan '.$kendaraan->plat_nomor
-                                .' akan habis pada '.$expiryDate->format('d-m-Y').'.',
-                            'sudah_dibaca' => false,
-                            'tipe_referensi' => $reference,
-                            'dibuat_pada' => now(),
-                        ]);
+                        $managerIds = User::query()
+                            ->where('peran', 'PENGELOLA')
+                            ->where('unit_pln', $kendaraan->unit_pln->value)
+                            ->pluck('id');
 
-                        $created++;
+                        foreach ($managerIds as $managerId) {
+                            $reference = 'kendaraan:'.$kendaraan->id.':'.$type.':'.$expiryDate->format('Ymd');
+                            $alreadyNotified = DB::table('notifikasi')
+                                ->where('id_pengguna', $managerId)
+                                ->where('tipe_referensi', $reference)
+                                ->exists();
+
+                            if ($alreadyNotified) {
+                                continue;
+                            }
+
+                            DB::table('notifikasi')->insert([
+                                'id_pengguna' => $managerId,
+                                'judul' => $document['label'].' kendaraan '.$kendaraan->plat_nomor.' akan habis',
+                                'pesan' => 'Masa berlaku '.$document['label'].' kendaraan '.$kendaraan->plat_nomor
+                                    .' akan habis pada '.$expiryDate->format('d-m-Y').'.',
+                                'sudah_dibaca' => false,
+                                'tipe_referensi' => $reference,
+                                'dibuat_pada' => now(),
+                            ]);
+
+                            $created++;
+                        }
                     }
                 }
             });

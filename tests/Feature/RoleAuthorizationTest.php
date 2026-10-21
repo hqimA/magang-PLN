@@ -93,7 +93,7 @@ class RoleAuthorizationTest extends TestCase
             'name' => $admin->name,
             'email' => $admin->email,
             'peran' => 'PENGELOLA',
-            'kategori_kendaraan' => 'PEJABAT',
+            'unit_pln' => 'UP2D',
         ])->assertForbidden();
 
         $this->assertSame('ADMIN', $admin->fresh()->peran);
@@ -121,7 +121,7 @@ class RoleAuthorizationTest extends TestCase
             'name' => $admin->name,
             'email' => $admin->email,
             'peran' => 'PENGELOLA',
-            'kategori_kendaraan' => 'PEJABAT',
+            'unit_pln' => 'UP2D',
         ])->assertForbidden();
 
         $this->assertSame('ADMIN', $admin->fresh()->peran);
@@ -138,16 +138,18 @@ class RoleAuthorizationTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $admin->id]);
     }
 
-    public function test_admin_assigning_category_to_an_existing_manager_claims_matching_unassigned_vehicles(): void
+    public function test_admin_assigning_a_pln_to_a_manager_grants_access_to_vehicles_in_that_unit(): void
     {
         $admin = User::factory()->admin()->create();
         $manager = User::factory()->pengelola()->create();
-        $matchingVehicle = Kendaraan::factory()->create([
-            'kategori_penggunaan' => 'TEKNISI',
+        $up2dVehicle = Kendaraan::factory()->create([
+            'plat_nomor' => 'B 3001 PLN',
+            'unit_pln' => 'UP2D',
             'id_pengelola' => null,
         ]);
-        $otherCategoryVehicle = Kendaraan::factory()->create([
-            'kategori_penggunaan' => 'ANGKUT_BARANG',
+        $up3Vehicle = Kendaraan::factory()->create([
+            'plat_nomor' => 'B 3002 PLN',
+            'unit_pln' => 'UP3',
             'id_pengelola' => null,
         ]);
 
@@ -156,20 +158,23 @@ class RoleAuthorizationTest extends TestCase
                 'name' => $manager->name,
                 'email' => $manager->email,
                 'peran' => 'PENGELOLA',
-                'kategori_kendaraan' => 'TEKNISI',
+                'unit_pln' => 'UP3',
             ])
             ->assertRedirect(route('user.index'));
 
-        $this->assertSame('TEKNISI', $manager->fresh()->kategori_kendaraan->value);
-        $this->assertSame($manager->id, $matchingVehicle->fresh()->id_pengelola);
-        $this->assertNull($otherCategoryVehicle->fresh()->id_pengelola);
+        $manager = $manager->fresh();
+        $this->assertSame('UP3', $manager->unit_pln->value);
+        $this->actingAs($manager)
+            ->get(route('kendaraan.index'))
+            ->assertSee($up3Vehicle->plat_nomor)
+            ->assertDontSee($up2dVehicle->plat_nomor);
     }
 
-    public function test_admin_cannot_assign_a_category_already_owned_by_another_manager(): void
+    public function test_managers_in_the_same_pln_can_share_access(): void
     {
         $admin = User::factory()->admin()->create();
         User::factory()->pengelola()->create([
-            'kategori_kendaraan' => 'TEKNISI',
+            'unit_pln' => 'UP3',
         ]);
         $manager = User::factory()->pengelola()->create();
 
@@ -178,57 +183,60 @@ class RoleAuthorizationTest extends TestCase
                 'name' => $manager->name,
                 'email' => $manager->email,
                 'peran' => 'PENGELOLA',
-                'kategori_kendaraan' => 'TEKNISI',
+                'unit_pln' => 'UP3',
             ])
-            ->assertRedirect()
-            ->assertSessionHasErrors('kategori_kendaraan');
+            ->assertRedirect(route('user.index'))
+            ->assertSessionHasNoErrors();
 
-        $this->assertNull($manager->fresh()->kategori_kendaraan);
+        $this->assertSame('UP3', $manager->fresh()->unit_pln->value);
     }
 
-    public function test_admin_cannot_create_a_manager_without_a_vehicle_category(): void
+    public function test_admin_cannot_create_a_manager_without_a_pln_unit(): void
     {
         $admin = User::factory()->admin()->create();
 
         $this->actingAs($admin)
             ->post(route('user.store'), [
-                'name' => 'Pengelola Tanpa Kategori',
-                'email' => 'tanpa-kategori@example.test',
+                'name' => 'Pengelola Tanpa Unit',
+                'email' => 'tanpa-unit@example.test',
                 'peran' => 'PENGELOLA',
                 'password' => 'Password123!',
                 'password_confirmation' => 'Password123!',
             ])
             ->assertRedirect()
-            ->assertSessionHasErrors('kategori_kendaraan');
+            ->assertSessionHasErrors('unit_pln');
 
         $this->assertDatabaseMissing('users', [
-            'email' => 'tanpa-kategori@example.test',
+            'email' => 'tanpa-unit@example.test',
         ]);
     }
 
-    public function test_admin_creating_a_manager_with_a_category_assigns_matching_unassigned_vehicles(): void
+    public function test_admin_can_create_multiple_managers_for_one_pln(): void
     {
         $admin = User::factory()->admin()->create();
         $vehicle = Kendaraan::factory()->create([
-            'kategori_penggunaan' => 'MOTOR_OPERASIONAL',
+            'unit_pln' => 'UP2D',
             'id_pengelola' => null,
         ]);
 
         $this->actingAs($admin)
             ->post(route('user.store'), [
-                'name' => 'Pengelola Motor',
-                'email' => 'pengelola.motor@example.test',
+                'name' => 'Pengelola UP2D',
+                'email' => 'pengelola.up2d@example.test',
                 'peran' => 'PENGELOLA',
-                'kategori_kendaraan' => 'MOTOR_OPERASIONAL',
+                'unit_pln' => 'UP2D',
                 'password' => 'Password123!',
                 'password_confirmation' => 'Password123!',
             ])
             ->assertRedirect(route('user.index'));
 
-        $manager = User::query()->where('email', 'pengelola.motor@example.test')->firstOrFail();
+        $manager = User::query()->where('email', 'pengelola.up2d@example.test')->firstOrFail();
 
-        $this->assertSame('MOTOR_OPERASIONAL', $manager->kategori_kendaraan->value);
-        $this->assertSame($manager->id, $vehicle->fresh()->id_pengelola);
+        $this->assertSame('UP2D', $manager->unit_pln->value);
+        $this->assertNull($vehicle->fresh()->id_pengelola);
+        $this->actingAs($manager)
+            ->get(route('kendaraan.index'))
+            ->assertSee($vehicle->plat_nomor);
     }
 
     public function test_existing_manager_accounts_receive_their_categories_and_matching_unassigned_vehicles(): void
@@ -261,7 +269,7 @@ class RoleAuthorizationTest extends TestCase
         foreach ($managerCategories as $email => $category) {
             $manager = $managers[$email]->fresh();
 
-            $this->assertSame($category, $manager->kategori_kendaraan->value);
+            $this->assertSame($category, $manager->kategori_kendaraan);
             $this->assertSame(
                 1,
                 $manager->kendaraan()
@@ -299,23 +307,30 @@ class RoleAuthorizationTest extends TestCase
             ->assertSee('Budi Santoso (motor)');
     }
 
-    public function test_pengelola_hanya_melihat_kendaraan_miliknya(): void
+    public function test_pengelola_hanya_melihat_kendaraan_dalam_unit_pln_nya(): void
     {
         $pengelola = User::factory()->pengelola()->create();
         $lainnya = User::factory()->pengelola()->create();
 
         $milikSendiri = Kendaraan::factory()->for($pengelola, 'pengelola')->create([
             'plat_nomor' => 'B 1111 AAA',
+            'unit_pln' => 'UP2D',
+        ]);
+        $satuUnit = Kendaraan::factory()->for($lainnya, 'pengelola')->create([
+            'plat_nomor' => 'B 2222 BBB',
+            'unit_pln' => 'UP2D',
         ]);
         Kendaraan::factory()->for($lainnya, 'pengelola')->create([
-            'plat_nomor' => 'B 2222 BBB',
+            'plat_nomor' => 'B 3333 CCC',
+            'unit_pln' => 'UP3',
         ]);
 
         $response = $this->actingAs($pengelola)->get(route('kendaraan.index'));
 
         $response->assertOk()
             ->assertSee($milikSendiri->plat_nomor)
-            ->assertDontSee('B 2222 BBB');
+            ->assertSee($satuUnit->plat_nomor)
+            ->assertDontSee('B 3333 CCC');
     }
 
     public function test_pengelola_tidak_bisa_mengedit_kendaraan_milik_orang_lain(): void
@@ -328,12 +343,23 @@ class RoleAuthorizationTest extends TestCase
         $this->actingAs($pengelola)->put(route('kendaraan.update', $kendaraan->id), [])->assertForbidden();
     }
 
+    public function test_pengelola_tidak_bisa_melihat_kendaraan_dari_pln_lain(): void
+    {
+        $pengelola = User::factory()->pengelola()->create(['unit_pln' => 'UP2D']);
+        $kendaraan = Kendaraan::factory()->create(['unit_pln' => 'UP3']);
+
+        $this->actingAs($pengelola)
+            ->get(route('kendaraan.show', $kendaraan))
+            ->assertForbidden();
+    }
+
     public function test_pengelola_hanya_melihat_mileage_kendaraan_miliknya(): void
     {
-        $pengelola = User::factory()->pengelola()->create();
-        $lainnya = User::factory()->pengelola()->create();
+        $pengelola = User::factory()->pengelola()->create(['unit_pln' => 'UP2D']);
+        $lainnya = User::factory()->pengelola()->create(['unit_pln' => 'UP3']);
         $kendaraanLain = Kendaraan::factory()->for($lainnya, 'pengelola')->create([
             'kilometer_terakhir' => 1000,
+            'unit_pln' => 'UP3',
         ]);
 
         $this->actingAs($pengelola)
@@ -345,9 +371,10 @@ class RoleAuthorizationTest extends TestCase
     public function test_pengelola_tidak_dapat_mencatat_mileage_kendaraan_milik_pengelola_lain(): void
     {
         $pengelola = User::factory()->pengelola()->create();
-        $pemilikLain = User::factory()->pengelola()->create();
+        $pemilikLain = User::factory()->pengelola()->create(['unit_pln' => 'UP3']);
         $kendaraan = Kendaraan::factory()->for($pemilikLain, 'pengelola')->create([
             'kilometer_terakhir' => 1000,
+            'unit_pln' => 'UP3',
         ]);
 
         $this->actingAs($pengelola)->post(route('mileage.trip.store'), [

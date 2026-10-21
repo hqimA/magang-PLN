@@ -134,7 +134,7 @@ class MileageController extends Controller
     private function kendaraanTerpakai(User $user): Builder
     {
         return Kendaraan::query()
-            ->when(! $user->isAdmin(), fn ($query) => $query->where('id_pengelola', $user->id));
+            ->visibleTo($user);
     }
 
     private function riwayatTerpakai(User $user): Builder
@@ -144,7 +144,7 @@ class MileageController extends Controller
                 ! $user->isAdmin(),
                 fn ($query) => $query->whereHas(
                     'kendaraan',
-                    fn ($k) => $k->where('id_pengelola', $user->id),
+                    fn ($query) => $query->visibleTo($user),
                 ),
             );
     }
@@ -209,7 +209,8 @@ class MileageController extends Controller
     private function authorizeKendaraan(User $user, Kendaraan $kendaraan): void
     {
         abort_unless(
-            $user->isAdmin() || (int) $kendaraan->id_pengelola === (int) $user->id,
+            $user->isAdmin()
+                || ($user->unit_pln !== null && $kendaraan->unit_pln === $user->unit_pln),
             403,
         );
     }

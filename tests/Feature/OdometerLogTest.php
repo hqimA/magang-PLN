@@ -21,7 +21,7 @@ class OdometerLogTest extends TestCase
 
     public function test_manager_can_create_odometer_log_and_update_vehicle_mileage(): void
     {
-        $user = User::factory()->create(['peran' => 'PENGELOLA']);
+        $user = User::factory()->pengelola()->create();
         $vehicle = Kendaraan::factory()->for($user, 'pengelola')->create([
             'kilometer_terakhir' => 1200,
         ]);
@@ -49,7 +49,7 @@ class OdometerLogTest extends TestCase
 
     public function test_manager_cannot_submit_lower_mileage(): void
     {
-        $user = User::factory()->create(['peran' => 'PENGELOLA']);
+        $user = User::factory()->pengelola()->create();
         $vehicle = Kendaraan::factory()->for($user, 'pengelola')->create([
             'kilometer_terakhir' => 1200,
         ]);
@@ -71,10 +71,11 @@ class OdometerLogTest extends TestCase
 
     public function test_manager_cannot_log_another_managers_vehicle(): void
     {
-        $user = User::factory()->create(['peran' => 'PENGELOLA']);
-        $otherUser = User::factory()->create(['peran' => 'PENGELOLA']);
+        $user = User::factory()->pengelola()->create(['unit_pln' => 'UP2D']);
+        $otherUser = User::factory()->pengelola()->create(['unit_pln' => 'UP3']);
         $vehicle = Kendaraan::factory()->for($otherUser, 'pengelola')->create([
             'kilometer_terakhir' => 1200,
+            'unit_pln' => 'UP3',
         ]);
 
         $response = $this->actingAs($user)->post(route('odometer-log.store'), [
@@ -93,7 +94,7 @@ class OdometerLogTest extends TestCase
 
     public function test_odometer_log_resolves_its_vehicle_and_inputter(): void
     {
-        $user = User::factory()->create(['peran' => 'PENGELOLA']);
+        $user = User::factory()->pengelola()->create();
         $vehicle = Kendaraan::factory()->for($user, 'pengelola')->create();
         $log = OdometerLog::query()->create([
             'id_kendaraan' => $vehicle->id,

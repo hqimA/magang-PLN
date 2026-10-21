@@ -129,6 +129,7 @@ class KendaraanTest extends TestCase
             'transmisi' => $vehicle->transmisi,
             'jenis_bbm' => $vehicle->jenis_bbm,
             'kategori_penggunaan' => $vehicle->kategori_penggunaan,
+            'unit_pln' => 'UP2D',
             'kilometer_terakhir' => 999999,
             'tanggal_pembelian' => $vehicle->tanggal_pembelian,
             'status_perawatan' => $vehicle->status_perawatan,
@@ -137,6 +138,52 @@ class KendaraanTest extends TestCase
 
         $this->assertSame(4500, $vehicle->fresh()->kilometer_terakhir);
         $this->assertSame('Toyota Avanza Update', $vehicle->fresh()->merk_tipe);
+    }
+
+    public function test_manual_vehicle_form_uses_pln_unit_for_access_without_asking_for_status(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $up2dManager = User::factory()->pengelola()->create(['unit_pln' => 'UP2D']);
+        User::factory()->pengelola()->create(['unit_pln' => 'UP3']);
+        User::factory()->pengelola()->create([
+            'name' => 'Pengelola Belum Ditentukan',
+            'unit_pln' => null,
+        ]);
+        $this->withoutVite();
+
+        $response = $this->actingAs($admin)->get(route('kendaraan.create'));
+
+        $response->assertOk()
+            ->assertSee('Pilih Unit PLN')
+            ->assertSee('Kendaraan ini akan dapat diakses oleh Pengelola di Unit PLN yang dipilih.')
+            ->assertSee('Pilih Pengelola yang tersedia atau pilih Unit PLN untuk menyaring daftar.')
+            ->assertSee('data-unit="UP2D"', false)
+            ->assertSee('data-unit="UP3"', false)
+            ->assertDontSee('Pengelola Belum Ditentukan')
+            ->assertDontSee('name="status_perawatan"', false);
+
+        $managerSelect = [];
+        $this->assertSame(1, preg_match('/<select id="id_pengelola"[^>]*>/', $response->getContent(), $managerSelect));
+        $this->assertStringNotContainsString('disabled', $managerSelect[0]);
+
+        $this->actingAs($admin)->post(route('kendaraan.store'), [
+            'plat_nomor' => 'B 3333 PLN',
+            'merk_tipe' => 'Toyota Avanza',
+            'tahun_pembuatan' => 2022,
+            'transmisi' => 'MANUAL',
+            'jenis_bbm' => 'BENSIN',
+            'kategori_penggunaan' => 'TEKNISI',
+            'unit_pln' => 'UP2D',
+            'kilometer_terakhir' => 10000,
+            'tanggal_pembelian' => '2022-01-01',
+            'id_pengelola' => $up2dManager->id,
+            'status_perawatan' => 'RUSAK',
+        ])->assertRedirect(route('kendaraan.index'));
+
+        $vehicle = Kendaraan::query()->where('plat_nomor', 'B 3333 PLN')->firstOrFail();
+        $this->assertSame('UP2D', $vehicle->unit_pln->value);
+        $this->assertSame('BAIK', $vehicle->status_perawatan);
+        $this->assertSame($up2dManager->id, $vehicle->id_pengelola);
     }
 
     public function test_admin_created_vehicle_receives_its_recommended_template_components(): void
@@ -158,9 +205,9 @@ class KendaraanTest extends TestCase
             'transmisi' => 'MANUAL',
             'jenis_bbm' => 'BENSIN',
             'kategori_penggunaan' => 'TEKNISI',
+            'unit_pln' => 'UP2D',
             'kilometer_terakhir' => 10000,
             'tanggal_pembelian' => '2022-01-01',
-            'status_perawatan' => 'BAIK',
             'id_pengelola' => $manager->id,
         ]);
 
@@ -206,6 +253,7 @@ class KendaraanTest extends TestCase
             'transmisi' => 'OTOMATIS',
             'jenis_bbm' => 'SOLAR',
             'kategori_penggunaan' => $kendaraan->kategori_penggunaan,
+            'unit_pln' => 'UP2D',
             'tanggal_pembelian' => $kendaraan->tanggal_pembelian->toDateString(),
             'status_perawatan' => $kendaraan->status_perawatan,
             'id_pengelola' => $manager->id,

@@ -102,7 +102,9 @@ class AdminDashboardTest extends TestCase
 
         $response = $this->actingAs($admin)->get(route('dashboard'));
 
-        $response->assertOk()->assertViewIs('admin.dashboard');
+        $response->assertOk()
+            ->assertViewIs('admin.dashboard')
+            ->assertSee(route('maintenance.index', ['tab' => 'usai']), false);
 
         $kpiData = $response->viewData('kpiData');
 

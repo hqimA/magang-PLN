@@ -31,7 +31,7 @@ class RiwayatServisControllerTest extends TestCase
 
     public function test_service_history_form_does_not_allow_odometer_entry(): void
     {
-        $user = User::factory()->create(['peran' => 'PENGELOLA']);
+        $user = User::factory()->pengelola()->create();
         Kendaraan::factory()->for($user, 'pengelola')->create();
         $this->withoutVite();
 
@@ -43,7 +43,7 @@ class RiwayatServisControllerTest extends TestCase
 
     public function test_valid_service_history_uses_vehicle_mileage_not_submitted_mileage(): void
     {
-        $user = User::factory()->create(['peran' => 'PENGELOLA']);
+        $user = User::factory()->pengelola()->create();
         $kendaraan = Kendaraan::factory()->for($user, 'pengelola')->create([
             'kilometer_terakhir' => 1500,
             'interval_servis_km' => 5000,
@@ -103,9 +103,11 @@ class RiwayatServisControllerTest extends TestCase
 
     public function test_manager_cannot_create_service_history_for_another_managers_vehicle(): void
     {
-        $user = User::factory()->create(['peran' => 'PENGELOLA']);
-        $otherUser = User::factory()->create(['peran' => 'PENGELOLA']);
-        $kendaraan = Kendaraan::factory()->for($otherUser, 'pengelola')->create();
+        $user = User::factory()->pengelola()->create(['unit_pln' => 'UP2D']);
+        $otherUser = User::factory()->pengelola()->create(['unit_pln' => 'UP3']);
+        $kendaraan = Kendaraan::factory()->for($otherUser, 'pengelola')->create([
+            'unit_pln' => 'UP3',
+        ]);
 
         $response = $this->actingAs($user)->post(route('riwayat-servis.store'), [
             'id_kendaraan' => $kendaraan->id,
@@ -126,7 +128,7 @@ class RiwayatServisControllerTest extends TestCase
 
     public function test_required_service_history_fields_are_validated(): void
     {
-        $user = User::factory()->create(['peran' => 'PENGELOLA']);
+        $user = User::factory()->pengelola()->create();
 
         $response = $this->actingAs($user)
             ->from('/dashboard')

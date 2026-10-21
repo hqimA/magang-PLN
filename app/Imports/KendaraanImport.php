@@ -2,11 +2,11 @@
 
 namespace App\Imports;
 
+use App\Enums\UnitPln;
 use App\Models\Kendaraan;
 use App\Services\CloudinaryService;
 use App\Services\KomponenServisService;
 use App\Services\RemoteImageDownloader;
-use App\Services\VehicleCategoryAssignmentService;
 use DateTimeImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -31,7 +31,6 @@ class KendaraanImport
     public function __construct(
         private CloudinaryService $cloudinary,
         private RemoteImageDownloader $imageDownloader,
-        private VehicleCategoryAssignmentService $vehicleAssignment,
         private KomponenServisService $komponenService,
     ) {}
 
@@ -60,7 +59,7 @@ class KendaraanImport
                 $values = [];
                 $hasFormula = false;
 
-                foreach (range('A', 'K') as $column) {
+                foreach (range('A', 'L') as $column) {
                     $cell = $worksheet->getCell($column.$rowNumber);
                     $values[] = $cell->getValue();
                     $hasFormula = $hasFormula || $cell->isFormula();
@@ -77,7 +76,7 @@ class KendaraanImport
                 }
 
                 $data = $this->normalizeRow($worksheet, $rowNumber);
-                $data['foto_kendaraan'] = is_string($values[10]) ? trim($values[10]) : $values[10];
+                $data['foto_kendaraan'] = is_string($values[11]) ? trim($values[11]) : $values[11];
 
                 $validator = Validator::make($data, [
                     'plat_nomor' => ['required', 'string', 'max:15'],
@@ -87,6 +86,7 @@ class KendaraanImport
                     'transmisi' => ['required', Rule::in(['MANUAL', 'OTOMATIS'])],
                     'jenis_bbm' => ['required', Rule::in(['BENSIN', 'SOLAR', 'DIESEL', 'LISTRIK'])],
                     'kategori_penggunaan' => ['required', Rule::in(['PEJABAT', 'TEKNISI', 'ANGKUT_BARANG', 'MOTOR_OPERASIONAL'])],
+                    'unit_pln' => ['required', Rule::in(array_column(UnitPln::cases(), 'value'))],
                     'tanggal_pembelian' => ['required', 'date_format:Y-m-d'],
                     'tanggal_stnk_berlaku_sampai' => ['nullable', 'date_format:Y-m-d'],
                     'tanggal_kir_berlaku_sampai' => ['nullable', 'date_format:Y-m-d'],
@@ -99,6 +99,7 @@ class KendaraanImport
                     'transmisi' => 'Transmisi',
                     'jenis_bbm' => 'Jenis BBM',
                     'kategori_penggunaan' => 'Kategori Penggunaan',
+                    'unit_pln' => 'Unit PLN',
                     'tanggal_pembelian' => 'Tanggal Pembelian',
                     'tanggal_stnk_berlaku_sampai' => 'STNK Berlaku Sampai',
                     'tanggal_kir_berlaku_sampai' => 'KIR Berlaku Sampai',
@@ -157,7 +158,6 @@ class KendaraanImport
                 throw ValidationException::withMessages(['file' => $errors]);
             }
 
-            $managerIdsByCategory = $this->vehicleAssignment->managerIdsByCategory();
             $uploadedUrls = [];
             try {
                 foreach ($preparedRows as &$row) {
@@ -217,10 +217,9 @@ class KendaraanImport
                 }
                 unset($row);
 
-                DB::transaction(function () use ($preparedRows, $managerIdsByCategory): void {
+                DB::transaction(function () use ($preparedRows): void {
                     foreach ($preparedRows as $row) {
                         $data = $row['data'];
-                        $data['id_pengelola'] = $managerIdsByCategory[$data['kategori_penggunaan']] ?? null;
                         $data['interval_servis_km'] = 5000;
                         $data['interval_servis_bulan'] = 3;
                         $data['threshold_servis_km'] = 200;
@@ -260,6 +259,7 @@ class KendaraanImport
             'Transmisi',
             'Jenis BBM',
             'Kategori Penggunaan',
+            'Unit PLN',
             'Tanggal Pembelian',
             'STNK Berlaku Sampai',
             'KIR Berlaku Sampai',
@@ -310,6 +310,7 @@ class KendaraanImport
             'transmisi',
             'jenis_bbm',
             'kategori_penggunaan',
+            'unit_pln',
             'tanggal_pembelian',
             'tanggal_stnk_berlaku_sampai',
             'tanggal_kir_berlaku_sampai',
@@ -345,7 +346,7 @@ class KendaraanImport
                 $value = null;
             }
 
-            if (in_array($field, ['transmisi', 'jenis_bbm', 'kategori_penggunaan'], true) && is_string($value)) {
+            if (in_array($field, ['transmisi', 'jenis_bbm', 'kategori_penggunaan', 'unit_pln'], true) && is_string($value)) {
                 if ($field === 'kategori_penggunaan') {
                     $value = str_replace(' ', '_', $value);
                 }
