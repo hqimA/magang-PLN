@@ -6,10 +6,10 @@ use App\Models\Kendaraan;
 use App\Models\Mileage;
 use App\Models\PengajuanServis;
 use App\Models\User;
-use App\Services\CloudinaryService;
+use App\Services\ImageStorageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Tests\Support\Fakes\FakeCloudinaryService;
+use Tests\Support\Fakes\FakeImageStorageService;
 use Tests\TestCase;
 
 class MaintenanceIndexTest extends TestCase
@@ -20,7 +20,7 @@ class MaintenanceIndexTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
-        $this->app->instance(CloudinaryService::class, new FakeCloudinaryService);
+        $this->app->instance(ImageStorageService::class, new FakeImageStorageService);
     }
 
     public function test_tab_pengajuan_menampilkan_kilometer_terakhir_kendaraan(): void
@@ -180,7 +180,7 @@ class MaintenanceIndexTest extends TestCase
         $pengajuan = PengajuanServis::query()->where('id_kendaraan', $kendaraan->id)->firstOrFail();
 
         $this->assertStringStartsWith(
-            'https://res.cloudinary.com/test/image/upload/v123/bukti_odometer/',
+            'bukti_odometer/fake-',
             $pengajuan->foto_bukti_odometer,
         );
 

@@ -40,7 +40,6 @@ class KendaraanSeeder extends Seeder
                 'threshold_servis_hari' => 14,
                 'tanggal_pembelian' => '2023-03-15',
                 'status_perawatan' => 'BAIK',
-                'foto_kendaraan' => null,
                 'id_pengelola' => $pengelola1->id,
             ],
             [
@@ -57,7 +56,6 @@ class KendaraanSeeder extends Seeder
                 'threshold_servis_hari' => 10,
                 'tanggal_pembelian' => '2021-06-20',
                 'status_perawatan' => 'PERLU_SERVIS',
-                'foto_kendaraan' => null,
                 'id_pengelola' => $pengelola2->id,
             ],
             [
@@ -74,7 +72,6 @@ class KendaraanSeeder extends Seeder
                 'threshold_servis_hari' => 10,
                 'tanggal_pembelian' => '2020-01-10',
                 'status_perawatan' => 'SEDANG_SERVIS',
-                'foto_kendaraan' => null,
                 'id_pengelola' => $pengelola2->id,
             ],
             [
@@ -91,7 +88,6 @@ class KendaraanSeeder extends Seeder
                 'threshold_servis_hari' => 30,
                 'tanggal_pembelian' => '2023-08-01',
                 'status_perawatan' => 'BAIK',
-                'foto_kendaraan' => null,
                 'id_pengelola' => $pengelola1->id,
             ],
             [
@@ -108,7 +104,6 @@ class KendaraanSeeder extends Seeder
                 'threshold_servis_hari' => 7,
                 'tanggal_pembelian' => '2022-04-12',
                 'status_perawatan' => 'BAIK',
-                'foto_kendaraan' => null,
                 'id_pengelola' => $pengelola2->id,
             ],
             [
@@ -125,7 +120,6 @@ class KendaraanSeeder extends Seeder
                 'threshold_servis_hari' => 10,
                 'tanggal_pembelian' => '2022-02-18',
                 'status_perawatan' => 'RUSAK',
-                'foto_kendaraan' => null,
                 'id_pengelola' => $pengelola2->id,
             ],
             [
@@ -142,7 +136,6 @@ class KendaraanSeeder extends Seeder
                 'threshold_servis_hari' => 10,
                 'tanggal_pembelian' => '2021-09-05',
                 'status_perawatan' => 'BAIK',
-                'foto_kendaraan' => null,
                 'id_pengelola' => $pengelola1->id,
             ],
         ];

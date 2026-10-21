@@ -5,10 +5,10 @@ namespace Tests\Feature;
 use App\Models\Kendaraan;
 use App\Models\Mileage;
 use App\Models\User;
-use App\Services\CloudinaryService;
+use App\Services\ImageStorageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Tests\Support\Fakes\FakeCloudinaryService;
+use Tests\Support\Fakes\FakeImageStorageService;
 use Tests\TestCase;
 
 class MileageTrackerTest extends TestCase
@@ -20,7 +20,7 @@ class MileageTrackerTest extends TestCase
         parent::setUp();
 
         $this->withoutVite();
-        $this->app->instance(CloudinaryService::class, new FakeCloudinaryService);
+        $this->app->instance(ImageStorageService::class, new FakeImageStorageService);
     }
 
     private ?User $user = null;

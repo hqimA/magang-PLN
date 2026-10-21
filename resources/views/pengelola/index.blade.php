@@ -133,13 +133,27 @@
 
                             <div class="p-6 text-gray-900">
                                 <div class="flex flex-col sm:flex-row gap-6">
-                                    <div class="sm:w-48 flex-shrink-0">
-                                        @if ($selected->foto_kendaraan)
-                                            <img src="{{ \App\Services\CloudinaryService::url($selected->foto_kendaraan, 'w_800,c_limit,f_auto,q_auto') }}"
-                                                 alt="Foto {{ $selected->merk_tipe }}"
-                                                 class="h-36 w-full object-cover rounded-lg border border-gray-200 shadow-sm" />
+                                    <div class="sm:w-60 flex-shrink-0">
+                                        @php $selectedFotoPath = $selected->fotoCover()?->path; @endphp
+                                        @if ($selectedFotoPath)
+                                            <div
+                                                onclick="openImagePreview('{{ \App\Services\ImageStorageService::url($selectedFotoPath) }}', 'Foto {{ $selected->merk_tipe }} ({{ $selected->plat_nomor }})')"
+                                                class="group relative h-44 sm:h-48 w-full rounded-xl overflow-hidden border border-gray-200 shadow-sm cursor-pointer transition hover:shadow-md hover:border-indigo-300"
+                                            >
+                                                <img src="{{ \App\Services\ImageStorageService::url($selectedFotoPath, 'w_800,c_limit,f_auto,q_auto') }}"
+                                                     alt="Foto {{ $selected->merk_tipe }}"
+                                                     class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                                                <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                    <span class="bg-black/60 text-white text-xs px-2.5 py-1.5 rounded-full flex items-center gap-1.5 backdrop-blur-sm shadow">
+                                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+                                                        </svg>
+                                                        Perbesar
+                                                    </span>
+                                                </div>
+                                            </div>
                                         @else
-                                            <div class="h-36 w-full flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 text-gray-400">
+                                            <div class="h-44 sm:h-48 w-full flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 text-gray-400">
                                                 <svg class="h-10 w-10 text-gray-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
                                                 </svg>

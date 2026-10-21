@@ -122,7 +122,7 @@
                                                         <td class="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{{ number_format($m->total_jarak) }} km</td>
                                                         <td class="px-4 py-3 text-sm whitespace-nowrap">
                                                             @if ($m->foto_bukti)
-                                                                <a href="{{ \App\Services\CloudinaryService::url($m->foto_bukti) }}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:underline">Lihat foto</a>
+                                                                <a href="{{ \App\Services\ImageStorageService::url($m->foto_bukti) }}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:underline">Lihat foto</a>
                                                             @else
                                                                 <span class="text-gray-500">Belum ada</span>
                                                             @endif

@@ -3,14 +3,15 @@
 namespace Tests\Feature;
 
 use App\Models\Kendaraan;
+use App\Models\KendaraanFoto;
 use App\Models\KomponenKendaraan;
 use App\Models\TemplateJadwalDetail;
 use App\Models\TemplateJadwalServis;
 use App\Models\TemplateKomponen;
 use App\Models\User;
-use App\Services\CloudinaryService;
+use App\Services\ImageStorageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\Support\Fakes\FakeCloudinaryService;
+use Tests\Support\Fakes\FakeImageStorageService;
 use Tests\TestCase;
 
 class KendaraanTest extends TestCase
@@ -43,13 +44,15 @@ class KendaraanTest extends TestCase
     public function test_admin_can_delete_only_selected_vehicles(): void
     {
         $admin = User::factory()->admin()->create();
-        $cloudinary = new FakeCloudinaryService;
-        $this->app->instance(CloudinaryService::class, $cloudinary);
-        $firstVehicleUrl = 'https://res.cloudinary.com/demo/image/upload/v123/kendaraan/first.webp';
-        $secondVehicleUrl = 'https://res.cloudinary.com/demo/image/upload/v123/kendaraan/second.webp';
-        $firstVehicle = Kendaraan::factory()->create(['foto_kendaraan' => $firstVehicleUrl]);
-        $secondVehicle = Kendaraan::factory()->create(['foto_kendaraan' => $secondVehicleUrl]);
+        $storage = new FakeImageStorageService;
+        $this->app->instance(ImageStorageService::class, $storage);
+        $firstVehicle = Kendaraan::factory()->create();
+        $secondVehicle = Kendaraan::factory()->create();
         $remainingVehicle = Kendaraan::factory()->create();
+        $firstFotoPath = 'kendaraan/first.webp';
+        $secondFotoPath = 'kendaraan/second.webp';
+        KendaraanFoto::factory()->for($firstVehicle, 'kendaraan')->create(['path' => $firstFotoPath, 'is_utama' => true]);
+        KendaraanFoto::factory()->for($secondVehicle, 'kendaraan')->create(['path' => $secondFotoPath, 'is_utama' => true]);
 
         $response = $this->actingAs($admin)
             ->delete(route('kendaraan.destroy-selected'), [
@@ -61,7 +64,7 @@ class KendaraanTest extends TestCase
         $this->assertDatabaseMissing('kendaraan', ['id' => $firstVehicle->id]);
         $this->assertDatabaseMissing('kendaraan', ['id' => $secondVehicle->id]);
         $this->assertModelExists($remainingVehicle);
-        $this->assertSame([$firstVehicleUrl, $secondVehicleUrl], $cloudinary->deletedUrls);
+        $this->assertSame([$firstFotoPath, $secondFotoPath], $storage->deletedPaths);
     }
 
     public function test_non_admin_cannot_delete_selected_vehicles(): void

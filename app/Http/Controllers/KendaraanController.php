@@ -6,7 +6,7 @@ use App\Enums\KategoriKomponen;
 use App\Models\Kendaraan;
 use App\Models\TemplateJadwalServis;
 use App\Models\User;
-use App\Services\CloudinaryService;
+use App\Services\ImageStorageService;
 use App\Services\KomponenServisService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
@@ -26,7 +26,7 @@ class KendaraanController extends Controller
         $search = trim((string) $request->query('search', ''));
         $status = (string) $request->query('status', '');
 
-        $kendaraans = Kendaraan::with('pengelola')
+        $kendaraans = Kendaraan::with(['pengelola', 'fotos'])
             ->when(! $user->isAdmin(), fn ($query) => $query->where('id_pengelola', $user->id))
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
@@ -75,16 +75,11 @@ class KendaraanController extends Controller
             ...$this->documentExpiryDateRules($request),
             'status_perawatan' => 'required|in:BAIK,PERLU_SERVIS,SEDANG_SERVIS,RUSAK',
             'id_pengelola' => 'required|exists:users,id,peran,PENGELOLA',
-            'foto_kendaraan' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
         ]);
 
         // Pengelola hanya dapat membuat kendaraan atas namanya sendiri.
         if (! $user->isAdmin()) {
             $validated['id_pengelola'] = $user->id;
-        }
-
-        if ($request->hasFile('foto_kendaraan')) {
-            $validated['foto_kendaraan'] = app(CloudinaryService::class)->upload($request->file('foto_kendaraan'), 'kendaraan');
         }
 
         try {
@@ -93,8 +88,6 @@ class KendaraanController extends Controller
                 $komponenService->applyRecommendedTemplateToKendaraan($kendaraan);
             });
         } catch (Throwable $exception) {
-            app(CloudinaryService::class)->deleteSafely($validated['foto_kendaraan'] ?? null);
-
             throw $exception;
         }
 
@@ -117,6 +110,7 @@ class KendaraanController extends Controller
         });
 
         $kendaraan->load([
+            'fotos',
             'pengelola',
             'template',
             'komponen' => fn ($query) => $query->orderBy('nomor_urut'),
@@ -143,6 +137,8 @@ class KendaraanController extends Controller
             ? User::where('peran', 'PENGELOLA')->orderBy('name')->get()
             : User::whereKey($user->id)->get();
 
+        $kendaraan->load('fotos');
+
         return view('kendaraan.edit', compact('kendaraan', 'pengelolas'));
     }
 
@@ -164,15 +160,7 @@ class KendaraanController extends Controller
             ...$this->documentExpiryDateRules($request),
             'status_perawatan' => 'required|in:BAIK,PERLU_SERVIS,SEDANG_SERVIS,RUSAK',
             'id_pengelola' => 'required|exists:users,id,peran,PENGELOLA',
-            'foto_kendaraan' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
         ]);
-
-        $uploadedUrl = null;
-
-        if ($request->hasFile('foto_kendaraan')) {
-            $uploadedUrl = app(CloudinaryService::class)->upload($request->file('foto_kendaraan'), 'kendaraan');
-            $validated['foto_kendaraan'] = $uploadedUrl;
-        }
 
         // Pengelola tidak dapat memindahkan kendaraan ke pengelola lain.
         if (! $user->isAdmin()) {
@@ -191,8 +179,6 @@ class KendaraanController extends Controller
                 }
             });
         } catch (Throwable $exception) {
-            app(CloudinaryService::class)->deleteSafely($uploadedUrl);
-
             throw $exception;
         }
 
@@ -206,7 +192,14 @@ class KendaraanController extends Controller
 
         $kendaraan = Kendaraan::findOrFail($id);
 
+        // Kumpulkan path foto sebelum delete agar bisa dihapus dari storage.
+        $fotoPaths = $kendaraan->fotos()->pluck('path')->all();
+
         $kendaraan->delete();
+
+        foreach ($fotoPaths as $path) {
+            app(ImageStorageService::class)->deleteSafely($path);
+        }
 
         return redirect()->route('kendaraan.index')->with('success', 'Kendaraan berhasil dihapus.');
     }
@@ -221,19 +214,26 @@ class KendaraanController extends Controller
         ]);
         $vehicleIds = array_map('intval', $validated['kendaraan_ids']);
         $deletedCount = 0;
+        $photosToDelete = [];
 
-        DB::transaction(function () use ($vehicleIds, &$deletedCount): void {
+        DB::transaction(function () use ($vehicleIds, &$deletedCount, &$photosToDelete): void {
             Kendaraan::query()
                 ->whereKey($vehicleIds)
                 ->orderBy('id')
                 ->lockForUpdate()
-                ->chunkById(100, function (Collection $kendaraans) use (&$deletedCount): void {
+                ->chunkById(100, function (Collection $kendaraans) use (&$deletedCount, &$photosToDelete): void {
                     foreach ($kendaraans as $kendaraan) {
+                        $fotoPaths = $kendaraan->fotos()->pluck('path')->all();
+                        array_push($photosToDelete, ...$fotoPaths);
                         $kendaraan->delete();
                         $deletedCount++;
                     }
                 });
         });
+
+        foreach ($photosToDelete as $photo) {
+            app(ImageStorageService::class)->deleteSafely($photo);
+        }
 
         return redirect()->route('kendaraan.index')->with(
             'success',

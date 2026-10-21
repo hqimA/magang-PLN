@@ -3,7 +3,7 @@
 namespace App\Imports;
 
 use App\Models\Kendaraan;
-use App\Services\CloudinaryService;
+use App\Services\ImageStorageService;
 use App\Services\KomponenServisService;
 use App\Services\RemoteImageDownloader;
 use App\Services\VehicleCategoryAssignmentService;
@@ -29,7 +29,7 @@ class KendaraanImport
     private int $importedCount = 0;
 
     public function __construct(
-        private CloudinaryService $cloudinary,
+        private ImageStorageService $imageStorage,
         private RemoteImageDownloader $imageDownloader,
         private VehicleCategoryAssignmentService $vehicleAssignment,
         private KomponenServisService $komponenService,
@@ -185,22 +185,13 @@ class KendaraanImport
                         }
 
                         try {
-                            $uploadedUrl = $this->cloudinary->upload(
-                                new UploadedFile(
-                                    $localPath,
-                                    'kendaraan.'.$this->imageExtension($localPath),
-                                    mime_content_type($localPath) ?: null,
-                                    UPLOAD_ERR_OK,
-                                    true,
-                                ),
-                                'kendaraan',
-                            );
+                            $uploadedUrl = $this->imageStorage->storeFromPath($localPath, 'kendaraan');
                         } catch (Throwable $exception) {
                             report($exception);
 
                             throw ValidationException::withMessages([
                                 'file' => [
-                                    "Baris {$row['baris']}: Foto berhasil diunduh, tetapi gagal diunggah ke Cloudinary. Minta admin memeriksa konfigurasi atau layanan Cloudinary.",
+                                    "Baris {$row['baris']}: Foto berhasil diunduh, tetapi gagal disimpan ke storage lokal.",
                                 ],
                             ]);
                         } finally {
@@ -227,14 +218,24 @@ class KendaraanImport
                         $data['threshold_servis_hari'] = 10;
                         $data['status_perawatan'] = 'BAIK';
 
+                        $fotoUrl = $data['foto_kendaraan'] ?? null;
+                        unset($data['foto_kendaraan']);
+
                         $kendaraan = Kendaraan::query()->create($data);
+                        if ($fotoUrl) {
+                            $kendaraan->fotos()->create([
+                                'path' => $fotoUrl,
+                                'is_utama' => true,
+                                'urutan' => 0,
+                            ]);
+                        }
                         $this->komponenService->applyRecommendedTemplateToKendaraan($kendaraan);
                         $this->importedCount++;
                     }
                 });
             } catch (Throwable $exception) {
                 foreach ($uploadedUrls as $uploadedUrl) {
-                    $this->cloudinary->deleteSafely($uploadedUrl);
+                    $this->imageStorage->deleteSafely($uploadedUrl);
                 }
 
                 throw $exception;

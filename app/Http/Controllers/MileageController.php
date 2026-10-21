@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Kendaraan;
 use App\Models\Mileage;
 use App\Models\User;
-use App\Services\CloudinaryService;
+use App\Services\ImageStorageService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -134,6 +134,7 @@ class MileageController extends Controller
     private function kendaraanTerpakai(User $user): Builder
     {
         return Kendaraan::query()
+            ->with('fotos')
             ->when(! $user->isAdmin(), fn ($query) => $query->where('id_pengelola', $user->id));
     }
 
@@ -161,7 +162,7 @@ class MileageController extends Controller
         array $attributes,
         string $kilometerAkhirField = 'kilometer_akhir',
     ): Mileage {
-        $fotoPath = null;
+        $fotoPath = app(ImageStorageService::class)->store($request->file('foto_bukti'), 'mileage');
 
         try {
             return DB::transaction(function () use (
@@ -170,7 +171,7 @@ class MileageController extends Controller
                 $kilometerAkhir,
                 $attributes,
                 $kilometerAkhirField,
-                &$fotoPath,
+                $fotoPath,
             ): Mileage {
                 $kendaraan = Kendaraan::query()
                     ->lockForUpdate()
@@ -184,7 +185,6 @@ class MileageController extends Controller
                     ]);
                 }
 
-                $fotoPath = app(CloudinaryService::class)->upload($request->file('foto_bukti'), 'mileage');
                 $mileage = Mileage::query()->create([
                     'id_kendaraan' => $kendaraan->id,
                     'kilometer_awal' => $kilometerAwal,
@@ -198,9 +198,7 @@ class MileageController extends Controller
                 return $mileage;
             });
         } catch (Throwable $exception) {
-            if (is_string($fotoPath)) {
-                app(CloudinaryService::class)->deleteSafely($fotoPath);
-            }
+            app(ImageStorageService::class)->deleteSafely($fotoPath);
 
             throw $exception;
         }

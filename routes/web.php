@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\ExpenseReportController;
 use App\Http\Controllers\KendaraanController;
+use App\Http\Controllers\KendaraanFotoController;
 use App\Http\Controllers\KendaraanImportController;
 use App\Http\Controllers\KendaraanKomponenController;
 use App\Http\Controllers\MaintenanceController;
@@ -51,6 +52,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::resource('kendaraan', KendaraanController::class)
         ->only(['index', 'show']);
+
+    // Manajemen foto kendaraan.
+    Route::post('/kendaraan/{kendaraan}/foto', [KendaraanFotoController::class, 'store'])->name('kendaraan.foto.store');
+    Route::delete('/kendaraan/{kendaraan}/foto/{kendaraanFoto}', [KendaraanFotoController::class, 'destroy'])->name('kendaraan.foto.destroy');
+    Route::patch('/kendaraan/{kendaraan}/foto/{kendaraanFoto}/utama', [KendaraanFotoController::class, 'setUtama'])->name('kendaraan.foto.set-utama');
 
     Route::get('/pengelola/kendaraan', [PengelolaKendaraanController::class, 'index'])->name('pengelola.kendaraan');
 
