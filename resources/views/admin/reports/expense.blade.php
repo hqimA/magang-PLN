@@ -39,10 +39,10 @@
                         </p>
                     </div>
 
-                    <form method="GET" action="{{ route('laporan-pengeluaran.index') }}" class="grid w-full min-w-0 gap-3 rounded-2xl border border-white/10 bg-white/[0.06] p-4 backdrop-blur sm:grid-cols-[repeat(2,minmax(0,1fr))] lg:grid-cols-[minmax(0,1fr)_9rem_minmax(0,1fr)_auto] lg:items-end">
+                    <form method="GET" action="{{ route('laporan-pengeluaran.index') }}" class="grid w-full min-w-0 gap-3 rounded-2xl border border-white/10 bg-white/[0.06] p-4 backdrop-blur sm:grid-cols-[repeat(2,minmax(0,1fr))] lg:grid-cols-[9rem_9rem_13rem_max-content] lg:items-end lg:justify-start">
                         <div class="grid min-w-0 gap-1.5">
                             <label for="bulan" class="text-xs font-medium text-slate-300">{{ __('Periode Bulan') }}</label>
-                            <select id="bulan" name="bulan" class="w-full min-w-0 max-w-36 rounded-lg border-white/30 bg-white/10 text-sm text-white shadow-sm focus:border-white focus:ring-white">
+                            <select id="bulan" name="bulan" class="w-full min-w-0 rounded-lg border-white/30 bg-white/10 text-sm text-white shadow-sm focus:border-white focus:ring-white">
                                 @foreach ([1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'] as $nomorBulan => $namaBulan)
                                     <option value="{{ $nomorBulan }}" @selected($bulan === $nomorBulan)>{{ __($namaBulan) }}</option>
                                 @endforeach
@@ -50,7 +50,7 @@
                         </div>
                         <div class="grid min-w-0 gap-1.5">
                             <label for="tahun" class="text-xs font-medium text-slate-300">{{ __('Tahun') }}</label>
-                            <input id="tahun" name="tahun" type="number" min="1000" max="9999" value="{{ $tahun }}" class="w-full min-w-0 max-w-36 rounded-lg border-white/30 bg-white/10 text-sm text-white shadow-sm focus:border-white focus:ring-white">
+                            <input id="tahun" name="tahun" type="number" min="1000" max="9999" value="{{ $tahun }}" class="w-full min-w-0 rounded-lg border-white/30 bg-white/10 text-sm text-white shadow-sm focus:border-white focus:ring-white">
                         </div>
                         <div class="grid min-w-0 gap-1.5">
                             <label for="unit_pln" class="text-xs font-medium text-slate-300">{{ __('Unit PLN') }}</label>
