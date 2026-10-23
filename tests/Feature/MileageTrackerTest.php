@@ -35,35 +35,33 @@ class MileageTrackerTest extends TestCase
         return Kendaraan::factory()->for($this->user(), 'pengelola')->create($attributes);
     }
 
-    public function test_mileage_form_mengunci_kilometer_awal_dan_memungkinkan_kilometer_akhir(): void
+    public function test_mileage_home_page_is_no_longer_available(): void
+    {
+        $this->actingAs($this->user())
+            ->get('/mileage')
+            ->assertNotFound();
+    }
+
+    public function test_detail_kendaraan_hanya_menampilkan_tombol_catat_kilometer(): void
     {
         $user = $this->user();
-        $kendaraan = $this->kendaraan();
+        $kendaraan = $this->kendaraan(['kilometer_terakhir' => 1250]);
 
-        Mileage::create([
-            'id_kendaraan' => $kendaraan->id,
-            'tanggal_perjalanan' => now()->subDay()->toDateString(),
-            'kilometer_awal' => 1000,
-            'kilometer_akhir' => 1150,
-            'status_perjalanan' => 'SELESAI',
-            'keterangan' => 'Perjalanan uji',
-            'foto_bukti' => 'mileage/evidence.jpg',
-            'id_pencatat' => $user->id,
-        ]);
+        $this->actingAs($user)
+            ->get(route('kendaraan.show', $kendaraan->id))
+            ->assertOk()
+            ->assertSee('Catat Kilometer')
+            ->assertSee(route('mileage.odometer', ['kendaraan' => $kendaraan->id]), false)
+            ->assertSee('Kembali')
+            ->assertDontSee('Catat Perjalanan')
+            ->assertDontSee('name="keterangan"', false);
+    }
 
-        $response = $this->actingAs($user)->get(route('mileage.index'));
-
-        $response->assertOk();
-        $response->assertSee($kendaraan->plat_nomor);
-        $response->assertSee('id="kilometer_awal"', false);
-        $response->assertSee('name="kilometer_awal"', false);
-        $response->assertSee('readonly', false);
-        $response->assertSee('name="kilometer_akhir"', false);
-        $response->assertSee('name="foto_bukti"', false);
-        $response->assertDontSee('Perjalanan uji');
-        $response->assertDontSee('storage/mileage/evidence.jpg');
-        $response->assertDontSee('Histori Perjalanan');
-        $response->assertDontSee('Status Perjalanan');
+    public function test_trip_recording_endpoint_is_no_longer_available(): void
+    {
+        $this->actingAs($this->user())
+            ->post('/mileage/trip')
+            ->assertNotFound();
     }
 
     public function test_halaman_odometer_menampilkan_odometer_terakhir_kendaraan(): void
@@ -92,7 +90,7 @@ class MileageTrackerTest extends TestCase
             'foto_bukti' => UploadedFile::fake()->image('odometer.jpg'),
         ]);
 
-        $response->assertRedirect(route('mileage.odometer', ['kendaraan' => $kendaraan->id]));
+        $response->assertRedirect(route('kendaraan.show', $kendaraan->id));
         $this->assertDatabaseHas('mileage', [
             'id_kendaraan' => $kendaraan->id,
             'kilometer_awal' => 5000,
@@ -131,57 +129,6 @@ class MileageTrackerTest extends TestCase
         ])->assertSessionHasErrors('foto_bukti');
 
         $this->assertDatabaseMissing('mileage', ['id_kendaraan' => $kendaraan->id]);
-    }
-
-    public function test_mileage_tracker_membaca_odometer_terkini_dari_database(): void
-    {
-        $user = $this->user();
-        $kendaraan = $this->kendaraan(['kilometer_terakhir' => 1250]);
-
-        $this->actingAs($user)
-            ->get(route('mileage.index', ['kendaraan' => $kendaraan->id]))
-            ->assertOk()
-            ->assertSee('1,250 km');
-    }
-
-    public function test_trip_menolak_kilometer_akhir_di_bawah_awal(): void
-    {
-        $user = $this->user();
-        $kendaraan = $this->kendaraan(['kilometer_terakhir' => 1000]);
-
-        $this->actingAs($user)->post(route('mileage.trip.store'), [
-            'id_kendaraan' => $kendaraan->id,
-            'tanggal_perjalanan' => now()->toDateString(),
-            'kilometer_awal' => 1000,
-            'kilometer_akhir' => 900,
-            'status_perjalanan' => 'SELESAI',
-            'foto_bukti' => UploadedFile::fake()->image('odometer.jpg'),
-        ])->assertSessionHasErrors('kilometer_akhir');
-
-        $this->assertDatabaseMissing('mileage', ['id_kendaraan' => $kendaraan->id]);
-    }
-
-    public function test_trip_menggunakan_km_awal_kendaraan_meski_request_dimanipulasi(): void
-    {
-        $user = $this->user();
-        $kendaraan = $this->kendaraan(['kilometer_terakhir' => 1000]);
-        $fotoBukti = UploadedFile::fake()->image('odometer.jpg');
-
-        $response = $this->actingAs($user)->post(route('mileage.trip.store'), [
-            'id_kendaraan' => $kendaraan->id,
-            'tanggal_perjalanan' => now()->toDateString(),
-            'kilometer_awal' => 25,
-            'kilometer_akhir' => 1150,
-            'foto_bukti' => $fotoBukti,
-        ]);
-
-        $response->assertRedirect(route('mileage.index', ['kendaraan' => $kendaraan->id]));
-        $this->assertDatabaseHas('mileage', [
-            'id_kendaraan' => $kendaraan->id,
-            'kilometer_awal' => 1000,
-            'kilometer_akhir' => 1150,
-        ]);
-        $this->assertSame(1150, $kendaraan->fresh()->kilometer_terakhir);
     }
 
     public function test_halaman_history_dapat_disaring(): void

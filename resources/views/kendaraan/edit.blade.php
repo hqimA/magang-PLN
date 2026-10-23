@@ -111,21 +111,18 @@
                                 <x-input-error :messages="$errors->get('tanggal_kir_berlaku_sampai')" class="mt-2" />
                             </div>
 
-                            <!-- Status Perawatan -->
+                            <!-- Pengelola -->
                             <div>
-                                <x-input-label for="status_perawatan" :value="__('Status Kendaraan')" />
-                                <select id="status_perawatan" name="status_perawatan" class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm block mt-1 w-full" required>
-                                    <option value="">-- Pilih Status --</option>
-                                    <option value="BAIK" {{ old('status_perawatan', $kendaraan->status_perawatan) == 'BAIK' ? 'selected' : '' }}>Aktif (Baik)</option>
-                                    <option value="PERLU_SERVIS" {{ old('status_perawatan', $kendaraan->status_perawatan) == 'PERLU_SERVIS' ? 'selected' : '' }}>Maintenance (Perlu Servis)</option>
-                                    <option value="SEDANG_SERVIS" {{ old('status_perawatan', $kendaraan->status_perawatan) == 'SEDANG_SERVIS' ? 'selected' : '' }}>Maintenance (Sedang Servis)</option>
-                                    <option value="RUSAK" {{ old('status_perawatan', $kendaraan->status_perawatan) == 'RUSAK' ? 'selected' : '' }}>Tidak Aktif (Rusak)</option>
+                                <x-input-label for="id_pengelola" :value="__('Pengelola')" />
+                                <select id="id_pengelola" name="id_pengelola" class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm block mt-1 w-full" required>
+                                    <option value="">-- Pilih Pengelola --</option>
+                                    @foreach($pengelolas as $p)
+                                        <option value="{{ $p->id }}" {{ old('id_pengelola', $kendaraan->id_pengelola) == $p->id ? 'selected' : '' }}>{{ $p->name }} ({{ $p->unit_pln?->value ?? 'Belum ada unit' }})</option>
+                                    @endforeach
                                 </select>
-                                <x-input-error :messages="$errors->get('status_perawatan')" class="mt-2" />
+                                <x-input-error :messages="$errors->get('id_pengelola')" class="mt-2" />
+                                <p class="mt-1 text-xs text-gray-500">Jika Pengelola belum memiliki Unit PLN, unitnya akan mengikuti Unit PLN kendaraan saat disimpan.</p>
                             </div>
-
-                            <!-- Pengelola (otomatis dari Unit PLN) -->
-                            <x-input-error :messages="$errors->get('id_pengelola')" class="mt-2" />
                         </div>
 
                         <div class="flex items-center justify-end mt-6">

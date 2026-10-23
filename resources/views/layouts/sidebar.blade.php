@@ -52,7 +52,7 @@
                 <i class="hgi hgi-stroke hgi-wrench-01 h-5 w-5 shrink-0"></i>
                 <span>{{ __('Maintenance') }}</span>
             </span>
-            <x-maintenance-request-badge />
+            <x-active-maintenance-badge />
         </a>
 
         <a href="{{ route('service-reminder.index') }}" class="mt-1 flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition duration-150 ease-in-out {{ request()->routeIs('service-reminder.*', 'service-reminders.*') ? 'border-sky-200 bg-gradient-to-r from-sky-100 to-blue-50 text-blue-800' : 'border-transparent text-slate-300 hover:border-white/10 hover:bg-white/5 hover:text-white' }}">
@@ -61,11 +61,6 @@
                 <span>{{ __('Service Reminder') }}</span>
             </span>
             <x-service-reminder-badge />
-        </a>
-
-        <a href="{{ route('mileage.index') }}" class="mt-1 flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium transition duration-150 ease-in-out {{ request()->routeIs('mileage.*') ? 'border-sky-200 bg-gradient-to-r from-sky-100 to-blue-50 text-blue-800' : 'border-transparent text-slate-300 hover:border-white/10 hover:bg-white/5 hover:text-white' }}">
-            <i class="hgi hgi-stroke hgi-dashboard-speed-01 text-xl shrink-0"></i>
-            <span>{{ __('Mileage') }}</span>
         </a>
 
         @if($isAdmin)

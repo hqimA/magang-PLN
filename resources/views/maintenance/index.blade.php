@@ -11,9 +11,6 @@
             <nav class="flex flex-wrap gap-2" aria-label="Filter status maintenance">
                     <a href="{{ route('maintenance.index', ['tab' => 'pengajuan']) }}" @if($tab === 'pengajuan') aria-current="page" @endif class="inline-flex items-center rounded-md px-4 py-2 text-sm font-medium shadow-sm transition {{ $tab === 'pengajuan' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100' }}">
                         Pengajuan Maintenance
-                        @if($newRequestNotificationCount > 0 && auth()->user()->isAdmin())
-                            <span class="ml-2 inline-flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-xs font-semibold text-white">{{ $newRequestNotificationCount }}</span>
-                        @endif
                     </a>
                     <a href="{{ route('maintenance.index', ['tab' => 'proses']) }}" @if($tab === 'proses') aria-current="page" @endif class="inline-flex items-center rounded-md px-4 py-2 text-sm font-medium shadow-sm transition {{ $tab === 'proses' ? 'bg-amber-500 text-white' : 'bg-amber-100 text-amber-800 hover:bg-amber-200' }}">
                         Proses Maintenance
@@ -38,33 +35,6 @@
                                 </a>
                             @endif
                         </div>
-
-                        @if(auth()->user()->isAdmin() && $incomingNotifications->isNotEmpty())
-                            <section class="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4" aria-label="Notifikasi pengajuan maintenance baru">
-                                <h4 class="font-semibold text-amber-900">Pengajuan Maintenance Baru ({{ $newRequestNotificationCount }})</h4>
-                                <ul class="mt-3 divide-y divide-amber-200">
-                                    @foreach($incomingNotifications as $notification)
-                                        <li class="flex flex-wrap items-center justify-between gap-3 py-3">
-                                            <div>
-                                                <p class="font-medium text-amber-950">{{ $notification->judul }}</p>
-                                                <p class="text-sm text-amber-800">{{ $notification->pesan }}</p>
-                                                <p class="mt-1 text-xs text-amber-700">{{ $notification->dibuat_pada?->translatedFormat('d M Y H:i') }}</p>
-                                            </div>
-                                            <div class="flex items-center gap-3">
-                                                @if($notification->pengajuan_id)
-                                                    <a href="{{ route('maintenance.show', ['pengajuan' => $notification->pengajuan_id, 'tab' => 'pengajuan']) }}" class="text-sm font-medium text-indigo-700 hover:text-indigo-900">Lihat pengajuan</a>
-                                                @endif
-                                                <form method="POST" action="{{ route('maintenance.notifications.read', $notification) }}">
-                                                    @csrf
-                                                    @method('PATCH')
-                                                    <button type="submit" class="text-sm font-medium text-amber-900 underline hover:text-amber-700">Tandai dibaca</button>
-                                                </form>
-                                            </div>
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            </section>
-                        @endif
 
                         @if($pengajuanMaintenance->isEmpty())
                             <div class="text-center py-8 text-gray-500">

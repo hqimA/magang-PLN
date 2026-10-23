@@ -27,7 +27,6 @@ class KendaraanController extends Controller
     {
         $user = $request->user();
         $search = trim((string) $request->query('search', ''));
-        $status = (string) $request->query('status', '');
 
         $kendaraans = Kendaraan::query()
             ->visibleTo($user)
@@ -41,24 +40,29 @@ class KendaraanController extends Controller
                         });
                 });
             })
-            ->when(in_array($status, ['BAIK', 'PERLU_SERVIS', 'SEDANG_SERVIS', 'RUSAK'], true), function ($query) use ($status) {
-                $query->where('status_perawatan', $status);
-            })
             ->orderBy('plat_nomor')
             ->get();
 
         $isAdmin = $user->isAdmin();
 
-        return view('kendaraan.index', compact('kendaraans', 'isAdmin', 'search', 'status'));
+        return view('kendaraan.index', compact('kendaraans', 'isAdmin', 'search'));
     }
 
     public function create(Request $request)
     {
         $user = $request->user();
 
+        $pengelolas = $user->isAdmin()
+            ? User::query()
+                ->where('peran', 'PENGELOLA')
+                ->whereIn('unit_pln', array_column(UnitPln::cases(), 'value'))
+                ->orderBy('name')
+                ->get()
+            : User::whereKey($user->id)->get();
+
         $unitPln = UnitPln::cases();
 
-        return view('kendaraan.create', compact('unitPln'));
+        return view('kendaraan.create', compact('pengelolas', 'unitPln'));
     }
 
     public function store(Request $request, KomponenServisService $komponenService)
@@ -76,14 +80,19 @@ class KendaraanController extends Controller
             'kilometer_terakhir' => 'required|integer',
             'tanggal_pembelian' => 'required|date',
             ...$this->documentExpiryDateRules($request),
+            'id_pengelola' => [
+                'required',
+                Rule::exists('users', 'id')
+                    ->where('peran', 'PENGELOLA')
+                    ->where('unit_pln', $request->input('unit_pln')),
+            ],
         ]);
 
+        $this->validateManagerUnit($validated);
         $validated['status_perawatan'] = 'BAIK';
 
-        // Pengelola ditentukan otomatis dari unit PLN yang dipilih.
-        if ($user->isAdmin()) {
-            $validated['id_pengelola'] = $this->resolveManagerByUnit($validated['unit_pln']);
-        } else {
+        // Pengelola hanya dapat membuat kendaraan atas namanya sendiri.
+        if (! $user->isAdmin()) {
             $validated['id_pengelola'] = $user->id;
         }
 
@@ -138,10 +147,14 @@ class KendaraanController extends Controller
 
         $this->authorizeKendaraan($user, $kendaraan);
 
+        $pengelolas = $user->isAdmin()
+            ? User::where('peran', 'PENGELOLA')->orderBy('name')->get()
+            : User::whereKey($user->id)->get();
+
         $unitPln = UnitPln::cases();
         $kendaraan->load('fotos');
 
-        return view('kendaraan.edit', compact('kendaraan', 'unitPln'));
+        return view('kendaraan.edit', compact('kendaraan', 'pengelolas', 'unitPln'));
     }
 
     public function update(Request $request, string $id, KomponenServisService $komponenService)
@@ -161,14 +174,15 @@ class KendaraanController extends Controller
             'unit_pln' => ['required', Rule::in(array_column(UnitPln::cases(), 'value'))],
             'tanggal_pembelian' => 'required|date',
             ...$this->documentExpiryDateRules($request),
-            'status_perawatan' => 'required|in:BAIK,PERLU_SERVIS,SEDANG_SERVIS,RUSAK',
+            'id_pengelola' => [
+                'required',
+                Rule::exists('users', 'id')
+                    ->where('peran', 'PENGELOLA'),
+            ],
         ]);
 
-        // Pengelola ditentukan otomatis dari unit PLN yang dipilih.
         // Pengelola tidak dapat memindahkan kendaraan ke pengelola lain.
-        if ($user->isAdmin()) {
-            $validated['id_pengelola'] = $this->resolveManagerByUnit($validated['unit_pln']);
-        } else {
+        if (! $user->isAdmin()) {
             $validated['id_pengelola'] = $kendaraan->id_pengelola;
         }
 
@@ -177,6 +191,12 @@ class KendaraanController extends Controller
 
         try {
             DB::transaction(function () use ($kendaraan, $validated, $specificationsChanged, $komponenService): void {
+                $manager = User::query()
+                    ->where('peran', 'PENGELOLA')
+                    ->lockForUpdate()
+                    ->findOrFail($validated['id_pengelola']);
+
+                $this->assignManagerUnitIfUnassigned($manager, $validated['unit_pln']);
                 $kendaraan->update($validated);
 
                 if ($specificationsChanged) {
@@ -287,21 +307,30 @@ class KendaraanController extends Controller
     }
 
     /**
-     * @throws ValidationException
+     * @param  array<string, mixed>  $validated
      */
-    private function resolveManagerByUnit(string $unitPln): int
+    private function validateManagerUnit(array $validated): void
     {
-        $manager = User::query()
-            ->where('peran', 'PENGELOLA')
-            ->where('unit_pln', $unitPln)
-            ->first();
+        $manager = User::query()->findOrFail($validated['id_pengelola']);
 
-        if ($manager === null) {
+        if ($manager->unit_pln?->value !== $validated['unit_pln']) {
             throw ValidationException::withMessages([
-                'unit_pln' => "Belum ada akun Pengelola yang terdaftar di unit {$unitPln}. Atur unit akun pengelola terlebih dahulu.",
+                'id_pengelola' => 'Pengelola harus berasal dari Unit PLN kendaraan yang dipilih.',
+            ]);
+        }
+    }
+
+    private function assignManagerUnitIfUnassigned(User $manager, string $unitPln): void
+    {
+        if ($manager->unit_pln !== null && $manager->unit_pln->value !== $unitPln) {
+            throw ValidationException::withMessages([
+                'id_pengelola' => 'Pengelola harus berasal dari Unit PLN kendaraan yang dipilih.',
             ]);
         }
 
-        return $manager->id;
+        if ($manager->unit_pln === null) {
+            $manager->unit_pln = $unitPln;
+            $manager->save();
+        }
     }
 }

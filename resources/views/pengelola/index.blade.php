@@ -118,9 +118,9 @@
                                     <p class="text-xs text-gray-500">{{ $selected->plat_nomor }} &mdash; {{ $selected->merk_tipe }}</p>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <a href="{{ route('mileage.index', ['kendaraan' => $selected->id]) }}"
+                                    <a href="{{ route('kendaraan.show', $selected->id) }}"
                                        class="inline-flex items-center px-3 py-1 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50">
-                                        Mileage Tracker
+                                        Detail Kendaraan
                                     </a>
                                     @if ($isAdmin)
                                         <a href="{{ route('kendaraan.edit', $selected->id) }}"

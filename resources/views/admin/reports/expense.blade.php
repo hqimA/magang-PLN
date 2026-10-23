@@ -39,7 +39,7 @@
                         </p>
                     </div>
 
-                    <form method="GET" action="{{ route('laporan-pengeluaran.index') }}" class="grid w-full min-w-0 gap-3 rounded-2xl border border-white/10 bg-white/[0.06] p-4 backdrop-blur sm:grid-cols-[repeat(2,minmax(0,1fr))] lg:grid-cols-[9rem_9rem_13rem_max-content] lg:items-end lg:justify-start">
+                    <form method="GET" action="{{ route('laporan-pengeluaran.index') }}" class="expense-report-filters grid w-full min-w-0 gap-3 rounded-2xl border border-white/10 bg-white/[0.06] p-4 backdrop-blur sm:grid-cols-[repeat(2,minmax(0,1fr))] lg:grid-cols-[9rem_9rem_13rem_max-content] lg:items-end lg:justify-start">
                         <div class="grid min-w-0 gap-1.5">
                             <label for="bulan" class="text-xs font-medium text-slate-300">{{ __('Periode Bulan') }}</label>
                             <select id="bulan" name="bulan" class="w-full min-w-0 rounded-lg border-white/30 bg-white/10 text-sm text-white shadow-sm focus:border-white focus:ring-white">

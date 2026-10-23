@@ -16,8 +16,9 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @stack('head')
     </head>
-    <body class="app-shell font-sans antialiased text-slate-900">
+    <body class="app-shell font-sans antialiased text-slate-900 {{ request()->routeIs('dashboard') && auth()->user()?->isAdmin() ? 'admin-dashboard-page' : '' }} {{ request()->routeIs('dashboard') && auth()->user()?->isPengelola() ? 'pengelola-dashboard-page' : '' }}">
         <div x-data class="min-h-screen">
             @include('layouts.sidebar')
 
@@ -71,5 +72,6 @@
 
         {{-- Global Image Fullscreen Lightbox --}}
         <x-image-modal />
+        @stack('scripts')
     </body>
 </html>

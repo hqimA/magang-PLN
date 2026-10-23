@@ -19,6 +19,10 @@ w<x-app-layout>
                         Edit Kendaraan
                     </a>
                 @endif
+                <a href="{{ route('mileage.odometer', ['kendaraan' => $kendaraan->id]) }}"
+                   class="inline-flex items-center px-4 py-2 rounded-md bg-indigo-600 text-xs font-semibold uppercase tracking-widest text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                    Catat Kilometer
+                </a>
                 <a href="{{ route('kendaraan.index') }}"
                    class="inline-flex items-center px-4 py-2 bg-gray-200 border border-transparent rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest hover:bg-gray-300 transition">
                     &larr; Kembali
@@ -178,7 +182,7 @@ w<x-app-layout>
                 </div>
             </div>
 
-            {{-- 3. Daftar Suku Cadang & Komponen Milik Kendaraan Ini --}}
+            {{-- 4. Daftar Suku Cadang & Komponen Milik Kendaraan Ini --}}
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5 border-b pb-4">

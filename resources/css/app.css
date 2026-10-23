@@ -37,6 +37,10 @@
         @apply rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_12px_28px_rgba(15,23,42,0.08)];
     }
 
+    .expense-report-filters select option {
+        background-color: #ffffff;
+        color: #173b5e;
+    }
 }
 
 .app-shell .app-sidebar {
@@ -51,6 +55,10 @@
 .app-shell .app-sidebar nav > a,
 .app-shell .app-sidebar nav > div > button {
     color: rgb(255 255 255 / 0.94);
+}
+
+.app-shell .app-sidebar a {
+    text-decoration: none;
 }
 
 .app-shell .app-sidebar nav > a:hover,
@@ -97,7 +105,23 @@
     color: #ffffff;
 }
 
-.app-shell .app-header {
+.app-shell.admin-dashboard-page .app-sidebar nav > a {
+    text-decoration: none;
+}
+
+.app-shell.admin-dashboard-page .app-sidebar nav > a:not(.bg-gradient-to-r) {
+    border-color: transparent !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.app-shell.admin-dashboard-page .app-sidebar nav > a:not(.bg-gradient-to-r):hover {
+    border-color: transparent !important;
+    background: rgb(255 255 255 / 0.08) !important;
+}
+
+.app-shell.admin-dashboard-page .app-header {
     border-color: #d6eaff;
     background-color: rgba(255, 255, 255, 0.88);
     box-shadow: 0 8px 24px rgba(33, 150, 243, 0.06);
@@ -107,136 +131,181 @@
     min-width: 0;
 }
 
-.app-shell .app-main .max-w-7xl {
-    width: calc(100% - 2rem);
+.app-shell.pengelola-dashboard-page .app-main {
+    background: linear-gradient(180deg, #f1f7fd 0%, #eaf3fc 100%);
 }
 
-.app-shell .app-main h1,
-.app-shell .app-main h2 {
-    color: #173b5e;
+.pengelola-dashboard-page .pengelola-dashboard__hero {
+    background: linear-gradient(120deg, #2196f3 0%, #1976d2 55%, #0d47a1 100%);
+    border: 1px solid rgb(13 71 161 / 0.2);
+    box-shadow: 0 20px 40px rgb(13 71 161 / 0.18);
 }
 
-.app-shell [class~="text-sky-500"],
-.app-shell [class~="text-sky-600"],
-.app-shell [class~="text-sky-700"],
-.app-shell [class~="text-blue-500"],
-.app-shell [class~="text-blue-600"],
-.app-shell [class~="text-blue-700"],
-.app-shell [class~="text-indigo-500"],
-.app-shell [class~="text-indigo-600"],
-.app-shell [class~="text-indigo-700"] {
-    color: #1976d2;
+.pengelola-dashboard-page .pengelola-dashboard__eyebrow {
+    color: #dbeafe;
 }
 
-.app-shell [class~="text-sky-800"],
-.app-shell [class~="text-sky-900"],
-.app-shell [class~="text-sky-950"],
-.app-shell [class~="text-blue-800"],
-.app-shell [class~="text-blue-900"],
-.app-shell [class~="text-blue-950"],
-.app-shell [class~="text-indigo-800"],
-.app-shell [class~="text-indigo-900"],
-.app-shell [class~="text-indigo-950"] {
+.pengelola-dashboard-page .pengelola-dashboard__title,
+.pengelola-dashboard-page .pengelola-dashboard__intro {
+    color: #ffffff;
+}
+
+.pengelola-dashboard-page .pengelola-dashboard__unit,
+.pengelola-dashboard-page .pengelola-dashboard__action--secondary {
+    background-color: rgb(255 255 255 / 0.12);
+    border-color: rgb(255 255 255 / 0.38);
+    color: #ffffff;
+}
+
+.pengelola-dashboard-page .pengelola-dashboard__action--primary {
+    background-color: #ffffff;
     color: #0d47a1;
 }
 
-.app-shell [class~="bg-sky-50"],
-.app-shell [class~="bg-blue-50"],
-.app-shell [class~="bg-indigo-50"],
-.app-shell [class~="bg-sky-50/70"],
-.app-shell [class~="bg-blue-50/70"],
-.app-shell [class~="bg-indigo-50/70"] {
+.pengelola-dashboard-page .pengelola-dashboard__action--primary:hover {
+    background-color: #eaf4ff;
+}
+
+.pengelola-dashboard-page .pengelola-dashboard__action--secondary:hover {
+    background-color: rgb(255 255 255 / 0.22);
+}
+
+.pengelola-dashboard-page .gacor-card {
+    background-color: #ffffff;
+    border-color: #d6e5f3;
+    box-shadow: 0 12px 28px rgb(13 71 161 / 0.08);
+}
+
+.app-shell.admin-dashboard-page .app-main .max-w-7xl {
+    width: calc(100% - 2rem);
+}
+
+.app-shell.admin-dashboard-page .app-main h1,
+.app-shell.admin-dashboard-page .app-main h2 {
+    color: #173b5e;
+}
+
+.app-shell.admin-dashboard-page [class~="text-sky-500"],
+.app-shell.admin-dashboard-page [class~="text-sky-600"],
+.app-shell.admin-dashboard-page [class~="text-sky-700"],
+.app-shell.admin-dashboard-page [class~="text-blue-500"],
+.app-shell.admin-dashboard-page [class~="text-blue-600"],
+.app-shell.admin-dashboard-page [class~="text-blue-700"],
+.app-shell.admin-dashboard-page [class~="text-indigo-500"],
+.app-shell.admin-dashboard-page [class~="text-indigo-600"],
+.app-shell.admin-dashboard-page [class~="text-indigo-700"] {
+    color: #1976d2;
+}
+
+.app-shell.admin-dashboard-page [class~="text-sky-800"],
+.app-shell.admin-dashboard-page [class~="text-sky-900"],
+.app-shell.admin-dashboard-page [class~="text-sky-950"],
+.app-shell.admin-dashboard-page [class~="text-blue-800"],
+.app-shell.admin-dashboard-page [class~="text-blue-900"],
+.app-shell.admin-dashboard-page [class~="text-blue-950"],
+.app-shell.admin-dashboard-page [class~="text-indigo-800"],
+.app-shell.admin-dashboard-page [class~="text-indigo-900"],
+.app-shell.admin-dashboard-page [class~="text-indigo-950"] {
+    color: #0d47a1;
+}
+
+.app-shell.admin-dashboard-page [class~="bg-sky-50"],
+.app-shell.admin-dashboard-page [class~="bg-blue-50"],
+.app-shell.admin-dashboard-page [class~="bg-indigo-50"],
+.app-shell.admin-dashboard-page [class~="bg-sky-50/70"],
+.app-shell.admin-dashboard-page [class~="bg-blue-50/70"],
+.app-shell.admin-dashboard-page [class~="bg-indigo-50/70"] {
     background-color: #eff7ff;
 }
 
-.app-shell [class~="bg-sky-100"],
-.app-shell [class~="bg-blue-100"],
-.app-shell [class~="bg-indigo-100"] {
+.app-shell.admin-dashboard-page [class~="bg-sky-100"],
+.app-shell.admin-dashboard-page [class~="bg-blue-100"],
+.app-shell.admin-dashboard-page [class~="bg-indigo-100"] {
     background-color: #e3f2fd;
 }
 
-.app-shell [class~="bg-sky-500"],
-.app-shell [class~="bg-blue-500"],
-.app-shell [class~="bg-sky-600"],
-.app-shell [class~="bg-blue-600"],
-.app-shell [class~="bg-indigo-600"] {
+.app-shell.admin-dashboard-page [class~="bg-sky-500"],
+.app-shell.admin-dashboard-page [class~="bg-blue-500"],
+.app-shell.admin-dashboard-page [class~="bg-sky-600"],
+.app-shell.admin-dashboard-page [class~="bg-blue-600"],
+.app-shell.admin-dashboard-page [class~="bg-indigo-600"] {
     background-color: #2196f3;
 }
 
-.app-shell [class~="bg-sky-700"],
-.app-shell [class~="bg-blue-700"],
-.app-shell [class~="bg-indigo-700"] {
+.app-shell.admin-dashboard-page [class~="bg-sky-700"],
+.app-shell.admin-dashboard-page [class~="bg-blue-700"],
+.app-shell.admin-dashboard-page [class~="bg-indigo-700"] {
     background-color: #1976d2;
 }
 
-.app-shell [class~="border-sky-50"],
-.app-shell [class~="border-blue-50"],
-.app-shell [class~="border-indigo-50"],
-.app-shell [class~="border-sky-100"],
-.app-shell [class~="border-blue-100"],
-.app-shell [class~="border-indigo-100"] {
+.app-shell.admin-dashboard-page [class~="border-sky-50"],
+.app-shell.admin-dashboard-page [class~="border-blue-50"],
+.app-shell.admin-dashboard-page [class~="border-indigo-50"],
+.app-shell.admin-dashboard-page [class~="border-sky-100"],
+.app-shell.admin-dashboard-page [class~="border-blue-100"],
+.app-shell.admin-dashboard-page [class~="border-indigo-100"] {
     border-color: #d6eaff;
 }
 
-.app-shell [class~="border-sky-200"],
-.app-shell [class~="border-blue-200"],
-.app-shell [class~="border-indigo-200"],
-.app-shell [class~="border-sky-300"],
-.app-shell [class~="border-blue-300"],
-.app-shell [class~="border-indigo-300"] {
+.app-shell.admin-dashboard-page [class~="border-sky-200"],
+.app-shell.admin-dashboard-page [class~="border-blue-200"],
+.app-shell.admin-dashboard-page [class~="border-indigo-200"],
+.app-shell.admin-dashboard-page [class~="border-sky-300"],
+.app-shell.admin-dashboard-page [class~="border-blue-300"],
+.app-shell.admin-dashboard-page [class~="border-indigo-300"] {
     border-color: #90caf9;
 }
 
-.app-shell [class~="from-sky-600"],
-.app-shell [class~="from-blue-600"],
-.app-shell [class~="from-indigo-600"] {
+.app-shell.admin-dashboard-page [class~="from-sky-600"],
+.app-shell.admin-dashboard-page [class~="from-blue-600"],
+.app-shell.admin-dashboard-page [class~="from-indigo-600"] {
     --tw-gradient-from: #2196f3 var(--tw-gradient-from-position);
     --tw-gradient-to: rgb(33 150 243 / 0) var(--tw-gradient-to-position);
 }
 
-.app-shell [class~="via-sky-600"],
-.app-shell [class~="via-blue-600"],
-.app-shell [class~="via-indigo-600"] {
+.app-shell.admin-dashboard-page [class~="via-sky-600"],
+.app-shell.admin-dashboard-page [class~="via-blue-600"],
+.app-shell.admin-dashboard-page [class~="via-indigo-600"] {
     --tw-gradient-via: #2196f3 var(--tw-gradient-via-position);
     --tw-gradient-to: rgb(33 150 243 / 0) var(--tw-gradient-to-position);
 }
 
-.app-shell [class~="hover:bg-sky-50"]:hover,
-.app-shell [class~="hover:bg-blue-50"]:hover,
-.app-shell [class~="hover:bg-indigo-50"]:hover {
+.app-shell.admin-dashboard-page [class~="hover:bg-sky-50"]:hover,
+.app-shell.admin-dashboard-page [class~="hover:bg-blue-50"]:hover,
+.app-shell.admin-dashboard-page [class~="hover:bg-indigo-50"]:hover {
     background-color: #eff7ff;
 }
 
-.app-shell [class~="hover:bg-sky-100"]:hover,
-.app-shell [class~="hover:bg-blue-100"]:hover,
-.app-shell [class~="hover:bg-indigo-100"]:hover {
+.app-shell.admin-dashboard-page [class~="hover:bg-sky-100"]:hover,
+.app-shell.admin-dashboard-page [class~="hover:bg-blue-100"]:hover,
+.app-shell.admin-dashboard-page [class~="hover:bg-indigo-100"]:hover {
     background-color: #e3f2fd;
 }
 
-.app-shell [class~="hover:bg-sky-700"]:hover,
-.app-shell [class~="hover:bg-blue-700"]:hover,
-.app-shell [class~="hover:bg-indigo-700"]:hover {
+.app-shell.admin-dashboard-page [class~="hover:bg-sky-700"]:hover,
+.app-shell.admin-dashboard-page [class~="hover:bg-blue-700"]:hover,
+.app-shell.admin-dashboard-page [class~="hover:bg-indigo-700"]:hover {
     background-color: #1976d2;
 }
 
-.app-shell [class~="hover:text-sky-700"]:hover,
-.app-shell [class~="hover:text-sky-800"]:hover,
-.app-shell [class~="hover:text-blue-700"]:hover,
-.app-shell [class~="hover:text-blue-800"]:hover,
-.app-shell [class~="hover:text-indigo-700"]:hover,
-.app-shell [class~="hover:text-indigo-800"]:hover {
+.app-shell.admin-dashboard-page [class~="hover:text-sky-700"]:hover,
+.app-shell.admin-dashboard-page [class~="hover:text-sky-800"]:hover,
+.app-shell.admin-dashboard-page [class~="hover:text-blue-700"]:hover,
+.app-shell.admin-dashboard-page [class~="hover:text-blue-800"]:hover,
+.app-shell.admin-dashboard-page [class~="hover:text-indigo-700"]:hover,
+.app-shell.admin-dashboard-page [class~="hover:text-indigo-800"]:hover {
     color: #1565c0;
 }
 
-.app-shell [class~="focus:border-sky-500"]:focus,
-.app-shell [class~="focus:border-blue-500"]:focus,
-.app-shell [class~="focus:border-indigo-500"]:focus {
+.app-shell.admin-dashboard-page [class~="focus:border-sky-500"]:focus,
+.app-shell.admin-dashboard-page [class~="focus:border-blue-500"]:focus,
+.app-shell.admin-dashboard-page [class~="focus:border-indigo-500"]:focus {
     border-color: #2196f3;
 }
 
-.app-shell [class~="focus:ring-sky-200"]:focus,
-.app-shell [class~="focus:ring-blue-200"]:focus,
-.app-shell [class~="focus:ring-indigo-500"]:focus {
+.app-shell.admin-dashboard-page [class~="focus:ring-sky-200"]:focus,
+.app-shell.admin-dashboard-page [class~="focus:ring-blue-200"]:focus,
+.app-shell.admin-dashboard-page [class~="focus:ring-indigo-500"]:focus {
     --tw-ring-color: rgb(33 150 243 / 0.3);
 }
 
@@ -273,67 +342,67 @@
     --tw-shadow-color: rgb(33 150 243 / 0.2);
 }
 
-.app-shell .app-main [class~="bg-white"][class~="shadow-sm"],
-.app-shell .app-main [class~="bg-white"][class~="shadow"],
-.app-shell .app-main [class~="bg-white"][class~="shadow-md"] {
+.app-shell.admin-dashboard-page .app-main [class~="bg-white"][class~="shadow-sm"],
+.app-shell.admin-dashboard-page .app-main [class~="bg-white"][class~="shadow"],
+.app-shell.admin-dashboard-page .app-main [class~="bg-white"][class~="shadow-md"] {
     border-color: #d6eaff;
     box-shadow: 0 12px 32px rgba(33, 150, 243, 0.07);
 }
 
-.app-shell .app-main input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not([class*="border-0"]),
-.app-shell .app-main select,
-.app-shell .app-main textarea {
+.app-shell.admin-dashboard-page .app-main input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not([class*="border-0"]),
+.app-shell.admin-dashboard-page .app-main select,
+.app-shell.admin-dashboard-page .app-main textarea {
     border-color: #c9def0;
     border-radius: 0.75rem;
     transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
 }
 
-.app-shell .app-main input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not([class*="border-0"]):focus,
-.app-shell .app-main select:focus,
-.app-shell .app-main textarea:focus {
+.app-shell.admin-dashboard-page .app-main input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not([class*="border-0"]):focus,
+.app-shell.admin-dashboard-page .app-main select:focus,
+.app-shell.admin-dashboard-page .app-main textarea:focus {
     border-color: #2196f3;
     box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.16);
     outline: none;
 }
 
-.app-shell .app-main table thead {
+.app-shell.admin-dashboard-page .app-main table thead {
     background-color: #eff7ff;
     color: #334155;
 }
 
-.app-shell .app-main table th {
+.app-shell.admin-dashboard-page .app-main table th {
     border-color: #d6eaff;
 }
 
-.app-shell .app-main table tbody tr:hover {
+.app-shell.admin-dashboard-page .app-main table tbody tr:hover {
     background-color: #f4f9ff;
 }
 
-.app-shell .app-main button.bg-gray-800,
-.app-shell .app-main a.bg-gray-800,
-.app-shell .app-main button.bg-sky-700,
-.app-shell .app-main a.bg-sky-700,
-.app-shell .app-main button.bg-blue-700,
-.app-shell .app-main a.bg-blue-700,
-.app-shell .app-main button.bg-indigo-600,
-.app-shell .app-main a.bg-indigo-600 {
+.app-shell.admin-dashboard-page .app-main button.bg-gray-800,
+.app-shell.admin-dashboard-page .app-main a.bg-gray-800,
+.app-shell.admin-dashboard-page .app-main button.bg-sky-700,
+.app-shell.admin-dashboard-page .app-main a.bg-sky-700,
+.app-shell.admin-dashboard-page .app-main button.bg-blue-700,
+.app-shell.admin-dashboard-page .app-main a.bg-blue-700,
+.app-shell.admin-dashboard-page .app-main button.bg-indigo-600,
+.app-shell.admin-dashboard-page .app-main a.bg-indigo-600 {
     background-color: #1976d2;
     box-shadow: 0 8px 18px rgba(33, 150, 243, 0.2);
 }
 
-.app-shell .app-main button.bg-gray-800:hover,
-.app-shell .app-main a.bg-gray-800:hover,
-.app-shell .app-main button.bg-sky-700:hover,
-.app-shell .app-main a.bg-sky-700:hover,
-.app-shell .app-main button.bg-blue-700:hover,
-.app-shell .app-main a.bg-blue-700:hover,
-.app-shell .app-main button.bg-indigo-600:hover,
-.app-shell .app-main a.bg-indigo-600:hover {
+.app-shell.admin-dashboard-page .app-main button.bg-gray-800:hover,
+.app-shell.admin-dashboard-page .app-main a.bg-gray-800:hover,
+.app-shell.admin-dashboard-page .app-main button.bg-sky-700:hover,
+.app-shell.admin-dashboard-page .app-main a.bg-sky-700:hover,
+.app-shell.admin-dashboard-page .app-main button.bg-blue-700:hover,
+.app-shell.admin-dashboard-page .app-main a.bg-blue-700:hover,
+.app-shell.admin-dashboard-page .app-main button.bg-indigo-600:hover,
+.app-shell.admin-dashboard-page .app-main a.bg-indigo-600:hover {
     background-color: #1565c0;
 }
 
-.app-shell .app-main button:focus-visible,
-.app-shell .app-main a:focus-visible,
+.app-shell.admin-dashboard-page .app-main button:focus-visible,
+.app-shell.admin-dashboard-page .app-main a:focus-visible,
 .app-sidebar a:focus-visible,
 .app-sidebar button:focus-visible {
     outline: 3px solid #90caf9;
@@ -347,15 +416,15 @@
 }
 
 @media (max-width: 640px) {
-    .app-main .max-w-7xl {
+    .admin-dashboard-page .app-main .max-w-7xl {
         width: calc(100% - 1.25rem);
     }
 
-    .app-shell .app-main .max-w-7xl {
+    .app-shell.admin-dashboard-page .app-main .max-w-7xl {
         width: calc(100% - 1.25rem);
     }
 
-    .app-header > div {
+    .admin-dashboard-page .app-header > div {
         padding-block: 1rem;
     }
 }

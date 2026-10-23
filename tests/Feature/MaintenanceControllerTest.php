@@ -153,6 +153,63 @@ class MaintenanceControllerTest extends TestCase
         ]);
     }
 
+    public function test_rutin_hanya_menyimpan_komponen_template_yang_dipilih(): void
+    {
+        $pengelola = User::factory()->pengelola()->create();
+        $kendaraan = Kendaraan::factory()->for($pengelola, 'pengelola')->create([
+            'jenis_bbm' => 'BENSIN',
+            'transmisi' => 'MANUAL',
+            'kilometer_terakhir' => 25000,
+        ]);
+        $template = $this->createTemplate('Bensin Manual', 'BENSIN', 'MANUAL');
+        $oli = $this->createTemplateComponent($template, 'Oli mesin', [
+            [10000, 'P'],
+            [20000, 'G'],
+        ]);
+        $rem = $this->createTemplateComponent($template, 'Kampas rem', [
+            [10000, 'G'],
+            [20000, 'P'],
+        ]);
+        $this->createServiceHistory($kendaraan, $pengelola, 10000, now()->subMonths(2)->toDateString());
+
+        $response = $this->actingAs($pengelola)
+            ->post(route('maintenance.store'), [
+                'id_kendaraan' => $kendaraan->id,
+                'jenis_pengajuan' => 'RUTIN',
+                'deskripsi_keluhan' => 'Servis berkala',
+                'foto_bukti_odometer' => UploadedFile::fake()->image('odometer.jpg'),
+                'komponen_selection_present' => '1',
+                'komponen' => [
+                    1 => [
+                        'id_template_komponen' => $rem->id,
+                        'catatan' => 'Periksa suara roda',
+                    ],
+                ],
+            ]);
+
+        $response->assertRedirect(route('maintenance.index', ['tab' => 'pengajuan']));
+        $pengajuan = PengajuanServis::query()->where('id_kendaraan', $kendaraan->id)->firstOrFail();
+        $remKendaraan = KomponenKendaraan::query()
+            ->where('id_kendaraan', $kendaraan->id)
+            ->where('id_template_komponen', $rem->id)
+            ->firstOrFail();
+
+        $this->assertDatabaseCount('pengajuan_komponen', 1);
+        $this->assertDatabaseHas('pengajuan_komponen', [
+            'id_pengajuan' => $pengajuan->id,
+            'id_komponen_kendaraan' => $remKendaraan->id,
+            'jenis_aksi' => 'P',
+            'catatan' => 'Periksa suara roda',
+        ]);
+        $this->assertDatabaseMissing('pengajuan_komponen', [
+            'id_pengajuan' => $pengajuan->id,
+            'id_komponen_kendaraan' => KomponenKendaraan::query()
+                ->where('id_kendaraan', $kendaraan->id)
+                ->where('id_template_komponen', $oli->id)
+                ->value('id'),
+        ]);
+    }
+
     public function test_rutin_menyimpan_semua_komponen_jatuh_tempo_meski_request_tidak_mengirim_pilihan(): void
     {
         $pengelola = User::factory()->pengelola()->create();

@@ -4,9 +4,9 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 {{ __('Input Odometer Manual') }}
             </h2>
-            <a href="{{ route('mileage.index', $selected ? ['kendaraan' => $selected->id] : []) }}"
+            <a href="{{ $selected ? route('kendaraan.show', $selected->id) : route('kendaraan.index') }}"
                class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                Mileage Tracker
+                Kembali ke Kendaraan
             </a>
         </div>
     </x-slot>
@@ -161,9 +161,9 @@
                                     <span class="text-gray-500">Jumlah Perjalanan</span>
                                     <span class="text-gray-700">{{ $riwayatTerbaru->count() > 10 ? '>10' : $riwayatTerbaru->count() }} data terbaru</span>
                                 </div>
-                                <a href="{{ route('mileage.index', ['kendaraan' => $selected->id]) }}"
+                                <a href="{{ route('kendaraan.show', $selected->id) }}"
                                    class="block text-center mt-4 inline-flex w-full items-center justify-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                                    Lihat Mileage Tracker
+                                    Lihat Detail Kendaraan
                                 </a>
                             @else
                                 <p class="text-gray-500 text-center py-4">Pilih kendaraan terlebih dahulu.</p>

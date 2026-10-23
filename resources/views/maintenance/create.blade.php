@@ -42,6 +42,7 @@
 
                         <form method="POST" action="{{ route('maintenance.store') }}" id="maintenance-form" class="space-y-6" enctype="multipart/form-data">
                             @csrf
+                            <input type="hidden" name="komponen_selection_present" value="1">
 
                             {{-- Bagian 1: Data Dasar Kendaraan --}}
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/70 p-5 rounded-xl border border-slate-200">
@@ -342,7 +343,7 @@
                 const inputValue = isTemplateComponent
                     ? item.id_template_komponen
                     : item.id_komponen_kendaraan;
-                const isSelectable = !item.lock_action;
+                const isSelectable = !item.lock_action || item.is_rekomendasi;
                 const actionControls = item.lock_action
                     ? `<span class="text-xs font-semibold text-indigo-700">Aksi template: ${escapeHtml(item.aksi_label)} (${escapeHtml(item.aksi_rekomendasi)})</span>`
                     : `<div class="flex items-center gap-2">

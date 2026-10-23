@@ -29,13 +29,16 @@ class FleetManagementTest extends TestCase
         $response->assertOk()->assertViewIs('admin.dashboard');
     }
 
-    public function test_pengelola_melihat_dashboard_operasional(): void
+    public function test_pengelola_mendapatkan_dashboard_pengelola(): void
     {
         $pengelola = $this->createUserWithRole('PENGELOLA');
 
         $response = $this->actingAs($pengelola)->get('/dashboard');
 
-        $response->assertOk()->assertViewIs('dashboard');
+        $response->assertOk()
+            ->assertViewIs('pengelola.dashboard')
+            ->assertSee('Dashboard Pengelola')
+            ->assertDontSee('Dashboard Admin');
     }
 
     public function test_pengelola_bisa_mencatat_riwayat_servis_kendaraan_miliknya(): void

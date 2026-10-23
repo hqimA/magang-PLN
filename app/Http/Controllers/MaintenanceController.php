@@ -46,34 +46,6 @@ class MaintenanceController extends Controller
         $maintenanceAktif = collect();
         $maintenanceUsai = collect();
         $maintenanceDitolak = collect();
-        $incomingNotifications = collect();
-        $newRequestNotificationCount = 0;
-
-        if ($user->isAdmin()) {
-            $notificationQuery = Notifikasi::query()
-                ->where('id_pengguna', $user->id)
-                ->where('tipe_referensi', 'like', 'pengajuan_servis:%')
-                ->where('sudah_dibaca', false);
-
-            $newRequestNotificationCount = (clone $notificationQuery)->count();
-
-            if ($tab === 'pengajuan') {
-                $incomingNotifications = $notificationQuery
-                    ->orderByDesc('dibuat_pada')
-                    ->orderByDesc('id')
-                    ->limit(10)
-                    ->get()
-                    ->map(function (Notifikasi $notification): Notifikasi {
-                        $referenceId = substr((string) $notification->tipe_referensi, strlen('pengajuan_servis:'));
-                        $notification->setAttribute(
-                            'pengajuan_id',
-                            ctype_digit($referenceId) ? (int) $referenceId : null,
-                        );
-
-                        return $notification;
-                    });
-            }
-        }
 
         if ($tab === 'pengajuan') {
             $pengajuanMaintenance = PengajuanServis::with(['kendaraan.mileageTerbaru', 'pengaju'])
@@ -111,8 +83,6 @@ class MaintenanceController extends Controller
             'maintenanceAktif',
             'maintenanceUsai',
             'maintenanceDitolak',
-            'incomingNotifications',
-            'newRequestNotificationCount',
             'unitPln',
         ));
     }
@@ -315,6 +285,7 @@ class MaintenanceController extends Controller
                 ->all();
 
             $validatedComponents = $request->validate([
+                'komponen_selection_present' => ['sometimes', 'boolean'],
                 'komponen' => ['nullable', 'array'],
                 'komponen.*.id_template_komponen' => [
                     'required',
@@ -403,9 +374,17 @@ class MaintenanceController extends Controller
                 if ($usesRoutineTemplate) {
                     $komponenService->applyRecommendedTemplateToKendaraan($kendaraan);
 
+                    $componentInputs = collect($validatedComponents['komponen'] ?? [])
+                        ->keyBy('id_template_komponen');
                     $dueComponents = collect($komponenService->getKomponenKendaraan($kendaraan, $currentKm)['komponen'])
                         ->filter(fn (array $item): bool => $item['is_rekomendasi'])
                         ->values();
+
+                    if ($request->boolean('komponen_selection_present')) {
+                        $dueComponents = $dueComponents
+                            ->filter(fn (array $item): bool => $componentInputs->has($item['id_template_komponen']))
+                            ->values();
+                    }
 
                     foreach ($dueComponents as $index => $recommendation) {
                         $vehicleComponent = $komponenService->createKomponenKendaraanFromTemplate(
@@ -418,7 +397,7 @@ class MaintenanceController extends Controller
                             'id_pengajuan' => $pengajuan->id,
                             'id_komponen_kendaraan' => $vehicleComponent->id,
                             'jenis_aksi' => $recommendation['aksi_rekomendasi'],
-                            'catatan' => $validatedComponents['komponen'][$index]['catatan'] ?? null,
+                            'catatan' => $componentInputs->get($recommendation['id_template_komponen'])['catatan'] ?? null,
                         ]);
                     }
                 } else {

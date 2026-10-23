@@ -80,14 +80,19 @@ class PengelolaKendaraanTest extends TestCase
         $response->assertSee($kendaraan->plat_nomor);
     }
 
-    public function test_pengelola_diarahkan_dari_dashboard_ke_halaman_kendaraan_pengelola(): void
+    public function test_pengelola_dashboard_links_to_unit_operations(): void
     {
         $pengelola = User::factory()->create([
             'peran' => 'PENGELOLA',
+            'unit_pln' => 'UP2D',
         ]);
 
         $response = $this->actingAs($pengelola)->get(route('dashboard'));
 
-        $response->assertRedirect(route('pengelola.kendaraan'));
+        $response->assertOk()
+            ->assertViewIs('pengelola.dashboard')
+            ->assertSee(route('kendaraan.index'))
+            ->assertSee(route('maintenance.create'))
+            ->assertSee(route('service-reminder.index'));
     }
 }

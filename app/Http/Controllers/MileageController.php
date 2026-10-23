@@ -15,20 +15,6 @@ use Throwable;
 class MileageController extends Controller
 {
     /**
-     * Halaman Mileage Tracker: daftar kendaraan, detail kendaraan terpilih, dan form pencatatan.
-     */
-    public function index(Request $request)
-    {
-        $user = $request->user();
-        $kendaraans = $this->kendaraanTerpakai($user)->orderBy('plat_nomor')->get();
-
-        $selectedId = (int) $request->query('kendaraan', 0);
-        $selected = $kendaraans->firstWhere('id', $selectedId) ?? $kendaraans->first();
-
-        return view('mileage.index', compact('kendaraans', 'selected'));
-    }
-
-    /**
      * Trip history untuk seluruh kendaraan (opsional filter kendaraan & tanggal).
      */
     public function history(Request $request)
@@ -95,37 +81,8 @@ class MileageController extends Controller
         ], 'odometer_baru');
 
         return redirect()
-            ->route('mileage.odometer', ['kendaraan' => $kendaraan->id])
+            ->route('kendaraan.show', $kendaraan->id)
             ->with('success', 'Odometer dan foto bukti berhasil disimpan.');
-    }
-
-    public function storeTrip(Request $request)
-    {
-        $validated = $request->validate([
-            'id_kendaraan' => ['required', 'exists:kendaraan,id'],
-            'tanggal_perjalanan' => ['required', 'date'],
-            'kilometer_akhir' => ['required', 'integer', 'min:0'],
-            'status_perjalanan' => ['sometimes', 'in:SELESAI,BERJALAN,TERBATAS'],
-            'keterangan' => ['nullable', 'string', 'max:1000'],
-            'foto_bukti' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
-        ], [], [
-            'kilometer_akhir' => 'kilometer akhir',
-            'foto_bukti' => 'foto bukti odometer',
-        ]);
-
-        $kendaraan = Kendaraan::findOrFail($validated['id_kendaraan']);
-        $this->authorizeKendaraan($request->user(), $kendaraan);
-
-        $this->simpanMileage($request, $kendaraan, (int) $validated['kilometer_akhir'], [
-            'tanggal_perjalanan' => $validated['tanggal_perjalanan'],
-            'status_perjalanan' => $validated['status_perjalanan'] ?? 'SELESAI',
-            'keterangan' => $validated['keterangan'] ?? null,
-            'id_pencatat' => $request->user()?->id,
-        ]);
-
-        return redirect()
-            ->route('mileage.index', ['kendaraan' => $kendaraan->id])
-            ->with('success', 'Perjalanan dan foto bukti berhasil dicatat.');
     }
 
     /**
@@ -162,7 +119,9 @@ class MileageController extends Controller
         array $attributes,
         string $kilometerAkhirField = 'kilometer_akhir',
     ): Mileage {
-        $fotoPath = app(ImageStorageService::class)->store($request->file('foto_bukti'), 'mileage');
+        $fotoPath = $request->hasFile('foto_bukti')
+            ? app(ImageStorageService::class)->store($request->file('foto_bukti'), 'mileage')
+            : null;
 
         try {
             return DB::transaction(function () use (

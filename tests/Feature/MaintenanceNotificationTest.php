@@ -5,11 +5,12 @@ namespace Tests\Feature;
 use App\Models\Kendaraan;
 use App\Models\Notifikasi;
 use App\Models\PengajuanServis;
+use App\Models\RiwayatServis;
 use App\Models\User;
-use App\Services\CloudinaryService;
+use App\Services\ImageStorageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Tests\Support\Fakes\FakeCloudinaryService;
+use Tests\Support\Fakes\FakeImageStorageService;
 use Tests\TestCase;
 
 class MaintenanceNotificationTest extends TestCase
@@ -20,7 +21,7 @@ class MaintenanceNotificationTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
-        $this->app->instance(CloudinaryService::class, new FakeCloudinaryService);
+        $this->app->instance(ImageStorageService::class, new FakeImageStorageService);
     }
 
     public function test_new_maintenance_request_notifies_each_admin_and_can_be_marked_read(): void
@@ -59,13 +60,9 @@ class MaintenanceNotificationTest extends TestCase
         $notification = Notifikasi::query()->where('id_pengguna', $admin->id)->firstOrFail();
         $this->actingAs($admin)
             ->get(route('maintenance.index', ['tab' => 'pengajuan']))
-            ->assertSee('Pengajuan Maintenance Baru')
+            ->assertDontSee('Pengajuan Maintenance Baru')
             ->assertSee('B 1234 PLN')
-            ->assertSee(route('maintenance.show', ['pengajuan' => $serviceRequest->id, 'tab' => 'pengajuan']), false)
-            ->assertSee(route('maintenance.notifications.read', $notification), false)
-            ->assertSee('data-testid="maintenance-request-badge"', false)
-            ->assertSee('bg-red-600 rounded-full ml-2', false)
-            ->assertSee('>1</span>', false);
+            ->assertDontSee('data-testid="maintenance-active-badge"', false);
 
         $this->actingAs($admin)
             ->patch(route('maintenance.notifications.read', $notification))
@@ -82,7 +79,75 @@ class MaintenanceNotificationTest extends TestCase
 
         $this->actingAs($admin)
             ->get(route('maintenance.index', ['tab' => 'pengajuan']))
-            ->assertDontSee('data-testid="maintenance-request-badge"', false);
+            ->assertDontSee('data-testid="maintenance-active-badge"', false);
+    }
+
+    public function test_maintenance_badge_counts_active_requests_for_the_users_unit(): void
+    {
+        $manager = User::factory()->pengelola()->create(['unit_pln' => 'UP2D']);
+        $otherManager = User::factory()->pengelola()->create(['unit_pln' => 'UP3']);
+        $activeVehicle = Kendaraan::factory()->for($manager, 'pengelola')->create(['unit_pln' => 'UP2D']);
+        $servicedVehicle = Kendaraan::factory()->for($manager, 'pengelola')->create(['unit_pln' => 'UP2D']);
+        $otherUnitVehicle = Kendaraan::factory()->for($otherManager, 'pengelola')->create(['unit_pln' => 'UP3']);
+        $pendingVehicle = Kendaraan::factory()->for($manager, 'pengelola')->create(['unit_pln' => 'UP2D']);
+
+        $activeRequest = PengajuanServis::query()->create([
+            'id_kendaraan' => $activeVehicle->id,
+            'id_pengaju' => $manager->id,
+            'jenis_pengajuan' => 'RUTIN',
+            'deskripsi_keluhan' => 'Servis sedang diproses',
+            'status_persetujuan' => 'DISETUJUI',
+        ]);
+        $servicedRequest = PengajuanServis::query()->create([
+            'id_kendaraan' => $servicedVehicle->id,
+            'id_pengaju' => $manager->id,
+            'jenis_pengajuan' => 'RUTIN',
+            'deskripsi_keluhan' => 'Servis sudah selesai',
+            'status_persetujuan' => 'DISETUJUI',
+        ]);
+        PengajuanServis::query()->create([
+            'id_kendaraan' => $otherUnitVehicle->id,
+            'id_pengaju' => $otherManager->id,
+            'jenis_pengajuan' => 'RUTIN',
+            'deskripsi_keluhan' => 'Unit lain',
+            'status_persetujuan' => 'DISETUJUI',
+        ]);
+        PengajuanServis::query()->create([
+            'id_kendaraan' => $pendingVehicle->id,
+            'id_pengaju' => $manager->id,
+            'jenis_pengajuan' => 'RUTIN',
+            'deskripsi_keluhan' => 'Menunggu persetujuan',
+            'status_persetujuan' => 'MENUNGGU',
+        ]);
+        RiwayatServis::query()->create([
+            'id_pengajuan' => $servicedRequest->id,
+            'id_kendaraan' => $servicedVehicle->id,
+            'tanggal_servis' => '2026-10-21',
+            'kilometer_servis' => 1000,
+            'nama_bengkel' => 'Bengkel PLN',
+            'id_pembuat' => $manager->id,
+        ]);
+
+        $response = $this->actingAs($manager)->get(route('maintenance.index'));
+
+        $response->assertSee('data-testid="maintenance-active-badge"', false);
+        $this->assertSame(
+            1,
+            preg_match('/data-testid="maintenance-active-badge"[^>]*>\s*1\s*<\/span>/', $response->getContent()),
+        );
+
+        RiwayatServis::query()->create([
+            'id_pengajuan' => $activeRequest->id,
+            'id_kendaraan' => $activeVehicle->id,
+            'tanggal_servis' => '2026-10-21',
+            'kilometer_servis' => 1000,
+            'nama_bengkel' => 'Bengkel PLN',
+            'id_pembuat' => $manager->id,
+        ]);
+
+        $this->actingAs($manager)
+            ->get(route('maintenance.index'))
+            ->assertDontSee('data-testid="maintenance-active-badge"', false);
     }
 
     public function test_admin_cannot_mark_another_admins_maintenance_notification_as_read(): void
