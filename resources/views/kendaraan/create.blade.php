@@ -111,18 +111,8 @@ w<x-app-layout>
                                 <x-input-error :messages="$errors->get('tanggal_kir_berlaku_sampai')" class="mt-2" />
                             </div>
 
-                            <!-- Pengelola -->
-                            <div>
-                                <x-input-label for="id_pengelola" :value="__('Pengelola')" />
-                                <select id="id_pengelola" name="id_pengelola" class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm block mt-1 w-full" required>
-                                    <option value="">-- Pilih Pengelola --</option>
-                                    @foreach($pengelolas as $p)
-                                        <option value="{{ $p->id }}" data-unit="{{ $p->unit_pln->value }}" @selected(old('id_pengelola') == $p->id)>{{ $p->name }} ({{ $p->unit_pln->value }})</option>
-                                    @endforeach
-                                </select>
-                                <x-input-error :messages="$errors->get('id_pengelola')" class="mt-2" />
-                                <p id="pengelola-unit-hint" class="mt-1 text-xs text-gray-500">Pilih Pengelola yang tersedia atau pilih Unit PLN untuk menyaring daftar.</p>
-                            </div>
+                            <!-- Pengelola (otomatis dari Unit PLN) -->
+                            <x-input-error :messages="$errors->get('id_pengelola')" class="mt-2" />
                         </div>
 
                         {{-- Info Galeri Foto --}}
@@ -145,59 +135,7 @@ w<x-app-layout>
                             </x-primary-button>
                         </div>
                     </form>
-                    <script>
-                        const unitPlnSelect = document.getElementById('unit_pln');
-                        const pengelolaSelect = document.getElementById('id_pengelola');
-                        const pengelolaUnitHint = document.getElementById('pengelola-unit-hint');
-                        const pengelolaOptions = [...pengelolaSelect.querySelectorAll('option[data-unit]')];
 
-                        function filterPengelolaByUnit(resetSelection = false) {
-                            const selectedUnit = unitPlnSelect.value;
-                            let matchingPengelolaCount = 0;
-                            let selectedManagerMatchesUnit = false;
-
-                            pengelolaOptions.forEach((option) => {
-                                const matchesUnit = selectedUnit === '' || option.dataset.unit === selectedUnit;
-                                option.hidden = !matchesUnit;
-                                option.disabled = !matchesUnit;
-
-                                if (matchesUnit) {
-                                    matchingPengelolaCount++;
-                                    selectedManagerMatchesUnit ||= option.selected;
-                                }
-                            });
-
-                            if (resetSelection && !selectedManagerMatchesUnit) {
-                                pengelolaSelect.value = '';
-                            }
-
-                            pengelolaUnitHint.textContent = selectedUnit === ''
-                                ? matchingPengelolaCount > 0
-                                    ? 'Pilih Pengelola yang tersedia atau pilih Unit PLN untuk menyaring daftar.'
-                                    : 'Belum ada akun Pengelola yang memiliki Unit PLN. Atur unit akun terlebih dahulu.'
-                                : matchingPengelolaCount > 0
-                                    ? `Pengelola dibatasi ke unit ${selectedUnit}.`
-                                    : `Belum ada akun Pengelola di unit ${selectedUnit}. Atur unit akun atau pilih unit lain.`;
-                        }
-
-                        unitPlnSelect.addEventListener('change', () => filterPengelolaByUnit(true));
-                        pengelolaSelect.addEventListener('change', () => {
-                            const selectedManager = pengelolaSelect.selectedOptions[0];
-
-                            if (selectedManager?.dataset.unit && unitPlnSelect.value !== selectedManager.dataset.unit) {
-                                unitPlnSelect.value = selectedManager.dataset.unit;
-                                filterPengelolaByUnit();
-                            }
-                        });
-
-                        const currentManager = pengelolaSelect.selectedOptions[0];
-                        if (!unitPlnSelect.value && currentManager?.dataset.unit) {
-                            unitPlnSelect.value = currentManager.dataset.unit;
-                        }
-
-                        filterPengelolaByUnit();
-
-                    </script>
                 </div>
             </div>
         </div>

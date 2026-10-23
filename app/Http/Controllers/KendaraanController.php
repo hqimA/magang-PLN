@@ -56,17 +56,9 @@ class KendaraanController extends Controller
     {
         $user = $request->user();
 
-        $pengelolas = $user->isAdmin()
-            ? User::query()
-                ->where('peran', 'PENGELOLA')
-                ->whereIn('unit_pln', array_column(UnitPln::cases(), 'value'))
-                ->orderBy('name')
-                ->get()
-            : User::whereKey($user->id)->get();
-
         $unitPln = UnitPln::cases();
 
-        return view('kendaraan.create', compact('pengelolas', 'unitPln'));
+        return view('kendaraan.create', compact('unitPln'));
     }
 
     public function store(Request $request, KomponenServisService $komponenService)
@@ -84,19 +76,14 @@ class KendaraanController extends Controller
             'kilometer_terakhir' => 'required|integer',
             'tanggal_pembelian' => 'required|date',
             ...$this->documentExpiryDateRules($request),
-            'id_pengelola' => [
-                'required',
-                Rule::exists('users', 'id')
-                    ->where('peran', 'PENGELOLA')
-                    ->where('unit_pln', $request->input('unit_pln')),
-            ],
         ]);
 
-        $this->validateManagerUnit($validated);
         $validated['status_perawatan'] = 'BAIK';
 
-        // Pengelola hanya dapat membuat kendaraan atas namanya sendiri.
-        if (! $user->isAdmin()) {
+        // Pengelola ditentukan otomatis dari unit PLN yang dipilih.
+        if ($user->isAdmin()) {
+            $validated['id_pengelola'] = $this->resolveManagerByUnit($validated['unit_pln']);
+        } else {
             $validated['id_pengelola'] = $user->id;
         }
 
@@ -151,14 +138,10 @@ class KendaraanController extends Controller
 
         $this->authorizeKendaraan($user, $kendaraan);
 
-        $pengelolas = $user->isAdmin()
-            ? User::where('peran', 'PENGELOLA')->orderBy('name')->get()
-            : User::whereKey($user->id)->get();
-
         $unitPln = UnitPln::cases();
         $kendaraan->load('fotos');
 
-        return view('kendaraan.edit', compact('kendaraan', 'pengelolas', 'unitPln'));
+        return view('kendaraan.edit', compact('kendaraan', 'unitPln'));
     }
 
     public function update(Request $request, string $id, KomponenServisService $komponenService)
@@ -179,17 +162,13 @@ class KendaraanController extends Controller
             'tanggal_pembelian' => 'required|date',
             ...$this->documentExpiryDateRules($request),
             'status_perawatan' => 'required|in:BAIK,PERLU_SERVIS,SEDANG_SERVIS,RUSAK',
-            'id_pengelola' => [
-                'required',
-                Rule::exists('users', 'id')
-                    ->where('peran', 'PENGELOLA')
-                    ->where('unit_pln', $request->input('unit_pln')),
-            ],
         ]);
 
-        $this->validateManagerUnit($validated);
+        // Pengelola ditentukan otomatis dari unit PLN yang dipilih.
         // Pengelola tidak dapat memindahkan kendaraan ke pengelola lain.
-        if (! $user->isAdmin()) {
+        if ($user->isAdmin()) {
+            $validated['id_pengelola'] = $this->resolveManagerByUnit($validated['unit_pln']);
+        } else {
             $validated['id_pengelola'] = $kendaraan->id_pengelola;
         }
 
@@ -308,16 +287,21 @@ class KendaraanController extends Controller
     }
 
     /**
-     * @param  array<string, mixed>  $validated
+     * @throws ValidationException
      */
-    private function validateManagerUnit(array $validated): void
+    private function resolveManagerByUnit(string $unitPln): int
     {
-        $manager = User::query()->findOrFail($validated['id_pengelola']);
+        $manager = User::query()
+            ->where('peran', 'PENGELOLA')
+            ->where('unit_pln', $unitPln)
+            ->first();
 
-        if ($manager->unit_pln?->value !== $validated['unit_pln']) {
+        if ($manager === null) {
             throw ValidationException::withMessages([
-                'id_pengelola' => 'Pengelola harus berasal dari Unit PLN kendaraan yang dipilih.',
+                'unit_pln' => "Belum ada akun Pengelola yang terdaftar di unit {$unitPln}. Atur unit akun pengelola terlebih dahulu.",
             ]);
         }
+
+        return $manager->id;
     }
 }
