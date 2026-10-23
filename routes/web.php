@@ -1,0 +1,130 @@
+<?php
+
+use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\ExpenseReportController;
+use App\Http\Controllers\KendaraanController;
+use App\Http\Controllers\KendaraanFotoController;
+use App\Http\Controllers\KendaraanImportController;
+use App\Http\Controllers\KendaraanKomponenController;
+use App\Http\Controllers\MaintenanceController;
+use App\Http\Controllers\MileageController;
+use App\Http\Controllers\OdometerLogController;
+use App\Http\Controllers\PengelolaKendaraanController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RiwayatServisController;
+use App\Http\Controllers\ServiceApprovalController;
+use App\Http\Controllers\ServiceReminderController;
+use App\Http\Controllers\TemplateJadwalServisController;
+use App\Http\Controllers\TemplateKomponenController;
+use App\Http\Controllers\UserController;
+use Illuminate\Support\Facades\Route;
+
+Route::get('/', function () {
+    return redirect()->route('login');
+});
+
+Route::get('/dashboard', [AdminDashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/home', function () {
+        return view('home');
+    })->name('home');
+
+    Route::middleware('role:ADMIN')->group(function () {
+        Route::delete('/kendaraan/hapus-terpilih', [KendaraanController::class, 'destroySelected'])
+            ->name('kendaraan.destroy-selected');
+
+        Route::resource('kendaraan', KendaraanController::class)
+            ->except(['index', 'show']);
+
+        Route::get('/kendaraan/import/template', [KendaraanImportController::class, 'template'])
+            ->name('kendaraan.import.template');
+        Route::post('/kendaraan/import', [KendaraanImportController::class, 'store'])
+            ->name('kendaraan.import');
+
+        Route::post('/kendaraan/{kendaraan}/apply-template', [KendaraanKomponenController::class, 'applyTemplate'])->name('kendaraan.apply-template');
+        Route::post('/kendaraan/{kendaraan}/komponen', [KendaraanKomponenController::class, 'store'])->name('kendaraan.komponen.store');
+        Route::put('/kendaraan/{kendaraan}/komponen/{komponen}', [KendaraanKomponenController::class, 'update'])->name('kendaraan.komponen.update');
+        Route::delete('/kendaraan/{kendaraan}/komponen/{komponen}', [KendaraanKomponenController::class, 'destroy'])->name('kendaraan.komponen.destroy');
+    });
+
+    Route::resource('kendaraan', KendaraanController::class)
+        ->only(['index', 'show']);
+
+    // Manajemen foto kendaraan.
+    Route::post('/kendaraan/{kendaraan}/foto', [KendaraanFotoController::class, 'store'])->name('kendaraan.foto.store');
+    Route::delete('/kendaraan/{kendaraan}/foto/{kendaraanFoto}', [KendaraanFotoController::class, 'destroy'])->name('kendaraan.foto.destroy');
+    Route::patch('/kendaraan/{kendaraan}/foto/{kendaraanFoto}/utama', [KendaraanFotoController::class, 'setUtama'])->name('kendaraan.foto.set-utama');
+
+    Route::get('/pengelola/kendaraan', [PengelolaKendaraanController::class, 'index'])->name('pengelola.kendaraan');
+
+    Route::get('/mileage/history', [MileageController::class, 'history'])->name('mileage.history');
+    Route::get('/mileage/odometer', [MileageController::class, 'odometer'])->name('mileage.odometer');
+    Route::post('/mileage/odometer', [MileageController::class, 'store'])->name('mileage.odometer.store');
+    Route::get('/maintenance', [MaintenanceController::class, 'index'])->name('maintenance.index');
+    Route::get('/maintenance/create', [MaintenanceController::class, 'create'])->name('maintenance.create');
+    Route::post('/maintenance', [MaintenanceController::class, 'store'])->name('maintenance.store');
+    Route::get('/maintenance/export/usai', [MaintenanceController::class, 'exportCompleted'])->name('maintenance.export.completed');
+    Route::get('/maintenance/export/ditolak', [MaintenanceController::class, 'exportRejected'])->name('maintenance.export.rejected');
+    Route::patch('/maintenance/notifications/{notifikasi}/read', [MaintenanceController::class, 'markNotificationRead'])
+        ->name('maintenance.notifications.read');
+    Route::patch('/maintenance/{pengajuan}/cancel', [MaintenanceController::class, 'cancel'])->name('maintenance.cancel');
+    Route::get('/maintenance/mileage/{kendaraan}', [MaintenanceController::class, 'mileageKendaraan'])->name('maintenance.mileage-kendaraan');
+    Route::get('/maintenance/komponen/{kendaraan}', [MaintenanceController::class, 'komponenKendaraan'])->name('maintenance.komponen-kendaraan');
+    Route::get('/maintenance/{pengajuan}', [MaintenanceController::class, 'show'])->name('maintenance.show');
+});
+
+Route::middleware('auth')->group(function () {
+    Route::post('/odometer-log', [OdometerLogController::class, 'store'])->name('odometer-log.store');
+    Route::get('/riwayat-servis', [RiwayatServisController::class, 'index'])->name('service-history.index');
+    Route::get('/riwayat-servis/{riwayatServis}', [RiwayatServisController::class, 'show'])->name('service-history.show');
+    Route::post('/riwayat-servis', [RiwayatServisController::class, 'store'])->name('riwayat-servis.store');
+    Route::post('/pengajuan-servis/{id}/approve', [ServiceApprovalController::class, 'approve'])
+        ->middleware('role:admin')
+        ->name('pengajuan-servis.approve');
+    Route::post('/pengajuan-servis/{id}/reject', [ServiceApprovalController::class, 'reject'])
+        ->middleware('role:admin')
+        ->name('pengajuan-servis.reject');
+    Route::middleware('role:ADMIN')->group(function () {
+        Route::get('/laporan-pengeluaran', [ExpenseReportController::class, 'index'])
+            ->name('laporan-pengeluaran.index');
+        Route::get('/laporan-pengeluaran/excel', [ExpenseReportController::class, 'exportExcel'])
+            ->name('laporan-pengeluaran.excel');
+        Route::get('/laporan-pengeluaran/pdf', [ExpenseReportController::class, 'exportPdf'])
+            ->name('laporan-pengeluaran.pdf');
+        Route::get('/laporan-pengeluaran/arsip', [ExpenseReportController::class, 'exportArchive'])
+            ->name('laporan-pengeluaran.archive');
+        Route::delete('/laporan-pengeluaran', [ExpenseReportController::class, 'destroyAll'])
+            ->name('laporan-pengeluaran.destroy-all');
+    });
+    Route::get('/service-reminders', [ServiceReminderController::class, 'index'])->name('service-reminders.index');
+    Route::get('/service-reminder', [ServiceReminderController::class, 'viewIndex'])->name('service-reminder.index');
+
+    // Manajemen User hanya untuk Admin.
+    Route::middleware('role:ADMIN')->group(function () {
+        Route::get('/users', [UserController::class, 'index'])->name('user.index');
+        Route::get('/users/create', [UserController::class, 'create'])->name('user.create');
+        Route::post('/users', [UserController::class, 'store'])->name('user.store');
+        Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('user.edit');
+        Route::put('/users/{user}', [UserController::class, 'update'])->name('user.update');
+        Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('user.destroy');
+
+        Route::patch('/pengajuan/{pengajuan}/approve', [MaintenanceController::class, 'approve'])->name('pengajuan.approve');
+        Route::patch('/pengajuan/{pengajuan}/reject', [MaintenanceController::class, 'reject'])->name('pengajuan.reject');
+
+        Route::resource('template-komponen', TemplateKomponenController::class);
+        Route::resource('template-jadwal-servis', TemplateJadwalServisController::class);
+    });
+
+    Route::post('/service-reminder/settings', [ServiceReminderController::class, 'updateSettings'])
+        ->middleware('role:ADMIN')
+        ->name('service-reminder.settings');
+
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+require __DIR__.'/auth.php';

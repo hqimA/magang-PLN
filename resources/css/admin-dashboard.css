@@ -1,0 +1,122 @@
+.app-shell.admin-dashboard-page .app-main {
+    background: #f4f6f9;
+}
+
+.admin-dashboard {
+    --dashboard-ink: #1f2937;
+    --dashboard-muted: #64748b;
+    --dashboard-border: #e5eaf0;
+    --dashboard-blue: #2563eb;
+    color: var(--dashboard-ink);
+    min-height: calc(100vh - 4rem);
+}
+
+.admin-dashboard__container {
+    max-width: 1600px;
+}
+
+.admin-dashboard__eyebrow {
+    color: var(--dashboard-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.admin-dashboard__title {
+    color: #142b45;
+    font-size: clamp(1.5rem, 2.4vw, 2rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+}
+
+.admin-dashboard__card {
+    background: #ffffff;
+    border: 1px solid var(--dashboard-border);
+    border-radius: 0.8rem;
+    box-shadow: 0 2px 8px rgb(15 23 42 / 0.035);
+}
+
+.admin-dashboard__card-heading {
+    color: #23384d;
+    font-size: 1rem;
+    font-weight: 650;
+}
+
+.admin-dashboard__stat-icon {
+    align-items: center;
+    border-radius: 0.7rem;
+    display: inline-flex;
+    height: 2.75rem;
+    justify-content: center;
+    width: 2.75rem;
+}
+
+.admin-dashboard__stat-icon svg {
+    height: 1.35rem;
+    width: 1.35rem;
+}
+
+.admin-dashboard__stat-value {
+    color: #142b45;
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+}
+
+.admin-dashboard__stat-label {
+    color: var(--dashboard-muted);
+    font-size: 0.9rem;
+}
+
+.admin-dashboard__chart {
+    height: 250px;
+    position: relative;
+}
+
+.admin-dashboard__chart--donut {
+    height: 190px;
+    margin-inline: auto;
+    max-width: 240px;
+}
+
+.admin-dashboard__legend-dot {
+    border-radius: 50%;
+    display: inline-block;
+    height: 0.6rem;
+    width: 0.6rem;
+}
+
+.admin-dashboard__table th {
+    color: #64748b;
+    font-size: 0.75rem;
+    font-weight: 650;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.admin-dashboard__table td {
+    color: #334155;
+    vertical-align: middle;
+}
+
+.admin-dashboard__empty-state {
+    color: var(--dashboard-muted);
+    min-height: 180px;
+}
+
+.admin-dashboard__notification {
+    border-bottom: 1px solid #edf0f4;
+}
+
+.admin-dashboard__notification:last-child {
+    border-bottom: 0;
+}
+
+@media (max-width: 575.98px) {
+    .admin-dashboard__chart {
+        height: 220px;
+    }
+}
