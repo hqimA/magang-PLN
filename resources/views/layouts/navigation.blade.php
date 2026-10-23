@@ -21,6 +21,9 @@
                     <x-nav-link :href="route('pengelola.kendaraan')" :active="request()->routeIs('pengelola.*')">
                         {{ __('Kendaraan Pengelola') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('mileage.index')" :active="request()->routeIs('mileage.*')">
+                        {{ __('Mileage') }}
+                    </x-nav-link>
                     <x-nav-link :href="route('maintenance.index')" :active="request()->routeIs('maintenance.*')">
                         {{ __('Maintenance') }}
                     </x-nav-link>
@@ -95,6 +98,9 @@
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('pengelola.kendaraan')" :active="request()->routeIs('pengelola.*')">
                 {{ __('Kendaraan Pengelola') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('mileage.index')" :active="request()->routeIs('mileage.*')">
+                {{ __('Mileage') }}
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('maintenance.index')" :active="request()->routeIs('maintenance.*')">
                 {{ __('Maintenance') }}

@@ -107,4 +107,5 @@ class FleetManagementTest extends TestCase
 
         return $user;
     }
+
 }

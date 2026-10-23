@@ -95,4 +95,5 @@ class PengelolaKendaraanTest extends TestCase
             ->assertSee(route('maintenance.create'))
             ->assertSee(route('service-reminder.index'));
     }
+
 }

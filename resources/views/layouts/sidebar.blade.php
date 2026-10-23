@@ -63,6 +63,11 @@
             <x-service-reminder-badge />
         </a>
 
+        <a href="{{ route('mileage.index') }}" class="mt-1 flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium transition duration-150 ease-in-out {{ request()->routeIs('mileage.*') ? 'border-sky-200 bg-gradient-to-r from-sky-100 to-blue-50 text-blue-800' : 'border-transparent text-slate-300 hover:border-white/10 hover:bg-white/5 hover:text-white' }}">
+            <i class="hgi hgi-stroke hgi-dashboard-speed-01 text-xl shrink-0"></i>
+            <span>{{ __('Mileage') }}</span>
+        </a>
+
         @if($isAdmin)
             <a href="{{ route('laporan-pengeluaran.index') }}" class="mt-1 flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium transition duration-150 ease-in-out {{ request()->routeIs('laporan-pengeluaran.*') ? 'border-sky-200 bg-gradient-to-r from-sky-100 to-blue-50 text-blue-800' : 'border-transparent text-slate-300 hover:border-white/10 hover:bg-white/5 hover:text-white' }}">
                 <svg class="h-5 w-5 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">

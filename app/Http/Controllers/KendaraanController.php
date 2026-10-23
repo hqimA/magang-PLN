@@ -27,6 +27,7 @@ class KendaraanController extends Controller
     {
         $user = $request->user();
         $search = trim((string) $request->query('search', ''));
+        $status = (string) $request->query('status', '');
 
         $kendaraans = Kendaraan::query()
             ->visibleTo($user)
@@ -40,12 +41,15 @@ class KendaraanController extends Controller
                         });
                 });
             })
+            ->when(in_array($status, ['BAIK', 'PERLU_SERVIS', 'SEDANG_SERVIS', 'RUSAK'], true), function ($query) use ($status) {
+                $query->where('status_perawatan', $status);
+            })
             ->orderBy('plat_nomor')
             ->get();
 
         $isAdmin = $user->isAdmin();
 
-        return view('kendaraan.index', compact('kendaraans', 'isAdmin', 'search'));
+        return view('kendaraan.index', compact('kendaraans', 'isAdmin', 'search', 'status'));
     }
 
     public function create(Request $request)

@@ -60,9 +60,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/pengelola/kendaraan', [PengelolaKendaraanController::class, 'index'])->name('pengelola.kendaraan');
 
+    Route::get('/mileage', [MileageController::class, 'index'])->name('mileage.index');
     Route::get('/mileage/history', [MileageController::class, 'history'])->name('mileage.history');
     Route::get('/mileage/odometer', [MileageController::class, 'odometer'])->name('mileage.odometer');
     Route::post('/mileage/odometer', [MileageController::class, 'store'])->name('mileage.odometer.store');
+    Route::post('/mileage/trip', [MileageController::class, 'storeTrip'])->name('mileage.trip.store');
+
     Route::get('/maintenance', [MaintenanceController::class, 'index'])->name('maintenance.index');
     Route::get('/maintenance/create', [MaintenanceController::class, 'create'])->name('maintenance.create');
     Route::post('/maintenance', [MaintenanceController::class, 'store'])->name('maintenance.store');

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Kendaraan;
+use App\Models\LaporanKerusakan;
 use App\Models\Mileage;
 use App\Models\Notifikasi;
 use App\Models\PengajuanServis;
@@ -99,13 +100,16 @@ class AdminDashboardController extends Controller
             ])
             ->count();
         $serviceReminderCount = 0;
+        $serviceReminderStatuses = collect();
         $serviceReminderSetting = ServiceReminderSetting::query()->first();
 
         if (! $serviceReminderSetting || $serviceReminderSetting->is_active) {
-            $serviceReminderCount = Kendaraan::query()
+            $serviceReminderStatuses = Kendaraan::query()
                 ->with('riwayatServisTerbaru')
                 ->get()
-                ->filter(fn (Kendaraan $vehicle): bool => $vehicle->serviceReminder()['status'] !== 'TERJADWAL')
+                ->map(fn (Kendaraan $vehicle): string => $vehicle->serviceReminder()['status']);
+            $serviceReminderCount = $serviceReminderStatuses
+                ->filter(fn (string $status): bool => $status !== 'TERJADWAL')
                 ->count();
         }
 
@@ -151,6 +155,110 @@ class AdminDashboardController extends Controller
             ->limit(5)
             ->get();
 
+        $currentMonth = $today->copy();
+        $serviceCostThisMonth = RiwayatServis::query()
+            ->whereYear('tanggal_servis', $currentMonth->year)
+            ->whereMonth('tanggal_servis', $currentMonth->month)
+            ->sum('total_biaya');
+        $repairCostThisMonth = RiwayatPerbaikan::query()
+            ->whereYear('tanggal_perbaikan', $currentMonth->year)
+            ->whereMonth('tanggal_perbaikan', $currentMonth->month)
+            ->sum('total_biaya_perbaikan');
+        $serviceCostTotal = RiwayatServis::query()->sum('total_biaya');
+        $repairCostTotal = RiwayatPerbaikan::query()->sum('total_biaya_perbaikan');
+        $pendingApprovals = PengajuanServis::query()
+            ->with(['kendaraan:id,plat_nomor,merk_tipe', 'pengaju:id,name'])
+            ->where('status_persetujuan', 'MENUNGGU')
+            ->orderBy('dibuat_pada')
+            ->get();
+        $currentYear = (int) $today->year;
+        $lifecycleData = [
+            'baru' => Kendaraan::query()->whereRaw("({$currentYear} - tahun_pembuatan) <= 1")->count(),
+            'normal' => Kendaraan::query()->whereRaw("({$currentYear} - tahun_pembuatan) BETWEEN 2 AND 3")->count(),
+            'perhatian' => Kendaraan::query()->whereRaw("({$currentYear} - tahun_pembuatan) = 4")->count(),
+            'prioritas' => Kendaraan::query()->whereRaw("({$currentYear} - tahun_pembuatan) >= 5")->count(),
+        ];
+        $categoryBreakdown = Kendaraan::query()
+            ->select('kategori_penggunaan')
+            ->selectRaw('COUNT(*) as jumlah')
+            ->groupBy('kategori_penggunaan')
+            ->orderBy('kategori_penggunaan')
+            ->get();
+        $fuelBreakdown = Kendaraan::query()
+            ->select('jenis_bbm')
+            ->selectRaw('COUNT(*) as jumlah')
+            ->groupBy('jenis_bbm')
+            ->orderBy('jenis_bbm')
+            ->get();
+        $activeDamageReports = LaporanKerusakan::query()
+            ->whereIn('status_penanganan', ['DILAPORKAN', 'SEDANG_DIPERBAIKI'])
+            ->count();
+        $problemVehicles = Kendaraan::query()
+            ->whereIn('status_perawatan', ['PERLU_SERVIS', 'SEDANG_SERVIS', 'RUSAK'])
+            ->count();
+        $recentLogs = collect();
+        Kendaraan::query()
+            ->with('pengelola')
+            ->latest('dibuat_pada')
+            ->limit(5)
+            ->get()
+            ->each(function (Kendaraan $vehicle) use ($recentLogs): void {
+                $recentLogs->push((object) [
+                    'title' => 'Admin menambahkan kendaraan',
+                    'description' => "{$vehicle->merk_tipe} - {$vehicle->plat_nomor}",
+                    'timestamp' => $vehicle->dibuat_pada,
+                    'type' => 'kendaraan',
+                ]);
+            });
+        PengajuanServis::query()
+            ->with(['kendaraan', 'pengaju'])
+            ->latest('dibuat_pada')
+            ->limit(5)
+            ->get()
+            ->each(function (PengajuanServis $requestItem) use ($recentLogs): void {
+                $recentLogs->push((object) [
+                    'title' => 'Pengajuan biaya '.strtolower($requestItem->jenis_pengajuan),
+                    'description' => "{$requestItem->kendaraan->merk_tipe} - {$requestItem->kendaraan->plat_nomor}",
+                    'timestamp' => $requestItem->dibuat_pada,
+                    'type' => 'pengajuan',
+                ]);
+            });
+        RiwayatServis::query()
+            ->with(['kendaraan', 'pembuat'])
+            ->orderByDesc('tanggal_servis')
+            ->limit(5)
+            ->get()
+            ->each(function (RiwayatServis $serviceHistory) use ($recentLogs): void {
+                $recentLogs->push((object) [
+                    'title' => 'Maintenance selesai dicatat',
+                    'description' => "{$serviceHistory->kendaraan->merk_tipe} di {$serviceHistory->nama_bengkel}",
+                    'timestamp' => Carbon::parse($serviceHistory->tanggal_servis)->startOfDay(),
+                    'type' => 'riwayat',
+                ]);
+            });
+        $recentLogs = $recentLogs->sortByDesc('timestamp')->take(5)->values();
+        $kpiData = [
+            'totalKendaraan' => (int) Kendaraan::query()->count(),
+            'kendaraanBermasalah' => $problemVehicles,
+            'pendingApproval' => $approvalSummary['MENUNGGU'],
+            'laporanKerusakanAktif' => $activeDamageReports,
+            'totalPengeluaranBulanIni' => round((float) $serviceCostThisMonth + (float) $repairCostThisMonth, 2),
+            'totalMaintenance' => (int) RiwayatServis::query()->count(),
+            'totalBiayaMaintenance' => (float) $serviceCostTotal,
+            'totalPengeluaranLengkap' => round((float) $serviceCostTotal + (float) $repairCostTotal, 2),
+            'kategoriBreakdown' => $categoryBreakdown,
+            'bbmBreakdown' => $fuelBreakdown,
+            'lifecycleData' => $lifecycleData,
+            'pengajuanMenungguList' => $pendingApprovals,
+            'alerts' => [
+                'terlambat' => $serviceReminderStatuses->filter(fn (string $status): bool => $status === 'TERLAMBAT_SERVIS')->count(),
+                'mendekati' => $serviceReminderStatuses->filter(fn (string $status): bool => $status === 'MENDEKATI_SERVIS')->count(),
+                'pengajuan' => $approvalSummary['MENUNGGU'],
+                'maintenance' => $activeDamageReports,
+            ],
+            'recentLogs' => $recentLogs,
+        ];
+
         return view('admin.dashboard', [
             'admin' => $admin,
             'stats' => [
@@ -166,6 +274,7 @@ class AdminDashboardController extends Controller
             'approvalSummary' => $approvalSummary,
             'latestNotifications' => $latestNotifications,
             'unreadNotificationsCount' => $unreadNotificationsCount,
+            'kpiData' => $kpiData,
         ]);
     }
 

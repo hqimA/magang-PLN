@@ -89,9 +89,18 @@
                         <div class="flex-1">
                             <x-text-input name="search" type="search" value="{{ $search ?? '' }}" placeholder="Cari plat nomor, merk/tipe, atau pengelola..." class="block w-full" />
                         </div>
+                        <div class="sm:w-56">
+                            <select name="status" class="block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+                                <option value="">Semua Status</option>
+                                <option value="BAIK" @selected(($status ?? '') === 'BAIK')>Aktif</option>
+                                <option value="PERLU_SERVIS" @selected(($status ?? '') === 'PERLU_SERVIS')>Perlu Servis</option>
+                                <option value="SEDANG_SERVIS" @selected(($status ?? '') === 'SEDANG_SERVIS')>Sedang Servis</option>
+                                <option value="RUSAK" @selected(($status ?? '') === 'RUSAK')>Tidak Aktif</option>
+                            </select>
+                        </div>
                         <div class="flex items-center gap-2">
                             <x-primary-button>Cari</x-primary-button>
-                            @if(($search ?? '') !== '')
+                            @if(($search ?? '') !== '' || ($status ?? '') !== '')
                                 <a href="{{ route('kendaraan.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-200 border border-transparent rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
                                     Reset
                                 </a>
@@ -101,7 +110,7 @@
 
                     @if($kendaraans->isEmpty())
                         <p class="text-gray-500 text-center py-8">
-                            @if(($search ?? '') !== '')
+                            @if(($search ?? '') !== '' || ($status ?? '') !== '')
                                 Data tidak ditemukan.
                             @else
                                 Belum ada kendaraan untuk Unit PLN akun ini.
@@ -132,6 +141,7 @@
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit PLN</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tahun</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Km</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pengelola</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                                     </tr>
@@ -170,6 +180,20 @@
                                             <td class="px-4 py-3 text-sm text-gray-700">{{ $kendaraan->unit_pln?->value ?? '-' }}</td>
                                             <td class="px-4 py-3 text-sm text-gray-700">{{ $kendaraan->tahun_pembuatan }}</td>
                                             <td class="px-4 py-3 text-sm text-gray-700">{{ number_format($kendaraan->kilometer_terakhir) }} km</td>
+                                            <td class="px-4 py-3 text-sm">
+                                                @php
+                                                    $statusMap = [
+                                                        'BAIK'         => ['label' => 'Aktif', 'class' => 'bg-green-100 text-green-800'],
+                                                        'PERLU_SERVIS' => ['label' => 'Perlu Servis', 'class' => 'bg-yellow-100 text-yellow-800'],
+                                                        'SEDANG_SERVIS'=> ['label' => 'Sedang Servis', 'class' => 'bg-orange-100 text-orange-800'],
+                                                        'RUSAK'        => ['label' => 'Tidak Aktif', 'class' => 'bg-red-100 text-red-800'],
+                                                    ];
+                                                    $s = $statusMap[$kendaraan->status_perawatan] ?? ['label' => $kendaraan->status_perawatan, 'class' => 'bg-gray-100 text-gray-800'];
+                                                @endphp
+                                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ $s['class'] }}">
+                                                    {{ $s['label'] }}
+                                                </span>
+                                            </td>
                                             <td class="px-4 py-3 text-sm text-gray-700">{{ $kendaraan->pengelola?->name ?? '-' }}</td>
                                             <td class="px-4 py-3 text-sm">
                                                 <div class="flex items-center gap-2">

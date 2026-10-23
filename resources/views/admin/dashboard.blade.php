@@ -275,6 +275,111 @@
                     </div>
                 </div>
             </section>
+
+            <section aria-label="Ringkasan armada tambahan" class="row g-3 mb-4">
+                <div class="col-12 col-xl-4">
+                    <article class="admin-dashboard__card h-100 p-3 p-lg-4">
+                        <h2 class="admin-dashboard__card-heading mb-3">Kondisi dan pengeluaran armada</h2>
+                        <dl class="d-flex flex-column gap-2 mb-0">
+                            <div class="d-flex justify-content-between gap-3">
+                                <dt class="text-secondary">Kendaraan bermasalah</dt>
+                                <dd class="fw-semibold mb-0">{{ number_format($kpiData['kendaraanBermasalah'], 0, ',', '.') }}</dd>
+                            </div>
+                            <div class="d-flex justify-content-between gap-3">
+                                <dt class="text-secondary">Laporan kerusakan aktif</dt>
+                                <dd class="fw-semibold mb-0">{{ number_format($kpiData['laporanKerusakanAktif'], 0, ',', '.') }}</dd>
+                            </div>
+                            <div class="d-flex justify-content-between gap-3">
+                                <dt class="text-secondary">Pengeluaran bulan ini</dt>
+                                <dd class="fw-semibold mb-0">Rp {{ number_format($kpiData['totalPengeluaranBulanIni'], 0, ',', '.') }}</dd>
+                            </div>
+                            <div class="d-flex justify-content-between gap-3">
+                                <dt class="text-secondary">Total pengeluaran</dt>
+                                <dd class="fw-semibold mb-0">Rp {{ number_format($kpiData['totalPengeluaranLengkap'], 0, ',', '.') }}</dd>
+                            </div>
+                        </dl>
+                    </article>
+                </div>
+
+                <div class="col-12 col-xl-4">
+                    <article class="admin-dashboard__card h-100 p-3 p-lg-4">
+                        <h2 class="admin-dashboard__card-heading mb-3">Komposisi dan usia armada</h2>
+                        <div class="d-flex flex-column gap-2">
+                            @foreach ($kpiData['kategoriBreakdown'] as $category)
+                                <div class="d-flex justify-content-between gap-3">
+                                    <span class="text-secondary">{{ str_replace('_', ' ', $category->kategori_penggunaan) }}</span>
+                                    <strong>{{ number_format($category->jumlah, 0, ',', '.') }}</strong>
+                                </div>
+                            @endforeach
+                            @foreach ($kpiData['bbmBreakdown'] as $fuel)
+                                <div class="d-flex justify-content-between gap-3">
+                                    <span class="text-secondary">{{ $fuel->jenis_bbm }}</span>
+                                    <strong>{{ number_format($fuel->jumlah, 0, ',', '.') }}</strong>
+                                </div>
+                            @endforeach
+                            <div class="border-top pt-2">
+                                <span class="small text-secondary">Usia 5 tahun atau lebih: </span>
+                                <strong>{{ number_format($kpiData['lifecycleData']['prioritas'], 0, ',', '.') }} kendaraan</strong>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="col-12 col-xl-4">
+                    <article class="admin-dashboard__card h-100 overflow-hidden">
+                        <div class="p-3 p-lg-4">
+                            <h2 class="admin-dashboard__card-heading mb-1">Persetujuan biaya tertunda</h2>
+                            <p class="mb-0 small text-secondary">{{ number_format($kpiData['pendingApproval'], 0, ',', '.') }} pengajuan menunggu</p>
+                        </div>
+                        @if ($kpiData['pengajuanMenungguList']->isEmpty())
+                            <p class="admin-dashboard__empty-state px-3 pb-4 text-center">Tidak ada pengajuan biaya yang menunggu persetujuan.</p>
+                        @else
+                            <ul class="list-unstyled mb-0 px-3">
+                                @foreach ($kpiData['pengajuanMenungguList'] as $pendingRequest)
+                                    <li class="border-top py-3">
+                                        <p class="mb-2 fw-semibold">{{ $pendingRequest->kendaraan?->merk_tipe }} · {{ $pendingRequest->kendaraan?->plat_nomor }}</p>
+                                        <p class="mb-2 small text-secondary">{{ $pendingRequest->jenis_pengajuan }} — {{ $pendingRequest->pengaju?->name ?? '-' }}</p>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <form method="POST" action="{{ route('pengajuan.approve', $pendingRequest->id) }}">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button class="btn btn-sm btn-success" type="submit">Setujui</button>
+                                            </form>
+                                            <form method="POST" action="{{ route('pengajuan.reject', $pendingRequest->id) }}">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button class="btn btn-sm btn-outline-danger" type="submit">Tolak</button>
+                                            </form>
+                                        </div>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </article>
+                </div>
+            </section>
+
+            <section aria-label="Aktivitas armada terbaru" class="mb-4">
+                <article class="admin-dashboard__card overflow-hidden">
+                    <div class="p-3 p-lg-4">
+                        <h2 class="admin-dashboard__card-heading mb-1">Aktivitas armada terbaru</h2>
+                        <p class="mb-0 small text-secondary">Perubahan kendaraan, pengajuan, dan servis terbaru</p>
+                    </div>
+                    @if ($kpiData['recentLogs']->isEmpty())
+                        <p class="admin-dashboard__empty-state px-3 pb-4 text-center">Belum ada aktivitas armada.</p>
+                    @else
+                        <ul class="list-unstyled mb-0 px-3 px-lg-4">
+                            @foreach ($kpiData['recentLogs'] as $activity)
+                                <li class="admin-dashboard__notification py-3">
+                                    <p class="mb-1 fw-semibold">{{ $activity->title }}</p>
+                                    <p class="mb-1 small text-secondary">{{ $activity->description }}</p>
+                                    <time class="small text-secondary">{{ $activity->timestamp?->translatedFormat('d M Y, H:i') ?? '-' }}</time>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </article>
+            </section>
         </div>
     </div>
 </x-app-layout>

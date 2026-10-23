@@ -7,6 +7,7 @@ use App\Models\RiwayatServis;
 use App\Models\User;
 use App\Services\ImageStorageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Tests\Support\Fakes\FakeImageStorageService;
 use Tests\TestCase;
 
@@ -30,7 +31,7 @@ class RoleAuthorizationTest extends TestCase
         $this->actingAs($admin)->get(route('dashboard'))->assertOk();
         $this->actingAs($admin)->get(route('kendaraan.index'))->assertOk();
         $this->actingAs($admin)->get(route('kendaraan.create'))->assertOk();
-        $this->actingAs($admin)->get(route('kendaraan.show', $kendaraan))->assertOk();
+        $this->actingAs($admin)->get(route('mileage.index'))->assertOk();
         $this->actingAs($admin)->get(route('laporan-pengeluaran.index'))->assertOk();
         $this->actingAs($admin)->get(route('user.index'))->assertOk();
         $this->actingAs($admin)->get(route('user.create'))->assertOk();
@@ -350,6 +351,67 @@ class RoleAuthorizationTest extends TestCase
         $this->actingAs($pengelola)
             ->get(route('kendaraan.show', $kendaraan))
             ->assertForbidden();
+    }
+
+    public function test_pengelola_hanya_melihat_mileage_kendaraan_miliknya(): void
+    {
+        $pengelola = User::factory()->pengelola()->create(['unit_pln' => 'UP2D']);
+        $lainnya = User::factory()->pengelola()->create(['unit_pln' => 'UP3']);
+        $kendaraanLain = Kendaraan::factory()->for($lainnya, 'pengelola')->create([
+            'kilometer_terakhir' => 1000,
+            'unit_pln' => 'UP3',
+        ]);
+
+        $this->actingAs($pengelola)
+            ->get(route('mileage.index'))
+            ->assertOk()
+            ->assertDontSee($kendaraanLain->plat_nomor);
+    }
+
+    public function test_pengelola_tidak_dapat_mencatat_mileage_kendaraan_milik_pengelola_lain(): void
+    {
+        $pengelola = User::factory()->pengelola()->create();
+        $pemilikLain = User::factory()->pengelola()->create(['unit_pln' => 'UP3']);
+        $kendaraan = Kendaraan::factory()->for($pemilikLain, 'pengelola')->create([
+            'kilometer_terakhir' => 1000,
+            'unit_pln' => 'UP3',
+        ]);
+
+        $this->actingAs($pengelola)->post(route('mileage.trip.store'), [
+            'id_kendaraan' => $kendaraan->id,
+            'tanggal_perjalanan' => now()->toDateString(),
+            'kilometer_awal' => 1000,
+            'kilometer_akhir' => 1200,
+            'status_perjalanan' => 'SELESAI',
+            'foto_bukti' => UploadedFile::fake()->image('odometer.jpg'),
+        ])->assertForbidden();
+
+        $this->assertDatabaseMissing('mileage', ['id_kendaraan' => $kendaraan->id]);
+        $this->assertSame(1000, $kendaraan->fresh()->kilometer_terakhir);
+    }
+
+    public function test_pengelola_dapat_mencatat_mileage_kendaraan_miliknya_dengan_awal_dari_database(): void
+    {
+        $pengelola = User::factory()->pengelola()->create();
+        $kendaraan = Kendaraan::factory()->for($pengelola, 'pengelola')->create([
+            'kilometer_terakhir' => 1000,
+        ]);
+
+        $this->actingAs($pengelola)->post(route('mileage.trip.store'), [
+            'id_kendaraan' => $kendaraan->id,
+            'tanggal_perjalanan' => now()->toDateString(),
+            'kilometer_awal' => 100,
+            'kilometer_akhir' => 1200,
+            'status_perjalanan' => 'SELESAI',
+            'foto_bukti' => UploadedFile::fake()->image('odometer.jpg'),
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('mileage', [
+            'id_kendaraan' => $kendaraan->id,
+            'kilometer_awal' => 1000,
+            'kilometer_akhir' => 1200,
+        ]);
+        $this->assertSame(1200, $kendaraan->fresh()->kilometer_terakhir);
     }
 
     public function test_pengelola_tidak_bisa_mengubah_pengaturan_service_reminder(): void

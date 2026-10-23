@@ -96,30 +96,36 @@ class KendaraanTest extends TestCase
             ->assertSee('+ Tambah Kendaraan');
     }
 
-    public function test_admin_vehicle_index_hides_all_vehicle_status_filters_and_labels(): void
+    public function test_vehicle_index_filters_by_status_and_search_together(): void
     {
         $admin = User::factory()->admin()->create();
-        $activeVehicle = Kendaraan::factory()->create([
+        $matchingVehicle = Kendaraan::factory()->create([
             'plat_nomor' => 'B 1111 AAA',
-            'status_perawatan' => 'BAIK',
+            'merk_tipe' => 'Toyota Avanza',
+            'status_perawatan' => 'RUSAK',
         ]);
-        $vehicleNeedingService = Kendaraan::factory()->create([
+        Kendaraan::factory()->create([
             'plat_nomor' => 'B 2222 BBB',
-            'status_perawatan' => 'PERLU_SERVIS',
+            'merk_tipe' => 'Honda Brio',
+            'status_perawatan' => 'RUSAK',
+        ]);
+        Kendaraan::factory()->create([
+            'plat_nomor' => 'B 3333 CCC',
+            'merk_tipe' => 'Toyota Innova',
+            'status_perawatan' => 'BAIK',
         ]);
         $this->withoutVite();
 
-        $response = $this->actingAs($admin)->get(route('kendaraan.index'));
+        $response = $this->actingAs($admin)->get(route('kendaraan.index', [
+            'search' => 'Toyota',
+            'status' => 'RUSAK',
+        ]));
 
         $response->assertOk()
-            ->assertSee($activeVehicle->plat_nomor)
-            ->assertSee($vehicleNeedingService->plat_nomor)
-            ->assertDontSee('name="status"', false)
-            ->assertDontSee('>Status</th>', false)
-            ->assertDontSee('>Aktif</span>', false)
-            ->assertDontSee('>Perlu Servis</span>', false)
-            ->assertDontSee('bg-green-100 text-green-800', false)
-            ->assertDontSee('bg-yellow-100 text-yellow-800', false);
+            ->assertSee($matchingVehicle->plat_nomor)
+            ->assertDontSee('B 2222 BBB')
+            ->assertDontSee('B 3333 CCC')
+            ->assertSee('value="RUSAK" selected', false);
     }
 
     public function test_admin_must_select_at_least_one_vehicle_to_delete(): void
@@ -171,62 +177,6 @@ class KendaraanTest extends TestCase
         $this->assertSame(4500, $vehicle->fresh()->kilometer_terakhir);
         $this->assertSame('Toyota Avanza Update', $vehicle->fresh()->merk_tipe);
         $this->assertSame('RUSAK', $vehicle->fresh()->status_perawatan);
-    }
-
-    public function test_admin_can_assign_an_unassigned_manager_to_the_vehicle_unit_while_editing(): void
-    {
-        $admin = User::factory()->admin()->create();
-        $manager = User::factory()->pengelola()->create(['unit_pln' => null]);
-        $vehicle = Kendaraan::factory()->for($manager, 'pengelola')->create([
-            'unit_pln' => 'UP2D',
-        ]);
-
-        $response = $this->actingAs($admin)->put(route('kendaraan.update', $vehicle), [
-            'plat_nomor' => $vehicle->plat_nomor,
-            'merk_tipe' => $vehicle->merk_tipe,
-            'tahun_pembuatan' => $vehicle->tahun_pembuatan,
-            'transmisi' => $vehicle->transmisi,
-            'jenis_bbm' => $vehicle->jenis_bbm,
-            'kategori_penggunaan' => $vehicle->kategori_penggunaan,
-            'unit_pln' => 'UP3',
-            'tanggal_pembelian' => $vehicle->tanggal_pembelian->toDateString(),
-            'id_pengelola' => $manager->id,
-        ]);
-
-        $response->assertRedirect(route('kendaraan.index'));
-        $this->assertSame('UP3', $vehicle->fresh()->unit_pln->value);
-        $this->assertSame($manager->id, $vehicle->fresh()->id_pengelola);
-        $this->assertSame('UP3', $manager->fresh()->unit_pln->value);
-    }
-
-    public function test_admin_cannot_assign_a_manager_from_a_different_unit_while_editing(): void
-    {
-        $admin = User::factory()->admin()->create();
-        $manager = User::factory()->pengelola()->create(['unit_pln' => 'UP2D']);
-        $vehicle = Kendaraan::factory()->for($manager, 'pengelola')->create([
-            'unit_pln' => 'UP2D',
-        ]);
-
-        $response = $this->actingAs($admin)
-            ->from(route('kendaraan.edit', $vehicle))
-            ->put(route('kendaraan.update', $vehicle), [
-                'plat_nomor' => $vehicle->plat_nomor,
-                'merk_tipe' => $vehicle->merk_tipe,
-                'tahun_pembuatan' => $vehicle->tahun_pembuatan,
-                'transmisi' => $vehicle->transmisi,
-                'jenis_bbm' => $vehicle->jenis_bbm,
-                'kategori_penggunaan' => $vehicle->kategori_penggunaan,
-                'unit_pln' => 'UP3',
-                'tanggal_pembelian' => $vehicle->tanggal_pembelian->toDateString(),
-                'id_pengelola' => $manager->id,
-            ]);
-
-        $response->assertRedirect(route('kendaraan.edit', $vehicle))
-            ->assertSessionHasErrors([
-                'id_pengelola' => 'Pengelola harus berasal dari Unit PLN kendaraan yang dipilih.',
-            ]);
-        $this->assertSame('UP2D', $vehicle->fresh()->unit_pln->value);
-        $this->assertSame('UP2D', $manager->fresh()->unit_pln->value);
     }
 
     public function test_manual_vehicle_form_uses_pln_unit_for_access_without_asking_for_status(): void
@@ -421,4 +371,61 @@ class KendaraanTest extends TestCase
 
         return $component;
     }
+
+    public function test_admin_can_assign_an_unassigned_manager_to_the_vehicle_unit_while_editing(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $manager = User::factory()->pengelola()->create(['unit_pln' => null]);
+        $vehicle = Kendaraan::factory()->for($manager, 'pengelola')->create([
+            'unit_pln' => 'UP2D',
+        ]);
+
+        $response = $this->actingAs($admin)->put(route('kendaraan.update', $vehicle), [
+            'plat_nomor' => $vehicle->plat_nomor,
+            'merk_tipe' => $vehicle->merk_tipe,
+            'tahun_pembuatan' => $vehicle->tahun_pembuatan,
+            'transmisi' => $vehicle->transmisi,
+            'jenis_bbm' => $vehicle->jenis_bbm,
+            'kategori_penggunaan' => $vehicle->kategori_penggunaan,
+            'unit_pln' => 'UP3',
+            'tanggal_pembelian' => $vehicle->tanggal_pembelian->toDateString(),
+            'id_pengelola' => $manager->id,
+        ]);
+
+        $response->assertRedirect(route('kendaraan.index'));
+        $this->assertSame('UP3', $vehicle->fresh()->unit_pln->value);
+        $this->assertSame($manager->id, $vehicle->fresh()->id_pengelola);
+        $this->assertSame('UP3', $manager->fresh()->unit_pln->value);
+    }
+
+    public function test_admin_cannot_assign_a_manager_from_a_different_unit_while_editing(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $manager = User::factory()->pengelola()->create(['unit_pln' => 'UP2D']);
+        $vehicle = Kendaraan::factory()->for($manager, 'pengelola')->create([
+            'unit_pln' => 'UP2D',
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->from(route('kendaraan.edit', $vehicle))
+            ->put(route('kendaraan.update', $vehicle), [
+                'plat_nomor' => $vehicle->plat_nomor,
+                'merk_tipe' => $vehicle->merk_tipe,
+                'tahun_pembuatan' => $vehicle->tahun_pembuatan,
+                'transmisi' => $vehicle->transmisi,
+                'jenis_bbm' => $vehicle->jenis_bbm,
+                'kategori_penggunaan' => $vehicle->kategori_penggunaan,
+                'unit_pln' => 'UP3',
+                'tanggal_pembelian' => $vehicle->tanggal_pembelian->toDateString(),
+                'id_pengelola' => $manager->id,
+            ]);
+
+        $response->assertRedirect(route('kendaraan.edit', $vehicle))
+            ->assertSessionHasErrors([
+                'id_pengelola' => 'Pengelola harus berasal dari Unit PLN kendaraan yang dipilih.',
+            ]);
+        $this->assertSame('UP2D', $vehicle->fresh()->unit_pln->value);
+        $this->assertSame('UP2D', $manager->fresh()->unit_pln->value);
+    }
+
 }
