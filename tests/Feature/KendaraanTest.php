@@ -113,7 +113,7 @@ class KendaraanTest extends TestCase
     public function test_vehicle_edit_displays_mileage_as_read_only_and_ignores_submitted_mileage(): void
     {
         $admin = User::factory()->admin()->create();
-        $manager = User::factory()->pengelola()->create();
+        $manager = User::factory()->pengelola()->create(['unit_pln' => 'UP2D']);
         $vehicle = Kendaraan::factory()->for($manager, 'pengelola')->create([
             'kilometer_terakhir' => 4500,
         ]);
@@ -136,7 +136,6 @@ class KendaraanTest extends TestCase
             'kilometer_terakhir' => 999999,
             'tanggal_pembelian' => $vehicle->tanggal_pembelian,
             'status_perawatan' => $vehicle->status_perawatan,
-            'id_pengelola' => $manager->id,
         ])->assertRedirect(route('kendaraan.index'));
 
         $this->assertSame(4500, $vehicle->fresh()->kilometer_terakhir);
@@ -158,16 +157,8 @@ class KendaraanTest extends TestCase
 
         $response->assertOk()
             ->assertSee('Pilih Unit PLN')
-            ->assertSee('Kendaraan ini akan dapat diakses oleh Pengelola di Unit PLN yang dipilih.')
-            ->assertSee('Pilih Pengelola yang tersedia atau pilih Unit PLN untuk menyaring daftar.')
-            ->assertSee('data-unit="UP2D"', false)
-            ->assertSee('data-unit="UP3"', false)
-            ->assertDontSee('Pengelola Belum Ditentukan')
-            ->assertDontSee('name="status_perawatan"', false);
-
-        $managerSelect = [];
-        $this->assertSame(1, preg_match('/<select id="id_pengelola"[^>]*>/', $response->getContent(), $managerSelect));
-        $this->assertStringNotContainsString('disabled', $managerSelect[0]);
+            ->assertDontSee('name="status_perawatan"', false)
+            ->assertDontSee('name="id_pengelola"', false);
 
         $this->actingAs($admin)->post(route('kendaraan.store'), [
             'plat_nomor' => 'B 3333 PLN',
@@ -179,7 +170,6 @@ class KendaraanTest extends TestCase
             'unit_pln' => 'UP2D',
             'kilometer_terakhir' => 10000,
             'tanggal_pembelian' => '2022-01-01',
-            'id_pengelola' => $up2dManager->id,
             'status_perawatan' => 'RUSAK',
         ])->assertRedirect(route('kendaraan.index'));
 
@@ -192,7 +182,7 @@ class KendaraanTest extends TestCase
     public function test_admin_created_vehicle_receives_its_recommended_template_components(): void
     {
         $admin = User::factory()->admin()->create();
-        $manager = User::factory()->pengelola()->create();
+        $manager = User::factory()->pengelola()->create(['unit_pln' => 'UP2D']);
         $template = TemplateJadwalServis::create([
             'nama' => 'Bensin Manual',
             'jenis_bbm' => 'BENSIN',
@@ -211,7 +201,6 @@ class KendaraanTest extends TestCase
             'unit_pln' => 'UP2D',
             'kilometer_terakhir' => 10000,
             'tanggal_pembelian' => '2022-01-01',
-            'id_pengelola' => $manager->id,
         ]);
 
         $response->assertRedirect(route('kendaraan.index'));
@@ -228,7 +217,7 @@ class KendaraanTest extends TestCase
     public function test_vehicle_component_template_is_refreshed_when_fuel_or_transmission_changes(): void
     {
         $admin = User::factory()->admin()->create();
-        $manager = User::factory()->pengelola()->create();
+        $manager = User::factory()->pengelola()->create(['unit_pln' => 'UP2D']);
         $oldTemplate = TemplateJadwalServis::create([
             'nama' => 'Bensin Manual',
             'jenis_bbm' => 'BENSIN',
@@ -259,7 +248,6 @@ class KendaraanTest extends TestCase
             'unit_pln' => 'UP2D',
             'tanggal_pembelian' => $kendaraan->tanggal_pembelian->toDateString(),
             'status_perawatan' => $kendaraan->status_perawatan,
-            'id_pengelola' => $manager->id,
         ]);
 
         $response->assertRedirect(route('kendaraan.index'));

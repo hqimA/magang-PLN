@@ -124,17 +124,8 @@
                                 <x-input-error :messages="$errors->get('status_perawatan')" class="mt-2" />
                             </div>
 
-                            <!-- Pengelola -->
-                            <div>
-                                <x-input-label for="id_pengelola" :value="__('Pengelola')" />
-                                <select id="id_pengelola" name="id_pengelola" class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm block mt-1 w-full" required>
-                                    <option value="">-- Pilih Pengelola --</option>
-                                    @foreach($pengelolas as $p)
-                                        <option value="{{ $p->id }}" {{ old('id_pengelola', $kendaraan->id_pengelola) == $p->id ? 'selected' : '' }}>{{ $p->name }} ({{ $p->unit_pln?->value ?? 'Belum ada unit' }})</option>
-                                    @endforeach
-                                </select>
-                                <x-input-error :messages="$errors->get('id_pengelola')" class="mt-2" />
-                            </div>
+                            <!-- Pengelola (otomatis dari Unit PLN) -->
+                            <x-input-error :messages="$errors->get('id_pengelola')" class="mt-2" />
                         </div>
 
                         <div class="flex items-center justify-end mt-6">
