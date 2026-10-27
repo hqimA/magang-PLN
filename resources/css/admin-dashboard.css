@@ -15,12 +15,211 @@
     max-width: 1600px;
 }
 
+.admin-dashboard__hero {
+    isolation: isolate;
+    overflow: hidden;
+    padding: clamp(1.5rem, 3vw, 2.5rem);
+    position: relative;
+    border: 1px solid rgb(255 255 255 / 0.12);
+    border-radius: 1.15rem;
+    background:
+        radial-gradient(circle at 83% 18%, rgb(125 211 252 / 0.22), transparent 24rem),
+        linear-gradient(118deg, #103b70 0%, #155ca5 54%, #1685c7 100%);
+    box-shadow: 0 16px 36px rgb(15 55 100 / 0.18);
+    color: #ffffff;
+}
+
+.admin-dashboard__hero::after {
+    border: 1px solid rgb(255 255 255 / 0.09);
+    border-radius: 50%;
+    box-shadow: 0 0 0 2.5rem rgb(255 255 255 / 0.035), 0 0 0 5rem rgb(255 255 255 / 0.025);
+    content: "";
+    height: 14rem;
+    pointer-events: none;
+    position: absolute;
+    right: -3rem;
+    top: -8rem;
+    width: 14rem;
+    z-index: -1;
+}
+
+.admin-dashboard__hero-copy,
+.admin-dashboard__hero-actions {
+    position: relative;
+    z-index: 1;
+}
+
 .admin-dashboard__eyebrow {
-    color: var(--dashboard-muted);
+    align-items: center;
+    color: rgb(224 242 254 / 0.9);
+    display: inline-flex;
     font-size: 0.75rem;
     font-weight: 700;
+    gap: 0.55rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
+}
+
+.admin-dashboard__live-dot {
+    background: #facc15;
+    border-radius: 50%;
+    box-shadow: 0 0 0 0.25rem rgb(250 204 21 / 0.16);
+    height: 0.5rem;
+    width: 0.5rem;
+}
+
+.admin-dashboard__hero-title {
+    color: #fde047 !important;
+    font-size: clamp(1.85rem, 3.3vw, 2.65rem);
+    font-weight: 750;
+    letter-spacing: -0.045em;
+    line-height: 1.08;
+}
+
+.admin-dashboard__hero-description {
+    color: rgb(239 246 255 / 0.82);
+    font-size: 0.98rem;
+    max-width: 42rem;
+}
+
+.admin-dashboard__hero-description strong {
+    color: #ffffff;
+    font-weight: 650;
+}
+
+.admin-dashboard__date {
+    align-items: center;
+    color: rgb(224 242 254 / 0.8);
+    display: flex;
+    font-size: 0.82rem;
+    gap: 0.5rem;
+}
+
+.admin-dashboard__date svg {
+    height: 1rem;
+    width: 1rem;
+}
+
+.admin-dashboard__hero-actions {
+    max-width: 100%;
+}
+
+.admin-dashboard__hero-button {
+    align-items: center;
+    border: 1px solid transparent;
+    border-radius: 0.7rem;
+    display: inline-flex;
+    font-size: 0.875rem;
+    font-weight: 650;
+    gap: 0.55rem;
+    justify-content: center;
+    min-height: 2.8rem;
+    padding: 0.65rem 0.9rem;
+    text-decoration: none;
+    transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease;
+    white-space: nowrap;
+}
+
+.admin-dashboard__hero-button:hover {
+    transform: translateY(-1px);
+}
+
+.admin-dashboard__hero-button:focus-visible,
+.admin-dashboard__hero-profile:focus-visible {
+    outline: 3px solid #facc15;
+    outline-offset: 3px;
+}
+
+.admin-dashboard__hero-button svg {
+    height: 1.1rem;
+    width: 1.1rem;
+}
+
+.admin-dashboard__hero-button--secondary {
+    background: rgb(255 255 255 / 0.1);
+    border-color: rgb(255 255 255 / 0.25);
+    color: #ffffff;
+}
+
+.admin-dashboard__hero-button--secondary:hover {
+    background: rgb(255 255 255 / 0.18);
+    border-color: rgb(255 255 255 / 0.4);
+    color: #ffffff;
+}
+
+.admin-dashboard__hero-button--primary {
+    background: #facc15;
+    border-color: #facc15;
+    color: #173b5e;
+}
+
+.admin-dashboard__hero-button--primary:hover {
+    background: #fde047;
+    border-color: #fde047;
+    color: #173b5e;
+}
+
+.admin-dashboard__hero-profile {
+    align-items: center;
+    background: rgb(8 47 85 / 0.24);
+    border: 1px solid rgb(255 255 255 / 0.16);
+    border-radius: 0.7rem;
+    color: #ffffff;
+    display: flex;
+    gap: 0.65rem;
+    margin-left: 0.25rem;
+    min-height: 2.8rem;
+    padding: 0.35rem 0.65rem;
+    text-decoration: none;
+    transition: background-color 150ms ease;
+}
+
+.admin-dashboard__hero-profile:hover {
+    background: rgb(8 47 85 / 0.4);
+    color: #ffffff;
+}
+
+.admin-dashboard__hero-avatar {
+    align-items: center;
+    background: rgb(255 255 255 / 0.16);
+    border-radius: 0.55rem;
+    color: #ffffff;
+    display: inline-flex;
+    height: 2rem;
+    justify-content: center;
+    width: 2rem;
+}
+
+.admin-dashboard__hero-avatar svg {
+    height: 1.15rem;
+    width: 1.15rem;
+}
+
+.admin-dashboard__hero-profile-copy {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+    max-width: 9rem;
+    overflow: hidden;
+}
+
+.admin-dashboard__hero-profile-name {
+    font-size: 0.8rem;
+    font-weight: 650;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-dashboard__hero-profile-role {
+    color: rgb(224 242 254 / 0.72);
+    font-size: 0.7rem;
+}
+
+.admin-dashboard__hero-profile-arrow {
+    height: 1rem;
+    opacity: 0.7;
+    width: 1rem;
 }
 
 .admin-dashboard__title {
@@ -116,6 +315,20 @@
 }
 
 @media (max-width: 575.98px) {
+    .admin-dashboard__hero {
+        border-radius: 0.9rem;
+    }
+
+    .admin-dashboard__hero-actions,
+    .admin-dashboard__hero-button,
+    .admin-dashboard__hero-profile {
+        width: 100%;
+    }
+
+    .admin-dashboard__hero-profile {
+        margin-left: 0;
+    }
+
     .admin-dashboard__chart {
         height: 220px;
     }

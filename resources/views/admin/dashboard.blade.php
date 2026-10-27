@@ -20,22 +20,49 @@
 <x-app-layout>
     <div class="admin-dashboard container-fluid px-3 px-lg-4 py-4 py-xl-5">
         <div class="admin-dashboard__container mx-auto">
-            <header class="align-items-start align-items-md-center d-flex flex-column flex-md-row gap-3 justify-content-between mb-4">
-                <div>
-                    <p class="admin-dashboard__eyebrow mb-2">Fleet Management PLN</p>
-                    <h1 class="admin-dashboard__title mb-1">Dashboard Admin</h1>
-                    <p class="mb-2 text-secondary">Selamat datang, {{ $admin->name }}. Ringkasan armada dan aktivitas maintenance kendaraan.</p>
-                    <p class="mb-0 small text-secondary">{{ now()->locale('id')->translatedFormat('l, d F Y') }}</p>
+            <header class="admin-dashboard__hero align-items-start align-items-xl-center d-flex flex-column flex-xl-row gap-4 justify-content-between mb-4">
+                <div class="admin-dashboard__hero-copy">
+                    <p class="admin-dashboard__eyebrow mb-3">
+                        <span class="admin-dashboard__live-dot" aria-hidden="true"></span>
+                        Fleet Management PLN
+                    </p>
+                    <h1 class="admin-dashboard__hero-title mb-2">Dashboard Admin</h1>
+                    <p class="admin-dashboard__hero-description mb-3">
+                        Selamat datang, {{ $admin->name }}. Pantau kondisi armada dan aktivitas maintenance dalam satu tempat.
+                    </p>
+                    <p class="admin-dashboard__date mb-0">
+                        <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 3v3m8-3v3M4.5 9h15M6 5h12a1.5 1.5 0 011.5 1.5v12A1.5 1.5 0 0118 20H6a1.5 1.5 0 01-1.5-1.5v-12A1.5 1.5 0 016 5z" />
+                        </svg>
+                        {{ now()->locale('id')->translatedFormat('l, d F Y') }}
+                    </p>
                 </div>
-                <div class="align-items-center d-flex flex-wrap gap-2">
-                    <a class="btn btn-outline-secondary" href="{{ route('laporan-pengeluaran.index') }}">
+                <div class="admin-dashboard__hero-actions align-items-stretch align-items-sm-center d-flex flex-column flex-sm-row flex-wrap gap-2">
+                    <a class="admin-dashboard__hero-button admin-dashboard__hero-button--secondary" href="{{ route('laporan-pengeluaran.index') }}">
+                        <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 3.75h7.5L19 8.25v12H7a2 2 0 01-2-2v-12a2 2 0 012-2zM14 3.75v5h5M9 13h6m-6 3.5h6" />
+                        </svg>
                         Laporan pengeluaran
                     </a>
-                    <a class="btn btn-primary" href="{{ route('kendaraan.create') }}">
+                    <a class="admin-dashboard__hero-button admin-dashboard__hero-button--primary" href="{{ route('kendaraan.create') }}">
+                        <svg aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m7-7H5" />
+                        </svg>
                         Tambah kendaraan
                     </a>
-                    <a aria-label="Profil pengguna" class="btn btn-light border" href="{{ route('profile.edit') }}">
-                        {{ $admin->name }}
+                    <a aria-label="Profil pengguna: {{ $admin->name }}" class="admin-dashboard__hero-profile" href="{{ route('profile.edit') }}">
+                        <span class="admin-dashboard__hero-avatar" aria-hidden="true">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16 7.5a4 4 0 11-8 0 4 4 0 018 0zM4.5 20a7.5 7.5 0 0115 0" />
+                            </svg>
+                        </span>
+                        <span class="admin-dashboard__hero-profile-copy">
+                            <span class="admin-dashboard__hero-profile-name">{{ $admin->name }}</span>
+                            <span class="admin-dashboard__hero-profile-role">Administrator</span>
+                        </span>
+                        <svg class="admin-dashboard__hero-profile-arrow" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6" />
+                        </svg>
                     </a>
                 </div>
             </header>
